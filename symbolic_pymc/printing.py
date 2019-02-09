@@ -7,6 +7,8 @@ import theano.tensor as tt
 from copy import copy
 from collections import OrderedDict
 
+from theano import gof
+
 from sympy import Array as SympyArray
 from sympy.printing import latex as sympy_latex
 
@@ -14,7 +16,7 @@ from . import *
 from .rv import RandomVariable
 
 
-class RandomVariablePrinter:
+class RandomVariablePrinter(object):
     """Pretty print random variables.
     """
 
@@ -90,7 +92,7 @@ class RandomVariablePrinter:
         return out_name
 
 
-class VariableWithShapePrinter:
+class VariableWithShapePrinter(object):
     """Print variable shape info in the preamble and use readable character
     names for unamed variables.
     """
@@ -104,7 +106,7 @@ class VariableWithShapePrinter:
 
         using_latex = getattr(pstate, 'latex', False)
 
-        if isinstance(output, tt.gof.Constant):
+        if isinstance(output, gof.Constant):
             if output.ndim > 0 and using_latex:
                 out_name = sympy_latex(SympyArray(output.data))
             else:
@@ -123,15 +125,14 @@ class VariableWithShapePrinter:
         return out_name
 
     @classmethod
-    def process_shape_name(cls, output, pstate):
-        shape_of_var = output.owner.inputs[0]
-        shape_names = pstate.memo.setdefault('shape_names', {})
-        out_name = shape_names.setdefault(
-            shape_of_var, cls.process_variable_name(output, pstate))
-        return out_name
-
-    @classmethod
     def process_variable_name(cls, output, pstate):
+        """Take a variable name from the available ones.
+
+        This function also initializes the available names by
+        removing all the manually specified names within the
+        `FunctionGraph` being printed (if available).
+        Doing so removes the potential for name collisions.
+        """
         if output in pstate.memo:
             return pstate.memo[output]
 
@@ -227,13 +228,22 @@ class VariableWithShapePrinter:
 class PreamblePPrinter(theano.printing.PPrinter):
     """Pretty printer that displays a preamble.
 
-    For example,
+    Example
+    =======
 
-        X ~ N(\\mu, \\sigma)
-        (b * X)
+    >>> import theano.tensor as tt
+    >>> from symbolic_pymc import NormalRV
+    >>> from symbolic_pymc.printing import tt_pprint
+    >>> X_rv = NormalRV(tt.scalar('\\mu'), tt.scalar('\\sigma'), name='X')
+    >>> print(tt_pprint(X_rv))
+    \\mu in R
+    \\sigma in R
+    X ~ N(\\mu, \\sigma**2),  X in R
+    X
 
     XXX: Not thread-safe!
     """
+
     def __init__(self, *args, pstate_defaults=None, **kwargs):
         """
         Parameters
@@ -275,7 +285,7 @@ class PreamblePPrinter(theano.printing.PPrinter):
 
     def process_graph(self, inputs, outputs, updates=None,
                       display_inputs=False):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def __call__(self, *args, latex_env='equation', latex_label=None):
         var = args[0]
@@ -284,33 +294,43 @@ class PreamblePPrinter(theano.printing.PPrinter):
             pstate = self.create_state(args[1])
         elif pstate is None:
             pstate = self.create_state(None)
-        # else:
-        #     # XXX: The graph processing doesn't pass around the printer state!
-        #     # TODO: We'll have to copy the code and fix it...
-        #     raise NotImplemented('No preambles for graph printing, yet.')
 
         # This pretty printer needs more information about shapes and inputs,
         # which it gets from a `FunctionGraph`.  Create one, if `var` isn't
         # already assigned one.
-        fgraph = getattr(var, 'fgraph', None)
+        if isinstance(var, gof.fg.FunctionGraph):
+            fgraph = var
+            if not hasattr(fgraph, 'shape_feature'):
+                shape_feature = tt.opt.ShapeFeature()
+                fgraph.attach_feature(shape_feature)
+            out_vars = fgraph.outputs
+        else:
+            fgraph = getattr(var, 'fgraph', None)
+            out_vars = [var]
+
         if not fgraph:
-            fgraph = tt.gof.fg.FunctionGraph(
-                tt.gof.graph.inputs([var]), [var])
-            var = fgraph.outputs[0]
+            fgraph = gof.fg.FunctionGraph(
+                gof.graph.inputs([var]), [var])
+            out_vars = fgraph.outputs
 
             # Use this to get better shape info
             shape_feature = tt.opt.ShapeFeature()
             fgraph.attach_feature(shape_feature)
 
-        body_str = super().__call__(var, pstate)
+        # TODO: How should this be formatted to better designate
+        # the output numbers (in LaTeX, as well)?
+        body_strs = []
+        for v in out_vars:
+            body_strs += [super().__call__(v, pstate)]
 
         latex_out = getattr(pstate, 'latex', False)
         if pstate.preamble_lines and latex_out:
-            preamble_str = "\n\\\\\n".join(pstate.preamble_lines)
-            preamble_str = "\\begin{gathered}\n%s\n\\end{gathered}" % (preamble_str)
-            res = "\n\\\\\n".join([preamble_str, body_str])
+            preamble_body = "\n\\\\\n".join(pstate.preamble_lines)
+            preamble_str = "\\begin{gathered}\n%s\n\\end{gathered}"
+            preamble_str = preamble_str % (preamble_body)
+            res = "\n\\\\\n".join([preamble_str] + body_strs)
         else:
-            res = "\n".join(pstate.preamble_lines + [body_str])
+            res = "\n".join(pstate.preamble_lines + body_strs)
 
         if latex_out and latex_env:
             label_out = f'\\label{{{latex_label}}}\n' if latex_label else ''
@@ -331,6 +351,40 @@ tt_pprint.assign(GammaRV, RandomVariablePrinter('Gamma'))
 tt_pprint.assign(ExponentialRV, RandomVariablePrinter('Exp'))
 
 
+class ObservationPrinter(object):
+
+    def process(self, output, pstate):
+        if output in pstate.memo:
+            return pstate.memo[output]
+
+        pprinter = pstate.pprinter
+        node = output.owner
+
+        if node is None or not isinstance(node.op, Observed):
+            raise TypeError(f'Node Op is not of type `Observed`: {node.op}')
+
+        val = node.inputs[0]
+        rv = node.inputs[1]
+        new_precedence = -1000
+        try:
+            old_precedence = getattr(pstate, 'precedence', None)
+            pstate.precedence = new_precedence
+
+            val_name = pprinter.process(val, pstate)
+
+            rv_name = pprinter.process(rv, pstate)
+
+            out_name = f'{rv_name} = {val_name}'
+        finally:
+            pstate.precedence = old_precedence
+
+        pstate.memo[output] = out_name
+        return out_name
+
+
+tt_pprint.assign(Observed, ObservationPrinter())
+
+
 class NormalRVPrinter(RandomVariablePrinter):
     def __init__(self):
         super().__init__('N')
@@ -346,7 +400,7 @@ class NormalRVPrinter(RandomVariablePrinter):
 
 
 tt_pprint.assign(NormalRV, NormalRVPrinter())
-tt_pprint.assign(MvNormalRV, NormalRVPrinter())
+tt_pprint.assign(MvNormalRV, RandomVariablePrinter('N'))
 
 tt_pprint.assign(DirichletRV, RandomVariablePrinter('Dir'))
 tt_pprint.assign(PoissonRV, RandomVariablePrinter('Pois'))
