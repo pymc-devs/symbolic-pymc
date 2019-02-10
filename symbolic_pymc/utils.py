@@ -128,7 +128,7 @@ def mt_type_params(x):
     return {'ttype': x.type, 'index': x.index, 'name': x.name}
 
 
-def optimize_graph(x, optimization):
+def optimize_graph(x, optimization, return_graph=False, in_place=False):
     """Apply an optimization to either the graph formed by a Theano variable or
     an existing graph and return the resulting optimized graph.
 
@@ -148,12 +148,19 @@ def optimize_graph(x, optimization):
     else:
         x_graph = x
 
-    x_graph_opt = x_graph.clone()
-    optimization.optimize(x_graph_opt)
-    return x_graph_opt.outputs[0]
+    x_graph_opt = x_graph.clone() if in_place else x_graph
+    _ = optimization.optimize(x_graph_opt)
+
+    if return_graph:
+        res = x_graph_opt
+    else:
+        res = x_graph_opt.outputs
+        if len(res) == 1:
+            res, = res
+    return res
 
 
-def canonicalize(x):
+def canonicalize(x, **kwargs):
     """Canonicalize a Theano variable and/or graph.
     """
-    return optimize_graph(x, canonicalize_opt)
+    return optimize_graph(x, canonicalize_opt, **kwargs)

@@ -150,7 +150,7 @@ class Observed(tt.Op):
             if not rv.owner or not isinstance(rv.owner.op, RandomVariable):
                 raise ValueError(f'`rv` must be a RandomVariable type: {rv}')
 
-            if val.type.convert_variable(rv) is None:
+            if rv.type.convert_variable(val) is None:
                 raise ValueError(
                     ('`rv` and `val` do not have compatible types:'
                      f' rv={rv}, val={val}'))

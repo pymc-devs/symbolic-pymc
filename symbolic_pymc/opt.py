@@ -3,6 +3,7 @@ import theano.tensor as tt
 from unification import var, variables
 
 from kanren import run
+from kanren.core import evalt
 
 from theano.gof.opt import LocalOptimizer
 
@@ -78,7 +79,6 @@ class KanrenRelationSub(LocalOptimizer):
         return res
 
     def transform(self, node):
-        # TODO: Could do this with `self.tracks`?
         if not isinstance(node, tt.Apply):
             return False
 
@@ -95,10 +95,11 @@ class KanrenRelationSub(LocalOptimizer):
             # objects.
             if isinstance(chosen_res, tuple) and chosen_res[0] == dict:
                 # We got a dictionary of replacements.
-                new_node = {}
-                for k, v in chosen_res[1]:
-                    assert k.obj in node.fgraph.variables
-                    new_node[k.obj] = reify_meta(v)
+                new_node = {k.obj: reify_meta(v)
+                            for k, v in evalt(chosen_res).items()}
+
+                assert all(k in node.fgraph.variables
+                           for k in new_node)
             else:
                 new_node = self.adjust_outputs(node, reify_meta(chosen_res))
 

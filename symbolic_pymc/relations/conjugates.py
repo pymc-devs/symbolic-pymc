@@ -38,10 +38,23 @@ Y_mt = mt.MvNormalRV(E_y_mt, V_lv,
 # given by `Y_mt`
 y_mt = var('y')
 
-# Mark as observed
+# TODO: It's a little restrictive that we limit this conjugate
+# update to only those random variables attached to observations.
+# Right now it serves as a way to pull in a distinct tensor carrying
+# observation values, since the tensor corresponding to a sample
+# from the observation distribution (i.e. `Y_mt`) cannot be a shared
+# or constant tensor with a user-set value.
+# We can simply add the non-observation pattern, let it do the Bayes
+# update, then follow that up with an relation/optimization that exchanges
+# the `RandomVariable` with its associated observed tensor (e.g. swap
+# `Y_mt` with `y_mt` once all the conjugate updates are done).  This
+# would have to be restricted to updated `RandomVariables` that are
+# also `FunctionGraph` outputs (i.e. the ones we might want to sample).
+
+# Make the observation relationship explicit in the graph.
 Y_obs_mt = mt.observed(y_mt, Y_mt)
 
-# Create tuple-form expressions for the posterior posterior
+# Create tuple-form expressions for the posterior
 e_expr = mt.sub(Y_obs_mt, mt.dot(F_t_lv, a_lv))
 F_expr = (mt.transpose, F_t_lv)
 R_F_expr = (mt.dot, R_lv, F_expr)
@@ -54,6 +67,10 @@ A_expr = (mt.dot, R_F_expr, (mt.matrix_inverse, Q_expr))
 # m = C \left(F V^{-1} y + R^{-1} a\right)
 m_expr = (mt.add, a_lv, (mt.dot, A_expr, e_expr))
 # C = \left(R^{-1} + F V^{-1} F^{\top}\right)^{-1}
+# TODO: We could use the naive posterior forms and apply identities, like
+# Woodbury's, in another set of "simplification" relations.
+# In some cases, this might make the patterns simpler and more broadly
+# applicable.
 C_expr = (mt.sub,
           R_lv,
           (mt.dot,
@@ -71,7 +88,7 @@ fact(conjugate,
      Y_obs_mt, norm_posterior_exprs)
 
 
-def posterior_transforms(x, y):
+def conjugate_posteriors(x, y):
     """A goal relating conjugate priors and their posterior forms.
 
     This goal unifies `y` with a tuple-form expression for a dictionary
@@ -83,15 +100,12 @@ def posterior_transforms(x, y):
     z = var()
     return (conde, ((conjugate, x, z),
                     (eq, y,
-                     (dict, (
-                         # Replace observation with one that doesn't link to
-                         # the integrated one
-                         (Y_obs_mt, (mt.observed, y_mt)),
-                         # Completely remove the integrated distribution
-                         # TODO: How are these encoded?  `process_node` implies
-                         # that a key named "remove" should contain nodes to remove.
-                         # Ultimately, those elements are given to `fgraph.replace_all_validate_remove`
-                         # as the `remove` keyword.
-                         # (Y_mt, None),
-                         # Replace the prior with the posterior
-                         (beta_prior_mt, z))))))
+                     (dict,
+                      [
+                          # Replace observation with one that doesn't link to
+                          # the integrated one
+                          (Y_obs_mt, (mt.observed, y_mt, None)),
+                          # (Y_mt, None),
+                          # Replace the prior with the posterior
+                          (beta_prior_mt, z),
+                      ]))))

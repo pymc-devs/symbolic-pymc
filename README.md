@@ -100,24 +100,88 @@ Z_rv = 10.0
 produces
 ```latex
 \begin{equation}
-		\begin{gathered}
-		mu_X \in \mathbb{R}
-		\\
-		sd_X \in \mathbb{R}
-		\\
-		X_rv \sim \operatorname{N}\left(mu_X, {sd_X}^{2}\right), \quad X_rv \in \mathbb{R}
-		\\
-		mu_Y \in \mathbb{R}
-		\\
-		sd_Y \in \mathbb{R}
-		\\
-		Y_rv \sim \operatorname{N}\left(mu_Y, {sd_Y}^{2}\right), \quad Y_rv \in \mathbb{R}
-		\\
-		Z_rv \sim \operatorname{N}\left((X_rv + Y_rv), {(sd_X + sd_Y)}^{2}\right), \quad Z_rv \in \mathbb{R}
-		\end{gathered}
-		\\
-		Z_rv = 10.0
+  \begin{gathered}
+  mu_X \in \mathbb{R}
+  \\
+  sd_X \in \mathbb{R}
+  \\
+  X_rv \sim \operatorname{N}\left(mu_X, {sd_X}^{2}\right), \quad X_rv \in \mathbb{R}
+  \\
+  mu_Y \in \mathbb{R}
+  \\
+  sd_Y \in \mathbb{R}
+  \\
+  Y_rv \sim \operatorname{N}\left(mu_Y, {sd_Y}^{2}\right), \quad Y_rv \in \mathbb{R}
+  \\
+  Z_rv \sim \operatorname{N}\left((X_rv + Y_rv), {(sd_X + sd_Y)}^{2}\right), \quad Z_rv \in \mathbb{R}
+  \end{gathered}
+  \\
+  Z_rv = 10.0
 \end{equation}
+```
+
+### Compute Symbolic Closed-form Posteriors
+
+```python
+import numpy as np
+import theano
+import theano.tensor as tt
+import pymc3 as pm
+
+from theano.gof.opt import EquilibriumOptimizer
+
+from symbolic_pymc.pymc3 import model_graph
+from symbolic_pymc.utils import optimize_graph, canonicalize
+from symbolic_pymc.printing import tt_pprint
+from symbolic_pymc.opt import KanrenRelationSub
+from symbolic_pymc.relations.conjugates import conjugate_posteriors
+
+theano.config.cxx = ''
+theano.config.compute_test_value = 'ignore'
+
+a_tt = tt.vector('a')
+R_tt = tt.matrix('R')
+F_t_tt = tt.matrix('F')
+V_tt = tt.matrix('V')
+
+a_tt.tag.test_value = np.r_[1., 0.]
+R_tt.tag.test_value = np.diag([10., 10.])
+F_t_tt.tag.test_value = np.c_[-2., 1.]
+V_tt.tag.test_value = np.diag([0.5])
+
+y_tt = tt.as_tensor_variable(np.r_[-3.])
+y_tt.name = 'y'
+
+with pm.Model() as model:
+
+    # A normal prior
+    beta_rv = pm.MvNormal('\\beta', a_tt, R_tt, shape=(2,))
+
+    # An observed random variable using the prior as a regression parameter
+    E_y_rv = F_t_tt.dot(beta_rv)
+    Y_rv = pm.MvNormal('Y', E_y_rv, V_tt, observed=y_tt)
+
+# Create a graph for the model
+fgraph = model_graph(model, output_vars=[beta_rv, Y_rv])
+
+# Create and apply the conjugate posterior optimizer
+posterior_opt = EquilibriumOptimizer(
+    [KanrenRelationSub(conjugate_posteriors)],
+    max_use_ratio=10)
+
+fgraph_opt = optimize_graph(fgraph, posterior_opt, return_graph=True)
+fgraph_opt = canonicalize(fgraph_opt)
+```
+
+```python
+>>> print(tt_pprint(fgraph_opt[0]))
+a in R**(N^a_0)
+R in R**(N^R_0 x N^R_1)
+F in R**(N^F_0 x N^F_1)
+c in R**(N^c_0 x N^c_1)
+V in R**(N^V_0 x N^V_1)
+b ~ N((a + (((R * F.T) * c) * ([-3.] - (F * a)))), (R - ((((R * F.T) * c) * (V + (F * (R * F.T)))) * (c.T * (F * R.T))))),  b in R**(N^b_0)
+b
 ```
 
 ## Installation
