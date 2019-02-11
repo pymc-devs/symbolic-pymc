@@ -131,6 +131,7 @@ class Observed(tt.Op):
     """An `Op` that establishes an observation relationship between a random
     variable and a specific value.
     """
+    default_output = 0
 
     def __init__(self):
         self.view_map = {0: [0]}

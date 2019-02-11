@@ -13,24 +13,39 @@ from multipledispatch import dispatch
 
 from theano.gof import FunctionGraph
 # from theano.gof.toolbox import Feature
-from theano.gof.graph import inputs as tt_inputs, clone_get_equiv
+from theano.gof.graph import (Variable, Apply, inputs as tt_inputs,
+                              clone_get_equiv)
 
-from . import (observed,
+from . import (Observed, observed,
                NormalRV, NormalRVType,
                MvNormalRV, MvNormalRVType)
 from .rv import RandomVariable
 from .utils import replace_nodes
 
 
-@dispatch(RandomVariable)
-def convert_rv_to_pymc(rv):
-    # TODO: How best to do this?
-    if hasattr(rv, 'fgraph') and hasattr(rv.fgraph, 'shape_feature'):
-        shape = rv.fgraph.shape_feature.shape_tuple(rv)
-    else:
-        shape = rv.shape
+@dispatch(Apply, object)
+def convert_rv_to_pymc(node, obs):
+    if not isinstance(node.op, RandomVariable):
+        raise TypeError(f'{node} is not of type `RandomVariable`')
 
-    return _convert_rv_to_pymc(rv, shape)
+    rv = node.default_output()
+
+    if hasattr(node, 'fgraph') and hasattr(node.fgraph, 'shape_feature'):
+        shape = list(node.fgraph.shape_feature.shape_tuple(rv))
+    else:
+        shape = list(rv.shape)
+
+    for i, s in enumerate(shape):
+        try:
+            shape[i] = tt.get_scalar_constant_value(s)
+        except tt.NotScalarConstantError:
+            shape[i] = s.tag.test_value
+
+    dist_type, dist_params = _convert_rv_to_pymc(node.op, node)
+    return dist_type(rv.name,
+                     shape=shape,
+                     observed=obs,
+                     **dist_params)
 
 
 @dispatch(pm.Normal, object)
@@ -41,10 +56,11 @@ def convert_pymc_to_rv(dist, rng):
     return res
 
 
-@dispatch(NormalRVType, object)
-def _convert_rv_to_pymc(rv, shape):
-    res = pm.NormalRV(rv.inputs[0], rv.inputs[1], shape=shape)
-    return res
+@dispatch(NormalRVType, Apply)
+def _convert_rv_to_pymc(op, rv):
+    params = {'mu': rv.inputs[0],
+              'sd': rv.inputs[1]}
+    return pm.Normal, params
 
 
 @dispatch(pm.MvNormal, object)
@@ -55,10 +71,11 @@ def convert_pymc_to_rv(dist, rng):
     return res
 
 
-@dispatch(MvNormalRVType, object)
-def _convert_rv_to_pymc(rv, shape):
-    res = pm.MvNormal(rv.inputs[0], rv.inputs[1], shape=shape)
-    return res
+@dispatch(MvNormalRVType, Apply)
+def _convert_rv_to_pymc(op, rv):
+    params = {'mu': rv.inputs[0],
+              'cov': rv.inputs[1]}
+    return pm.MvNormal, params
 
 
 # TODO: More RV conversions!
@@ -223,6 +240,27 @@ def convert_pymc3_rvs(fgraph, clone=True, rand_state=None):
             fgraph_.inputs.remove(pm_var)
 
     return fgraph_
+
+
+def graph_model(fgraph, *model_args, **model_kwargs):
+    """Create a PyMC3 model from a Theano graph with `RandomVariable`
+    nodes.
+    """
+    with pm.Model(*model_args, **model_kwargs) as model:
+        for node in filter(lambda x: isinstance(x.op, RandomVariable),
+                           fgraph.apply_nodes):
+            rv = node.default_output()
+            obs = None
+            for cl_node, i in fgraph.clients(rv):
+                if cl_node == 'output':
+                    cl_node = fgraph.outputs[i].owner
+                if isinstance(cl_node.op, Observed):
+                    obs = cl_node.inputs[0]
+                    break
+
+            new_pm_rv = convert_rv_to_pymc(node, obs)
+
+    return model
 
 
 # TODO: Create this?  Could be a nicer way to accomplish the same thing

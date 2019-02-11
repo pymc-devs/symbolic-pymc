@@ -73,6 +73,7 @@ class RandomVariable(tt.gof.Op):
     dependency and handles shape dimension information more directly.
     """
     __props__ = ('name', 'dtype', 'ndim_supp', 'inplace', 'ndims_params')
+    default_output = 1
 
     def __init__(self, name, dtype, ndim_supp, ndims_params, rng_fn,
                  *args,
@@ -122,8 +123,6 @@ class RandomVariable(tt.gof.Op):
             raise ValueError('Parameter ndims_params must be iterable.')
 
         self.ndims_params = tuple(ndims_params)
-
-        self.default_output = 1
 
         if isinstance(rng_fn, (str, ByteString)):
             self.rng_fn = getattr(np.random.RandomState, rng_fn)
