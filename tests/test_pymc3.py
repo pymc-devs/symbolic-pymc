@@ -21,7 +21,7 @@ theano.config.cxx = ''
 
 
 # @change_flags
-def test_normals():
+def test_pymc_normals():
     mu_X = tt.scalar('mu_X')
     sd_X = tt.scalar('sd_X')
     mu_Y = tt.scalar('mu_Y')
@@ -62,7 +62,48 @@ def test_normals():
     assert mt(Z_rv_tt) == mt(Z_rv_meta)
 
 
-def test_broadcastable():
+def test_normals_to_model():
+    a_tt = tt.vector('a')
+    R_tt = tt.matrix('R')
+    F_t_tt = tt.matrix('F')
+    V_tt = tt.matrix('V')
+
+    a_tt.tag.test_value = np.r_[1., 0.]
+    R_tt.tag.test_value = np.diag([10., 10.])
+    F_t_tt.tag.test_value = np.c_[-2., 1.]
+    V_tt.tag.test_value = np.diag([0.5])
+
+    beta_rv = MvNormalRV(a_tt, R_tt, name='\\beta')
+
+    E_y_rv = F_t_tt.dot(beta_rv)
+    Y_rv = MvNormalRV(E_y_rv, V_tt, name='Y')
+
+    y_tt = tt.as_tensor_variable(np.r_[-3.])
+    y_tt.name = 'y'
+    Y_obs = observed(y_tt, Y_rv)
+
+    fgraph = FunctionGraph(tt_inputs([beta_rv, Y_obs]),
+                           [beta_rv, Y_obs],
+                           clone=True)
+
+    model = graph_model(fgraph)
+
+    assert len(model.observed_RVs) == 1
+    assert model.observed_RVs[0].name == 'Y'
+    Y_pm = model.observed_RVs[0].distribution
+    assert isinstance(Y_pm, pm.MvNormal)
+    np.testing.assert_array_equal(
+        model.observed_RVs[0].observations.data,
+        y_tt.data)
+    assert Y_pm.mu.owner.op == tt.basic._dot
+    assert Y_pm.cov.name == 'V'
+    assert len(model.unobserved_RVs) == 1
+    assert model.unobserved_RVs[0].name == '\\beta'
+    beta_pm = model.unobserved_RVs[0].distribution
+    assert isinstance(beta_pm, pm.MvNormal)
+
+
+def test_pymc_broadcastable():
     mu_X = tt.vector('mu_X')
     sd_X = tt.vector('sd_X')
     mu_Y = tt.vector('mu_Y')
