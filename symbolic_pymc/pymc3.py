@@ -17,8 +17,18 @@ from theano.gof.graph import (Variable, Apply, inputs as tt_inputs,
                               clone_get_equiv)
 
 from . import (Observed, observed,
+               UniformRV, UniformRVType,
                NormalRV, NormalRVType,
-               MvNormalRV, MvNormalRVType)
+               MvNormalRV, MvNormalRVType,
+               GammaRV, GammaRVType,
+               InvGammaRV, InvGammaRVType,
+               ExponentialRV, ExponentialRVType,
+               CauchyRV, CauchyRVType,
+               HalfCauchyRV, HalfCauchyRVType,
+               # MultinomialRV, MultinomialRVType,
+               # DirichletRV, DirichletRVType,
+               # PoissonRV, PoissonRVType,
+)
 from .rv import RandomVariable
 from .utils import replace_nodes
 
@@ -48,11 +58,24 @@ def convert_rv_to_pymc(node, obs):
                      **dist_params)
 
 
+@dispatch(pm.Uniform, object)
+def convert_pymc_to_rv(dist, rng):
+    # size = dist.shape.astype(int)
+    res = UniformRV(dist.lower, dist.upper, size=None, rng=rng)
+    return res
+
+
+@dispatch(UniformRVType, Apply)
+def _convert_rv_to_pymc(op, rv):
+    params = {'lower': rv.inputs[0],
+              'upper': rv.inputs[1]}
+    return pm.Uniform, params
+
+
 @dispatch(pm.Normal, object)
 def convert_pymc_to_rv(dist, rng):
     # size = dist.shape.astype(int)
-    size = None
-    res = NormalRV(dist.mu, dist.sd, size=size, rng=rng)
+    res = NormalRV(dist.mu, dist.sd, size=None, rng=rng)
     return res
 
 
@@ -65,9 +88,7 @@ def _convert_rv_to_pymc(op, rv):
 
 @dispatch(pm.MvNormal, object)
 def convert_pymc_to_rv(dist, rng):
-    # size = dist.shape[1:].astype(int)
-    size = None
-    res = MvNormalRV(dist.mu, dist.cov, size=size, rng=rng)
+    res = MvNormalRV(dist.mu, dist.cov, size=None, rng=rng)
     return res
 
 
@@ -77,6 +98,70 @@ def _convert_rv_to_pymc(op, rv):
               'cov': rv.inputs[1]}
     return pm.MvNormal, params
 
+
+@dispatch(pm.Gamma, object)
+def convert_pymc_to_rv(dist, rng):
+    res = GammaRV(dist.alpha, tt.inv(dist.beta), size=None, rng=rng)
+    return res
+
+
+@dispatch(GammaRVType, Apply)
+def _convert_rv_to_pymc(op, rv):
+    params = {'alpha': rv.inputs[0],
+              'beta': rv.inputs[1]}
+    return pm.Gamma, params
+
+
+@dispatch(pm.InverseGamma, object)
+def convert_pymc_to_rv(dist, rng):
+    res = InvGammaRV(dist.alpha, dist.beta, size=None, rng=rng)
+    return res
+
+
+@dispatch(InvGammaRVType, Apply)
+def _convert_rv_to_pymc(op, rv):
+    params = {'alpha': rv.inputs[0],
+              'beta': rv.inputs[1]}
+    return pm.InverseGamma, params
+
+
+@dispatch(pm.Exponential, object)
+def convert_pymc_to_rv(dist, rng):
+    res = ExponentialRV(tt.inv(dist.lam), size=None, rng=rng)
+    return res
+
+
+@dispatch(ExponentialRVType, Apply)
+def _convert_rv_to_pymc(op, rv):
+    params = {'lam': tt.inv(rv.inputs[0])}
+    return pm.Exponential, params
+
+
+@dispatch(pm.Cauchy, object)
+def convert_pymc_to_rv(dist, rng):
+    res = CauchyRV(dist.alpha, dist.beta, size=None, rng=rng)
+    return res
+
+
+@dispatch(CauchyRVType, Apply)
+def _convert_rv_to_pymc(op, rv):
+    params = {'alpha': rv.inputs[0],
+              'beta': rv.inputs[1]}
+    return pm.Cauchy, params
+
+
+@dispatch(pm.HalfCauchy, object)
+def convert_pymc_to_rv(dist, rng):
+    # TODO: Can we just make this `None`?  Would be so much easier to check.
+    res = CauchyRV(0.0, dist.beta, size=None, rng=rng)
+    return res
+
+
+@dispatch(HalfCauchyRVType, Apply)
+def _convert_rv_to_pymc(op, rv):
+    # TODO: Assert that `rv.inputs[0]` must be all zeros!
+    params = {'beta': rv.inputs[1]}
+    return pm.HalfCauchy, params
 
 # TODO: More RV conversions!
 

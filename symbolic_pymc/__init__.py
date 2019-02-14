@@ -99,10 +99,11 @@ PoissonRV = PoissonRVType()
 # A SciPy-generated variate
 class CauchyRVType(RandomVariable):
     def __init__(self):
-        super().__init__('cauchy', theano.config.floatX, 0, [0, 0],
-                         lambda rng, *args: scipy.stats.cauchy.rvs(*args,
-                                                                   random_state=rng),
-                         inplace=True)
+        super().__init__(
+            'cauchy', theano.config.floatX, 0, [0, 0],
+            lambda rng, *args: scipy.stats.cauchy.rvs(*args,
+                                                      random_state=rng),
+            inplace=True)
 
     def make_node(self, loc, scale, size=None, rng=None, name=None):
         return super().make_node(loc, scale, size=size, rng=rng, name=name)
@@ -111,8 +112,53 @@ class CauchyRVType(RandomVariable):
 CauchyRV = CauchyRVType()
 
 
-# Support shape is determined by the first dimension in the *second* parameter (i.e.
-# the probabilities vector)
+class HalfCauchyRVType(RandomVariable):
+    def __init__(self):
+        super().__init__(
+            'halfcauchy', theano.config.floatX, 0, [0, 0],
+            lambda rng, *args: scipy.stats.halfcauchy.rvs(*args,
+                                                          random_state=rng),
+            inplace=True)
+
+    def make_node(self, loc=0., scale=1., size=None, rng=None, name=None):
+        return super().make_node(loc, scale, size=size, rng=rng, name=name)
+
+
+HalfCauchyRV = HalfCauchyRVType()
+
+
+class InvGammaRVType(RandomVariable):
+    def __init__(self):
+        super().__init__(
+            'invgamma', theano.config.floatX, 0, [0, 0],
+            lambda rng, *args: scipy.stats.invgamma.rvs(*args,
+                                                        random_state=rng),
+            inplace=True)
+
+    def make_node(self, loc, scale, size=None, rng=None, name=None):
+        return super().make_node(loc, scale, size=size, rng=rng, name=name)
+
+
+InvGammaRV = InvGammaRVType()
+
+
+class TruncExponentialRVType(RandomVariable):
+    def __init__(self):
+        super().__init__(
+            'truncexpon', theano.config.floatX, 0, [0, 0, 0],
+            lambda rng, *args: scipy.stats.truncexpon.rvs(*args,
+                                                          random_state=rng),
+            inplace=True)
+
+    def make_node(self, b, loc, scale, size=None, rng=None, name=None):
+        return super().make_node(b, loc, scale, size=size, rng=rng, name=name)
+
+
+TruncExponentialRV = TruncExponentialRVType()
+
+
+# Support shape is determined by the first dimension in the *second* parameter
+# (i.e.  the probabilities vector)
 class MultinomialRVType(RandomVariable):
     def __init__(self):
         super().__init__('multinomial', 'int64', 1, [0, 1], 'multinomial',
