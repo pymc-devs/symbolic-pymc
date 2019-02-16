@@ -1,6 +1,6 @@
 import theano.tensor as tt
 
-from kanren import run, eq
+from kanren import run, eq, variables
 from kanren.term import term, operator, arguments
 from kanren.assoccomm import eq_assoc, eq_comm
 from unification import var
@@ -59,7 +59,8 @@ def test_kanren():
                          y_size_lv, y_rng_lv,
                          name=y_name_lv)
 
-    res, = run(0, Y_mt, (eq, Y_rv, Y_mt))
+    with variables(Y_mt):
+        res, = run(0, Y_mt, (eq, Y_rv, Y_mt))
     assert res.reify() == Y_rv
 
 
