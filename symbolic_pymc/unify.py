@@ -20,7 +20,7 @@ class UnificationFailure(Exception):
     pass
 
 
-def debug_unify(enable=True, pdb=True):
+def debug_unify(enable=True):
     """Wrap unify functions so that they raise a `UnificationFailure` exception
     when unification fails.
     """
@@ -30,8 +30,7 @@ def debug_unify(enable=True, pdb=True):
             def wrapper(*args, **kwargs):
                 s = f(*args, **kwargs)
                 if s is False:
-                    if pdb:
-                        import pdb; pdb.set_trace()
+                    import pdb; pdb.set_trace()
                     raise UnificationFailure()
                 return s
             return wrapper
