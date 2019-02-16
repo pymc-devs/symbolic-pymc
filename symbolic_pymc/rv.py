@@ -6,8 +6,7 @@ from collections.abc import Iterable, ByteString
 from warnings import warn
 from copy import copy
 
-from theano.tensor.raw_random import (RandomFunction, RandomStateType,
-                                      _infer_ndim_bcast)
+from theano.tensor.raw_random import RandomStateType
 
 
 def param_supp_shape_fn(ndim_supp, ndims_params, dist_params,
@@ -69,8 +68,10 @@ def param_supp_shape_fn(ndim_supp, ndims_params, dist_params,
 
 
 class RandomVariable(tt.gof.Op):
-    """This is essentially `RandomFunction`, except that it removes the `outtype`
-    dependency and handles shape dimension information more directly.
+    """An `Op` that produces a sample from a random variable.
+
+    This is essentially `RandomFunction`, except that it removes the
+    `outtype` dependency and handles shape dimension information more directly.
     """
     __props__ = ('name', 'dtype', 'ndim_supp', 'inplace', 'ndims_params')
     default_output = 1
@@ -107,9 +108,9 @@ class RandomVariable(tt.gof.Op):
             dimension for each distribution parameter).
 
             Defaults to `param_supp_shape_fn`.
-        inplace: boolean
-            Determine whether or not the underlying rng state is updated in-place or
-            not (i.e. copied).
+        inplace: boolean (optional)
+            Determine whether or not the underlying rng state is updated
+            in-place or not (i.e. copied).
         """
         super().__init__(*args, **kwargs)
 
@@ -210,7 +211,8 @@ class RandomVariable(tt.gof.Op):
                         x_obj, = s_x.owner.inputs
                         s_val = x_obj.type.broadcastable[s_idx]
                     else:
-                        # TODO: Could go for an existing broadcastable here, too, no?
+                        # TODO: Could go for an existing broadcastable here,
+                        # too, no?
                         s_val = False
                 else:
                     s_val = tt.get_scalar_constant_value(s)
@@ -329,9 +331,12 @@ class RandomVariable(tt.gof.Op):
         smpl_out[0] = smpl_val
 
     def grad(self, inputs, outputs):
-        return [theano.gradient.grad_undefined(self, k, inp,
-                                               'No gradient defined through raw random numbers op')
-                for k, inp in enumerate(inputs)]
+        return [
+            theano.gradient.grad_undefined(
+                self, k, inp,
+                'No gradient defined through raw random numbers op')
+            for k, inp in enumerate(inputs)
+        ]
 
     def R_op(self, inputs, eval_points):
         return [None for i in eval_points]

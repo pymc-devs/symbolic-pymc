@@ -1,17 +1,15 @@
-import pytest
-
 import theano
 import theano.tensor as tt
 import numpy as np
 
 from theano.gof.opt import EquilibriumOptimizer
 from theano.gof import FunctionGraph
-from theano.gof.graph import inputs as tt_inputs, ancestors
+from theano.gof.graph import inputs as tt_inputs
 
-from symbolic_pymc import MvNormalRV
+from symbolic_pymc import MvNormalRV, observed
 from symbolic_pymc.opt import KanrenRelationSub
 from symbolic_pymc.utils import optimize_graph
-from symbolic_pymc.relations.conjugates import observed, conjugate_posteriors
+from symbolic_pymc.relations.conjugates import conjugate_posteriors
 
 theano.config.mode = 'FAST_COMPILE'
 theano.config.cxx = ''
