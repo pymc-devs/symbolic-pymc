@@ -271,6 +271,11 @@ class MetaSymbol(metaclass=MetaSymbolType):
 class MetaType(MetaSymbol):
     base = theano.Type
 
+    def __call__(self, name=None):
+        if self.obj:
+            return MetaSymbol.from_obj(self.obj(name=name))
+        return MetaSymbol.from_obj(self.base.Variable)(self, name)
+
 
 class MetaRandomStateType(MetaType):
     base = tt.raw_random.RandomStateType
