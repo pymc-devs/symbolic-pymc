@@ -49,11 +49,10 @@ def test_mvnormal_mvnormal():
     fgraph_opt = optimize_graph(fgraph, posterior_opt)
 
     # Make sure that it removed the old, integrated observation distribution.
-    assert len(fgraph_opt[1].owner.inputs) == 1
-    # Can't do this because the constant tensor gets cloned.
+    assert fgraph_opt[1].owner.inputs[1].equals(tt.NoneConst)
 
     # Check that the SSE has decreased from prior to posterior.
-    # TODO FIXME: Use a better test.
+    # TODO: Use a better test.
     beta_prior_mean_val = a_tt.tag.test_value
     F_val = F_t_tt.tag.test_value
     beta_post_mean_val = fgraph_opt[0].owner.inputs[0].tag.test_value
