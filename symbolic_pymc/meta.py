@@ -618,7 +618,9 @@ class TheanoMetaAccessor(object):
     namespaces = [tt]
 
     def __init__(self):
-        pass
+        import symbolic_pymc
+        from symbolic_pymc import meta
+        self.namespaces += [symbolic_pymc, meta]
 
     def __call__(self, x):
         return MetaSymbol.from_obj(x)
