@@ -15,7 +15,7 @@ from .meta import MetaSymbol, _check_eq
 canonicalize_opt = optdb.query(Query(include=['canonicalize']))
 
 
-def replace_nodes(inputs, outputs, replacements,
+def replace_nodes(inputs, outputs, replacements=None,
                   memo=None, clone_inputs=True):
     """Recreate a graph, replacing some variables according to a given map.
 
@@ -36,11 +36,15 @@ def replace_nodes(inputs, outputs, replacements,
     outputs: list
         List of output nodes.  Everything between `inputs` and these `outputs`
         is the graph under consideration.
-    replacements: dict
+    replacements: dict (optional)
         A dictionary mapping existing nodes to their new ones.
+        These values in this map will be used instead of newly generated
+        clones.  This dict is not altered.
     memo: dict (optional)
         A dictionary to update with the initial `replacements` and maps from
         any old-to-new nodes arising from an actual replacement.
+        It serves the same role as `replacements`, but it is updated
+        as elements are cloned.
     clone_inputs: bool (optional)
         If enabled, clone all the input nodes that aren't mapped in
         `replacements`.  These cloned nodes are mapped in `memo`, as well.
@@ -51,7 +55,8 @@ def replace_nodes(inputs, outputs, replacements,
     """
     if memo is None:
         memo = {}
-    memo.update(replacements)
+    if replacements is not None:
+        memo.update(replacements)
     for apply in io_toposort(inputs, outputs):
         if clone_inputs:
             apply_inputs = [memo.setdefault(i, i.clone())
@@ -148,7 +153,7 @@ def optimize_graph(x, optimization, return_graph=False, in_place=False):
     else:
         x_graph = x
 
-    x_graph_opt = x_graph.clone() if in_place else x_graph
+    x_graph_opt = x_graph if in_place else x_graph.clone()
     _ = optimization.optimize(x_graph_opt)
 
     if return_graph:

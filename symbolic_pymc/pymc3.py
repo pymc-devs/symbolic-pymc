@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import theano
 import theano.tensor as tt
@@ -12,7 +14,6 @@ from warnings import warn
 from multipledispatch import dispatch
 
 from theano.gof import FunctionGraph
-# from theano.gof.toolbox import Feature
 from theano.gof.graph import (Variable, Apply, inputs as tt_inputs,
                               clone_get_equiv)
 
@@ -31,6 +32,8 @@ from . import (Observed, observed,
 )
 from .rv import RandomVariable
 from .utils import replace_nodes
+
+logger = logging.getLogger("symbolic_pymc")
 
 
 @dispatch(Apply, object)
@@ -58,10 +61,16 @@ def convert_rv_to_pymc(node, obs):
                      **dist_params)
 
 
+@dispatch(pm.distributions.transforms.TransformedDistribution, object)
+def convert_pymc_to_rv(dist, rng):
+    # TODO: Anything more to do with the transform information?
+    return convert_pymc_to_rv(dist.dist, rng)
+
+
 @dispatch(pm.Uniform, object)
 def convert_pymc_to_rv(dist, rng):
-    # size = dist.shape.astype(int)
-    res = UniformRV(dist.lower, dist.upper, size=None, rng=rng)
+    size = dist.shape.astype(int)[UniformRV.ndim_supp:]
+    res = UniformRV(dist.lower, dist.upper, size=size, rng=rng)
     return res
 
 
@@ -74,8 +83,8 @@ def _convert_rv_to_pymc(op, rv):
 
 @dispatch(pm.Normal, object)
 def convert_pymc_to_rv(dist, rng):
-    # size = dist.shape.astype(int)
-    res = NormalRV(dist.mu, dist.sd, size=None, rng=rng)
+    size = dist.shape.astype(int)[NormalRV.ndim_supp:]
+    res = NormalRV(dist.mu, dist.sd, size=size, rng=rng)
     return res
 
 
@@ -88,7 +97,8 @@ def _convert_rv_to_pymc(op, rv):
 
 @dispatch(pm.MvNormal, object)
 def convert_pymc_to_rv(dist, rng):
-    res = MvNormalRV(dist.mu, dist.cov, size=None, rng=rng)
+    size = dist.shape.astype(int)[MvNormalRV.ndim_supp:]
+    res = MvNormalRV(dist.mu, dist.cov, size=size, rng=rng)
     return res
 
 
@@ -101,7 +111,8 @@ def _convert_rv_to_pymc(op, rv):
 
 @dispatch(pm.Gamma, object)
 def convert_pymc_to_rv(dist, rng):
-    res = GammaRV(dist.alpha, tt.inv(dist.beta), size=None, rng=rng)
+    size = dist.shape.astype(int)[GammaRV.ndim_supp:]
+    res = GammaRV(dist.alpha, tt.inv(dist.beta), size=size, rng=rng)
     return res
 
 
@@ -114,7 +125,8 @@ def _convert_rv_to_pymc(op, rv):
 
 @dispatch(pm.InverseGamma, object)
 def convert_pymc_to_rv(dist, rng):
-    res = InvGammaRV(dist.alpha, dist.beta, size=None, rng=rng)
+    size = dist.shape.astype(int)[InvGammaRV.ndim_supp:]
+    res = InvGammaRV(dist.alpha, dist.beta, size=size, rng=rng)
     return res
 
 
@@ -127,7 +139,8 @@ def _convert_rv_to_pymc(op, rv):
 
 @dispatch(pm.Exponential, object)
 def convert_pymc_to_rv(dist, rng):
-    res = ExponentialRV(tt.inv(dist.lam), size=None, rng=rng)
+    size = dist.shape.astype(int)[ExponentialRV.ndim_supp:]
+    res = ExponentialRV(tt.inv(dist.lam), size=size, rng=rng)
     return res
 
 
@@ -139,7 +152,8 @@ def _convert_rv_to_pymc(op, rv):
 
 @dispatch(pm.Cauchy, object)
 def convert_pymc_to_rv(dist, rng):
-    res = CauchyRV(dist.alpha, dist.beta, size=None, rng=rng)
+    size = dist.shape.astype(int)[CauchyRV.ndim_supp:]
+    res = CauchyRV(dist.alpha, dist.beta, size=size, rng=rng)
     return res
 
 
@@ -152,8 +166,8 @@ def _convert_rv_to_pymc(op, rv):
 
 @dispatch(pm.HalfCauchy, object)
 def convert_pymc_to_rv(dist, rng):
-    # TODO: Can we just make this `None`?  Would be so much easier to check.
-    res = CauchyRV(0.0, dist.beta, size=None, rng=rng)
+    size = dist.shape.astype(int)[HalfCauchyRV.ndim_supp:]
+    res = HalfCauchyRV(0.0, dist.beta, size=size, rng=rng)
     return res
 
 
@@ -177,8 +191,6 @@ def model_graph(pymc_model, output_vars=None, convert_rvs=True,
     output_vars: list (optional)
         Variables to use as `FunctionGraph` outputs.  If not specified,
         the model's observed random variables are used.
-    convert_rvs: bool (optional)
-        Convert the PyMC3 random variables to `RandomVariable`s.
     rand_state: Numpy rng (optional)
         When converting to `RandomVariable`s, use this random state object.
 
@@ -192,23 +204,42 @@ def model_graph(pymc_model, output_vars=None, convert_rvs=True,
     if output_vars is None:
         output_vars = [o for o in model.observed_RVs]
 
+    # Make sure the distribution and observation info sticks around through all
+    # the object cloning.
+    # Also, we don't want to use the transformed variables, and, since some
+    # distribution objects use them (instead of their non-transformed
+    # counterparts), we need to replace them at some point.
+    model_vars = model.vars + model.observed_RVs + model.deterministics
+    model_vars = {v.name: v for v in model_vars}
+    for name, v in model_vars.items():
+        if pm.util.is_transformed_name(name):
+            untrans_name = pm.util.get_untransformed_name(name)
+            v.tag.untransformed = model_vars[untrans_name]
+        if hasattr(v, 'distribution'):
+            v.tag.distribution = v.distribution
+        if hasattr(v, 'observations'):
+            # isinstance(k, pm.model.ObservedRV)
+
+            # If the observation variable we obtained is *not* identical/equal
+            # to the corresponding observed RV's owner's input, then we'll
+            # have duplicates (and a bad graph).  Generally, `k.observations`
+            # is not identical to the `ViewOp` argument, so we use the former
+            # to avoid dups.
+            if isinstance(v.owner.op, theano.compile.ops.ViewOp):
+                v.tag.observations = v.owner.inputs[0]
+            else:
+                # TODO: Is it ever not a `ViewOp`?
+                v.tag.observations = v.observations
+
     if not output_vars:
         raise ValueError('No derived or observable variables specified')
 
     model_inputs = [
-        inp for inp in tt_inputs(model.unobserved_RVs + output_vars)
+        inp for inp in tt_inputs(output_vars)
     ]
 
     model_memo = clone_get_equiv(model_inputs, output_vars,
                                  copy_orphans=False)
-
-    # Make sure the distribution and observation info sticks around through all
-    # the object cloning.
-    for k, v in model_memo.items():
-        if hasattr(k, 'distribution'):
-            v.tag.distribution = k.distribution
-        if hasattr(k, 'observations'):
-            v.tag.observations = k.observations
 
     fg_features = [tt.opt.ShapeFeature()]
     model_fg = FunctionGraph([model_memo[i] for i in model_inputs],
@@ -217,8 +248,7 @@ def model_graph(pymc_model, output_vars=None, convert_rvs=True,
     model_fg.memo = model_memo
     model_fg.rev_memo = {v: k for k, v in model_memo.items()}
 
-    if convert_rvs:
-        convert_pymc3_rvs(model_fg, clone=False, rand_state=rand_state)
+    convert_pymc3_rvs(model_fg, clone=False, rand_state=rand_state)
 
     return model_fg
 
@@ -261,12 +291,38 @@ def convert_pymc3_rvs(fgraph, clone=True, rand_state=None):
                 if hasattr(o.tag, 'distribution'))
     while nodes:
         pm_var = nodes.pop()
+
+        logger.debug(f'creating a RandomVariable for {pm_var}')
+
+        if getattr(pm_var.tag, 'untransformed', None):
+
+            _pm_var = pm_var.tag.untransformed
+
+            logger.debug(f'{pm_var} is a transform of {_pm_var}')
+
+            # Make a copy of this var's sub-graph.
+            nodes_updates = replace_nodes(
+                tt_inputs([_pm_var]), [_pm_var], memo=fgraph_.memo)
+            _pm_var = nodes_updates.get(_pm_var, _pm_var)
+
+            fgraph_.replace_validate(pm_var, _pm_var)
+
+            if pm_var in fgraph_.inputs:
+                fgraph_.inputs.remove(pm_var)
+
+            # From here on, always replace the transformed with the
+            # untransformed.
+            fgraph_.memo[pm_var] = _pm_var
+            pm_var = _pm_var
+
         dist = pm_var.tag.distribution
+
         new_rv = convert_pymc_to_rv(dist, rand_state)
 
         new_rv.name = pm_var.name
 
         if isinstance(pm_var, pm.model.ObservedRV):
+            logger.debug(f'{pm_var} is an observed variable.')
             new_rv = observed(pm_var.tag.observations, new_rv)
 
         # Let's attempt to fix the PyMC3 broadcastable dims "oracle" issue,
@@ -281,48 +337,53 @@ def convert_pymc3_rvs(fgraph, clone=True, rand_state=None):
 
         if len(diff_bcasts) > 0:
             warn(f'The tensor type for {pm_var} has an overly restrictive'
-                    ' broadcast dimension.  Try re-creating the model without'
-                    ' specifying a shape with a dimension value of 1'
-                    ' (e.g. `(1,)`).')
+                 ' broadcast dimension.  Try re-creating the model without'
+                 ' specifying a shape with a dimension value of 1'
+                 ' (e.g. `(1,)`).')
             new_rv = tt.addbroadcast(new_rv, *diff_bcasts)
+
+        logger.debug(f'{pm_var} converted to {new_rv.owner}.')
 
         # The variables in these distribution objects--and the new
         # `RandomVariable`--are *not* the same as the ones in the fgraph
         # object (those ones are clones)!
-        # We need to use the memo mappings to replace those old variables.
+        # We need to use the memo mappings to replace those old variables
+        # *and* we need to clone any new variables introduced by the
+        # `distribution` object (e.g. variables in distribution parameters).
         nodes_updates = replace_nodes(
-            tt_inputs([new_rv]), [new_rv], fgraph_.memo)
-
+            tt_inputs([new_rv]), [new_rv], memo=fgraph_.memo)
+        # It's possible that our new `RandomVariable` itself was cloned,
+        # in which case we need to use the new one.
         new_rv = nodes_updates.get(new_rv, new_rv)
 
         # Update the memo so that next time around we don't
         # needlessly clone objects already in the fgraph.
-        fgraph_.memo.update(nodes_updates)
+        # fgraph_.memo.update(nodes_updates)
 
         for i in tt_inputs([new_rv]):
             # We've probably introduced new inputs via the distribution
             # parameters.
             if i not in fgraph_.inputs:
+                logger.debug(f'{new_rv} introduces new input {i}')
                 fgraph_.add_input(i)
 
-            # Make sure we don't lose distribution information on any new
-            # PyMC3 RVs that weren't already in the fgraph.  Also, add any
-            # new PyMC3 RVs that need to be converted.
-            if hasattr(i, 'distribution'):
-                i.tag.distribution = i.distribution
-                nodes.add(i)
-            elif hasattr(i.tag, 'distribution'):
+            # Add any new PyMC3 RVs that need to be converted.
+            if hasattr(i.tag, 'distribution'):
+                logger.debug(f'{new_rv} introduces new random variable {i}')
                 nodes.add(i)
 
         # Finally, replace the old PyMC3 RV with the new one.
-        fgraph_.replace(pm_var, new_rv)
+        assert pm_var in fgraph_.variables
+        fgraph_.replace_validate(pm_var, new_rv)
 
         # Finally, remove the unused inputs.  For instance, if the original
         # inputs were PyMC3 RVs, then they've been replaced; however,
         # `FunctionGraph.replace` won't remove them for some reason.
-        # TODO: Put in an issue/PR?
+        # TODO: Create a Theano issue/PR for this?
         if pm_var in fgraph_.inputs:
             fgraph_.inputs.remove(pm_var)
+
+    fgraph_.check_integrity()
 
     return fgraph_
 
@@ -346,29 +407,3 @@ def graph_model(fgraph, *model_args, **model_kwargs):
             new_pm_rv = convert_rv_to_pymc(node, obs)
 
     return model
-
-
-# TODO: Create this?  Could be a nicer way to accomplish the same thing
-# during the initial `FunctionGraph` creation.
-# class PymcToRandomVariable(Feature):
-#     """Converts PyMC3 random variables to `RandomVariable`s.
-#     """
-#     def on_attach(self, function_graph):
-#         # TODO: Loop through variables and convert `pm.graph.Factor`s to
-#         # `RandomVariable`s.
-#         # Also, keep a map of replacements
-#
-#     def on_detach(self, function_graph):
-#         pass
-#
-#     def on_import(self, function_graph, node, reason):
-#         pass
-#
-#     def on_prune(self, function_graph, node, reason):
-#         pass
-#
-#     def on_change_input(self, function_graph, node, i, r, new_r, reason=None):
-#         pass
-#
-#     def orderings(self, function_graph):
-#         pass

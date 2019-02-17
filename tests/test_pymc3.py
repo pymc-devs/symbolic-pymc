@@ -5,13 +5,13 @@ import theano
 import theano.tensor as tt
 import pymc3 as pm
 
-from theano.configparser import change_flags
-from theano.gof import FunctionGraph, Feature, NodeFinder
-from theano.gof.graph import inputs as tt_inputs, clone_get_equiv
+# from theano.configparser import change_flags
+from theano.gof import FunctionGraph
+from theano.gof.graph import inputs as tt_inputs
 
-from symbolic_pymc import *
-from symbolic_pymc.pymc3 import *
-from symbolic_pymc.utils import graph_equal, canonicalize
+from symbolic_pymc import (MvNormalRV, observed)
+from symbolic_pymc.pymc3 import model_graph, graph_model
+from symbolic_pymc.utils import canonicalize
 from symbolic_pymc.meta import mt
 
 tt.config.on_opt_error = 'raise'
@@ -135,13 +135,13 @@ def test_pymc_broadcastable():
     mu_Y_ = mt.vector('mu_Y')
     sd_Y_ = mt.vector('sd_Y')
     tt.config.compute_test_value = 'ignore'
-    X_rv_ = mt.NormalRV(mu_X_, sd_X_, None, rng, name='X_rv')
+    X_rv_ = mt.NormalRV(mu_X_, sd_X_, (1,), rng, name='X_rv')
     X_rv_ = mt.addbroadcast(X_rv_, 0)
-    Y_rv_ = mt.NormalRV(mu_Y_, sd_Y_, None, rng, name='Y_rv')
+    Y_rv_ = mt.NormalRV(mu_Y_, sd_Y_, (1,), rng, name='Y_rv')
     Y_rv_ = mt.addbroadcast(Y_rv_, 0)
     Z_rv_ = mt.NormalRV(mt.add(X_rv_, Y_rv_),
                         mt.add(sd_X_, sd_Y_),
-                        None, rng, name='Z_rv')
+                        (1,), rng, name='Z_rv')
     Z_rv_ = mt.observed(Z_rv.observations, Z_rv_)
 
     Z_rv_meta = canonicalize(Z_rv_.reify())
