@@ -377,11 +377,16 @@ class MetaOp(MetaSymbol):
             # Also, `Apply` inputs can't be `None` (they could be
             # `tt.none_type_t()`, though).
             res_apply = MetaApply(
-                self, tuple(filter(lambda x: x, op_arg_bind.args)))
+                self, tuple(filter(lambda x: x is not None, op_arg_bind.args)))
 
             # TODO: Elemwise has an `output_types` method that can be
             # used to infer the output type of this variable.
             ttype = ttype or var()
+
+            # Use the given index or the base `Op`'s `default_output`;
+            # otherwise, create a logic variable place-holder.
+            index = (index if index is not None
+                     else getattr(self.obj, 'default_output', None))
             index = index if index is not None else var()
 
             # XXX: We don't have a higher-order meta object model, so being
