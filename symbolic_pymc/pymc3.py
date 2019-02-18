@@ -13,7 +13,6 @@ from warnings import warn
 
 from multipledispatch import dispatch
 
-from theano.gof import FunctionGraph
 from theano.gof.graph import (Variable, Apply, inputs as tt_inputs,
                               clone_get_equiv)
 
@@ -30,6 +29,7 @@ from . import (Observed, observed,
                # DirichletRV, DirichletRVType,
                # PoissonRV, PoissonRVType,
 )
+from .opt import FunctionGraph
 from .rv import RandomVariable
 from .utils import replace_nodes
 
@@ -280,6 +280,10 @@ def convert_pymc3_rvs(fgraph, clone=True, rand_state=None):
         fgraph_.rev_memo = {v: k for k, v in fgraph_memo_.items()}
     else:
         fgraph_ = fgraph
+        if not isinstance(fgraph, FunctionGraph):
+            warn(
+                "Use symbolic_pymc's FunctionGraph implementation;"
+                "otherwise, MergeOptimizer will remove RandomVariables.")
         assert hasattr(fgraph_, 'memo')
         assert hasattr(fgraph_, 'rev_memo')
 

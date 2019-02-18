@@ -75,6 +75,7 @@ class RandomVariable(tt.gof.Op):
     """
     __props__ = ('name', 'dtype', 'ndim_supp', 'inplace', 'ndims_params')
     default_output = 1
+    nondeterministic = True
 
     def __init__(self, name, dtype, ndim_supp, ndims_params, rng_fn,
                  *args,

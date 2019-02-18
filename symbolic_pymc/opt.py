@@ -1,5 +1,9 @@
+import types
+
+import theano
 import theano.tensor as tt
 
+from functools import wraps
 from unification import var, variables
 
 from kanren import run
@@ -25,6 +29,34 @@ def reify_meta(x):
             "Kanren results not fully reifiable: {}".format(res))
 
     return res
+
+
+class FunctionGraph(theano.gof.fg.FunctionGraph):
+    """A version of `FunctionGraph` that knows not to merge
+    non-deterministic `Op`s.
+
+    TODO: Add a check to `MergeFeature.process_node` and submit
+    a PR to Theano.
+    """
+
+    def attach_feature(self, feature):
+        if isinstance(feature, theano.gof.opt.MergeFeature):
+            _process_node = feature.process_node
+
+            @wraps(feature.process_node)
+            def _f(self, fgraph, node):
+                if getattr(node.op, 'nondeterministic', False):
+                    return
+                return _process_node(fgraph, node)
+
+            feature.process_node = types.MethodType(_f, feature)
+
+        return super().attach_feature(feature)
+
+    def clone(self, *args, **kwargs):
+        res = super().clone(*args, **kwargs)
+        res.__class__ = type(self)
+        return res
 
 
 class KanrenRelationSub(LocalOptimizer):

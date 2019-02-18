@@ -3,12 +3,13 @@ import theano.tensor as tt
 
 from collections import OrderedDict
 
-from theano.gof import FunctionGraph, Query
+from theano.gof import (FunctionGraph as tt_FunctionGraph, Query)
 from theano.gof.graph import (inputs as tt_inputs, clone_get_equiv,
                               io_toposort)
 from theano.compile import optdb
 
 
+from .opt import FunctionGraph
 from .meta import MetaSymbol, _check_eq
 
 
@@ -140,7 +141,7 @@ def optimize_graph(x, optimization, return_graph=False, in_place=False):
     When given an existing `FunctionGraph`, the optimization is performed
     without side-effects (i.e. won't change the given graph).
     """
-    if not isinstance(x, FunctionGraph):
+    if not isinstance(x, tt_FunctionGraph):
         inputs = tt_inputs([x])
         outputs = [x]
         model_memo = clone_get_equiv(inputs, outputs,

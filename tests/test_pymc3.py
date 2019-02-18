@@ -6,10 +6,10 @@ import theano.tensor as tt
 import pymc3 as pm
 
 # from theano.configparser import change_flags
-from theano.gof import FunctionGraph
 from theano.gof.graph import inputs as tt_inputs
 
 from symbolic_pymc import (MvNormalRV, observed)
+from symbolic_pymc.opt import FunctionGraph
 from symbolic_pymc.pymc3 import model_graph, graph_model
 from symbolic_pymc.utils import canonicalize
 from symbolic_pymc.meta import mt

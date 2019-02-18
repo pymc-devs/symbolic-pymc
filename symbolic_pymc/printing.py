@@ -13,6 +13,7 @@ from sympy import Array as SympyArray
 from sympy.printing import latex as sympy_latex
 
 from . import *
+from .opt import FunctionGraph
 from .rv import RandomVariable
 
 
@@ -309,7 +310,7 @@ class PreamblePPrinter(theano.printing.PPrinter):
             out_vars = [var]
 
         if not fgraph:
-            fgraph = gof.fg.FunctionGraph(
+            fgraph = FunctionGraph(
                 gof.graph.inputs([var]), [var])
             out_vars = fgraph.outputs
 
