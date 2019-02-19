@@ -12,6 +12,8 @@ from .unify import *
 
 # Continuous Numpy-generated variates
 class UniformRVType(RandomVariable):
+    print_name = ('U', '\\operatorname{U}')
+
     def __init__(self):
         super().__init__('uniform', theano.config.floatX, 0, [0, 0], 'uniform',
                          inplace=True)
@@ -24,6 +26,8 @@ UniformRV = UniformRVType()
 
 
 class NormalRVType(RandomVariable):
+    print_name = ('N', '\\operatorname{N}')
+
     def __init__(self):
         super().__init__('normal', theano.config.floatX, 0, [0, 0], 'normal',
                          inplace=True)
@@ -36,6 +40,8 @@ NormalRV = NormalRVType()
 
 
 class GammaRVType(RandomVariable):
+    print_name = ('Gamma', '\\operatorname{Gamma}')
+
     def __init__(self):
         super().__init__('gamma', theano.config.floatX, 0, [0, 0], 'gamma',
                          inplace=True)
@@ -48,6 +54,8 @@ GammaRV = GammaRVType()
 
 
 class ExponentialRVType(RandomVariable):
+    print_name = ('Exp', '\\operatorname{Exp}')
+
     def __init__(self):
         super().__init__('exponential', theano.config.floatX, 0, [0],
                          'exponential', inplace=True)
@@ -61,6 +69,8 @@ ExponentialRV = ExponentialRVType()
 
 # One with multivariate support
 class MvNormalRVType(RandomVariable):
+    print_name = ('N', '\\operatorname{N}')
+
     def __init__(self):
         super().__init__('multivariate_normal', theano.config.floatX, 1,
                          [1, 2], 'multivariate_normal', inplace=True)
@@ -73,6 +83,8 @@ MvNormalRV = MvNormalRVType()
 
 
 class DirichletRVType(RandomVariable):
+    print_name = ('Dir', '\\operatorname{Dir}')
+
     def __init__(self):
         super().__init__('dirichlet', theano.config.floatX, 1, [1],
                          'dirichlet', inplace=True)
@@ -86,6 +98,8 @@ DirichletRV = DirichletRVType()
 
 # A discrete Numpy-generated variate
 class PoissonRVType(RandomVariable):
+    print_name = ('Pois', '\\operatorname{Pois}')
+
     def __init__(self):
         super().__init__('poisson', 'int64', 0, [0], 'poisson', inplace=True)
 
@@ -98,6 +112,8 @@ PoissonRV = PoissonRVType()
 
 # A SciPy-generated variate
 class CauchyRVType(RandomVariable):
+    print_name = ('C', '\\operatorname{C}')
+
     def __init__(self):
         super().__init__(
             'cauchy', theano.config.floatX, 0, [0, 0],
@@ -113,6 +129,8 @@ CauchyRV = CauchyRVType()
 
 
 class HalfCauchyRVType(RandomVariable):
+    print_name = ('C**+', '\\operatorname{C^{+}}')
+
     def __init__(self):
         super().__init__(
             'halfcauchy', theano.config.floatX, 0, [0, 0],
@@ -128,6 +146,8 @@ HalfCauchyRV = HalfCauchyRVType()
 
 
 class InvGammaRVType(RandomVariable):
+    print_name = ('InvGamma', '\\operatorname{Gamma^{-1}}')
+
     def __init__(self):
         super().__init__(
             'invgamma', theano.config.floatX, 0, [0, 0],
@@ -143,6 +163,8 @@ InvGammaRV = InvGammaRVType()
 
 
 class TruncExponentialRVType(RandomVariable):
+    print_name = ('TruncExp', '\\operatorname{Exp}')
+
     def __init__(self):
         super().__init__(
             'truncexpon', theano.config.floatX, 0, [0, 0, 0],
@@ -160,6 +182,8 @@ TruncExponentialRV = TruncExponentialRVType()
 # Support shape is determined by the first dimension in the *second* parameter
 # (i.e.  the probabilities vector)
 class MultinomialRVType(RandomVariable):
+    print_name = ('MN', '\\operatorname{MN}')
+
     def __init__(self):
         super().__init__('multinomial', 'int64', 1, [0, 1], 'multinomial',
                          supp_shape_fn=partial(param_supp_shape_fn,

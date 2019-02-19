@@ -12,13 +12,20 @@ from theano import gof
 from sympy import Array as SympyArray
 from sympy.printing import latex as sympy_latex
 
-from . import *
+from . import Observed, NormalRV
 from .opt import FunctionGraph
 from .rv import RandomVariable
 
 
 class RandomVariablePrinter(object):
     """Pretty print random variables.
+
+    `Op`s are able to specify their ascii and LaTeX formats via a "print_name"
+    property.  `Op.print_name` should be a tuple or list that specifies the
+    plain text/ascii and LaTeX name, respectively.
+
+    Also, distribution parameters can be formatted distinctly by overriding
+    the `RandomVariablePrinter.process_param` method.
     """
 
     def __init__(self, name=None):
@@ -55,50 +62,142 @@ class RandomVariablePrinter(object):
         node = output.owner
 
         if node is None or not isinstance(node.op, RandomVariable):
-            raise TypeError("function %s cannot represent a variable that is "
+            raise TypeError("Function %s cannot represent a variable that is "
                             "not the result of a RandomVariable operation" %
                             self.name)
 
+        op_name = self.name or getattr(node.op, 'print_name', None)
+        op_name = op_name or getattr(node.op, 'name', None)
+
+        if op_name is None:
+            raise ValueError(f'Could not find a name for {node.op}')
+
+        # Allow `Op`s to specify their ascii and LaTeX formats (in a tuple/list
+        # with that order).
+        output_latex = getattr(pstate, 'latex', False)
+        if isinstance(op_name, (tuple, list)):
+            op_name = op_name[int(output_latex)]
+        elif output_latex:
+            op_name = '\\operatorname{%s}' % op_name
+
+        preamble_dict = getattr(pstate, 'preamble_dict', {})
         new_precedence = -1000
         try:
             old_precedence = getattr(pstate, 'precedence', None)
             pstate.precedence = new_precedence
-            out_name = VariableWithShapePrinter.process_variable_name(
-                output, pstate)
-            shape_info_str = VariableWithShapePrinter.process_shape_info(
-                output, pstate)
-            if getattr(pstate, 'latex', False):
-                dist_format = "%s \\sim \\operatorname{%s}\\left(%s\\right)"
-                dist_format += ', \\quad {}'.format(shape_info_str)
+
+            # Get the symbol name string from another pprinter.
+            # We create a dummy variable with no `owner`, so that
+            # the pprinter will format it like a standard variable.
+            dummy_out = output.clone()
+            dummy_out.owner = None
+            # Use this to get shape information down the line.
+            dummy_out.orig_var = output
+
+            var_name = pprinter.process(dummy_out, pstate)
+
+            if output_latex:
+                dist_format = "%s \\sim %s\\left(%s\\right)"
             else:
                 dist_format = "%s ~ %s(%s)"
-                dist_format += ',  {}'.format(shape_info_str)
 
-            op_name = self.name or node.op.name
+            # Get the shape info for our dummy symbol, if available,
+            # and append it to the distribution definition.
+            if 'shape_strings' in preamble_dict:
+                shape_info_str = preamble_dict['shape_strings'].pop(dummy_out)
+                shape_info_str = shape_info_str.lstrip(var_name)
+                if output_latex:
+                    dist_format += '\\, {}'.format(shape_info_str)
+                else:
+                    dist_format += shape_info_str
+
             dist_params = node.inputs[:-2]
             formatted_params = [
                 self.process_param(i, pprinter.process(p, pstate), pstate)
                 for i, p in enumerate(dist_params)
             ]
 
-            dist_params_r = dist_format % (out_name,
-                                           op_name,
-                                           ", ".join(formatted_params))
+            dist_def_str = dist_format % (var_name,
+                                          op_name,
+                                          ", ".join(formatted_params))
         finally:
             pstate.precedence = old_precedence
 
-        pstate.preamble_lines += [dist_params_r]
-        pstate.memo[output] = out_name
+        # All subsequent calls will use the variable name and
+        # not the distribution definition.
+        pstate.memo[output] = var_name
 
-        return out_name
+        if preamble_dict:
+            rv_strings = preamble_dict.setdefault('rv_strings', [])
+            rv_strings.append(dist_def_str)
+            return var_name
+        else:
+            return dist_def_str
+
+
+class GenericSubtensorPrinter(object):
+
+    def process(self, r, pstate):
+        if r.owner is None:
+            raise TypeError("Can only print Subtensor.")
+
+        output_latex = getattr(pstate, 'latex', False)
+
+        inputs = list(r.owner.inputs)
+        obj = inputs.pop(0)
+        idxs = getattr(r.owner.op, 'idx_list', inputs)
+        sidxs = []
+        old_precedence = getattr(pstate, 'precedence', None)
+        try:
+            pstate.precedence = -1000
+
+            for entry in idxs:
+                if isinstance(entry, slice):
+                    s_parts = [''] * 2
+                    if entry.start is not None:
+                        s_parts[0] = entry.start
+
+                    if entry.stop is not None:
+                        s_parts[1] = entry.stop
+
+                    if entry.step is not None:
+                        s_parts.append(entry.stop)
+
+                    sidxs.append(':'.join(s_parts))
+                else:
+                    sidxs.append(pstate.pprinter.process(inputs.pop()))
+
+            if output_latex:
+                idx_str = ", \\,".join(sidxs)
+            else:
+                idx_str = ", ".join(sidxs)
+        finally:
+            pstate.precedence = old_precedence
+
+        try:
+            pstate.precedence = 1000
+            sub = pstate.pprinter.process(obj, pstate)
+        finally:
+            pstate.precedence = old_precedence
+
+        if output_latex:
+            return "%s\\left[%s\\right]" % (sub, idx_str)
+        else:
+            return "%s[%s]" % (sub, idx_str)
 
 
 class VariableWithShapePrinter(object):
     """Print variable shape info in the preamble and use readable character
     names for unamed variables.
+
+    Constant arrays are only printed when their size is below a threshold
+    set by `max_line_width * max_line_height`
+
     """
     available_names = OrderedDict.fromkeys(string.ascii_letters)
     default_printer = theano.printing.default_printer
+    max_line_width = 40
+    max_line_height = 20
 
     @classmethod
     def process(cls, output, pstate):
@@ -106,21 +205,36 @@ class VariableWithShapePrinter(object):
             return pstate.memo[output]
 
         using_latex = getattr(pstate, 'latex', False)
+        # Crude--but effective--means of stopping print-outs for large
+        # arrays.
+        constant = isinstance(output, tt.TensorConstant)
+        too_large = constant and (
+            output.data.size > cls.max_line_width * cls.max_line_height)
 
-        if isinstance(output, gof.Constant):
-            if output.ndim > 0 and using_latex:
+        if constant and not too_large:
+            # Print constants that aren't too large
+            if using_latex and output.ndim > 0:
                 out_name = sympy_latex(SympyArray(output.data))
             else:
                 out_name = str(output.data)
-        elif isinstance(output, tt.TensorVariable):
+        elif isinstance(output, tt.TensorVariable) or constant:
             # Process name and shape
-            out_name = cls.process_variable_name(output, pstate)
-            shape_info = cls.process_shape_info(output, pstate)
-            pstate.preamble_lines += [shape_info]
-        elif output.name:
-            out_name = output.name
+
+            # Attempt to get the original variable, in case this is a cloned
+            # `RandomVariable` output; otherwise, we won't get any shape
+            # information from the `FunctionGraph`.
+            var = getattr(output, 'orig_var', output)
+
+            out_name = cls.process_variable_name(var, pstate)
+
+            shape_info = cls.process_shape_info(var, pstate)
+
+            shape_strings = pstate.preamble_dict.setdefault(
+                'shape_strings', OrderedDict())
+            shape_strings[output] = shape_info
         else:
-            out_name = cls.default_printer.process(output, pstate)
+            raise TypeError(
+                f'Type {type(output)} not handled by variable printer')
 
         pstate.memo[output] = out_name
         return out_name
@@ -192,15 +306,19 @@ class VariableWithShapePrinter(object):
                     old_precedence = getattr(pstate, 'precedence', None)
                     pstate.precedence = new_precedence
                     _s_i_out = shape_feature.get_shape(output, i)
-                    if _s_i_out.owner:
-                        if (isinstance(_s_i_out.owner.op, tt.Subtensor) and
-                            all(isinstance(i, tt.Constant)
-                                for i in _s_i_out.owner.inputs)):
-                            s_i_out = str(_s_i_out.owner.inputs[0].data[
-                                _s_i_out.owner.inputs[1].data])
-                        elif not isinstance(_s_i_out, tt.TensorVariable):
-                            s_i_out = pstate.pprinter.process(_s_i_out, pstate)
-                except KeyError:
+
+                    if not isinstance(_s_i_out,
+                                      (tt.Constant, tt.TensorVariable)):
+                        s_i_out = pstate.pprinter.process(_s_i_out, pstate)
+                    else:
+                        s_i_out = str(tt.get_scalar_constant_value(_s_i_out))
+
+                except (KeyError, IndexError, ValueError,
+                        tt.NotScalarConstantError):
+                    # Ugh, most of these exception types are just for
+                    # `get_scalar_constant_value`!
+                    # TODO: The design of that function contract could use some
+                    # serious reconsideration.
                     pass
                 finally:
                     pstate.precedence = old_precedence
@@ -229,6 +347,14 @@ class VariableWithShapePrinter(object):
 class PreamblePPrinter(theano.printing.PPrinter):
     """Pretty printer that displays a preamble.
 
+    Preambles are put into an `OrderedDict` of categories (determined by
+    printers that use the preamble).  The order can be set by preempting the
+    category names within an `OrderedDict` passed to the constructor via
+    the `preamble_dict` keyword.
+    The lines accumulated in each category are comma-separated up to a fixed
+    length given by `PreamblePPrinter.max_preamble_width`, after which a
+    newline is appended and process repeats.
+
     Example
     =======
 
@@ -244,31 +370,37 @@ class PreamblePPrinter(theano.printing.PPrinter):
 
     XXX: Not thread-safe!
     """
+    max_preamble_width = 40
 
-    def __init__(self, *args, pstate_defaults=None, **kwargs):
+    def __init__(self, *args, pstate_defaults=None, preamble_dict=None,
+                 **kwargs):
         """
         Parameters
         ==========
         pstate_defaults: dict (optional)
             Default printer state parameters.
+        preamble_dict: OrderedDict (optional)
+            Default preamble dictionary.  Use this to pre-set the print-out
+            ordering of preamble categories/keys.
         """
         super().__init__(*args, **kwargs)
         self.pstate_defaults = pstate_defaults or {}
+        self.pstate_defaults.setdefault(
+            'preamble_dict',
+            OrderedDict() if preamble_dict is None else preamble_dict)
         self.printers_dict = dict(tt.pprint.printers_dict)
         self.printers = copy(tt.pprint.printers)
         self._pstate = None
 
     def create_state(self, pstate):
-        # FIXME: Find all the user-defined node names and make the tag
-        # generator aware of them.
         if pstate is None:
             pstate = theano.printing.PrinterState(
                 pprinter=self,
-                preamble_lines=[],
-                **self.pstate_defaults)
+                **{k: copy(v)
+                   for k, v in self.pstate_defaults.items()})
         elif isinstance(pstate, dict):
-            pstate.setdefault('preamble_lines', [])
-            pstate.update(self.pstate_defaults)
+            pstate.update({k: copy(v)
+                           for k, v in self.pstate_defaults.items()})
             pstate = theano.printing.PrinterState(pprinter=self, **pstate)
 
         # FIXME: Good old fashioned circular references...
@@ -311,8 +443,11 @@ class PreamblePPrinter(theano.printing.PPrinter):
 
         if not fgraph:
             fgraph = FunctionGraph(
-                gof.graph.inputs([var]), [var])
-            out_vars = fgraph.outputs
+                [o for o in gof.graph.inputs([var])
+                 if not isinstance(o, tt.Constant)],
+                out_vars,
+                # XXX: Cloning will cause `ShapeFeature` to fail.
+                clone=False)
 
             # Use this to get better shape info
             shape_feature = tt.opt.ShapeFeature()
@@ -325,13 +460,40 @@ class PreamblePPrinter(theano.printing.PPrinter):
             body_strs += [super().__call__(v, pstate)]
 
         latex_out = getattr(pstate, 'latex', False)
-        if pstate.preamble_lines and latex_out:
-            preamble_body = "\n\\\\\n".join(pstate.preamble_lines)
+
+        comma_str = ", \\," if latex_out else ", "
+        newline_str = "\n\\\\\n" if latex_out else "\n"
+
+        # Let's join all the preamble categories, but split within
+        # categories when the joined line is too long.
+        preamble_lines = []
+        for v in pstate.preamble_dict.values():
+            if isinstance(v, dict):
+                v = list(v.values())
+
+            assert isinstance(v, list)
+
+            v_new = []
+            c_len = l_idx = 0
+            for l in v:
+                if len(v_new) <= l_idx:
+                    c_len = self.max_preamble_width * l_idx
+                    v_new.append([l])
+                else:
+                    v_new[l_idx].append(l)
+                c_len += len(l)
+                l_idx += int(c_len // self.max_preamble_width > l_idx)
+
+            preamble_lines.append(
+                newline_str.join(comma_str.join(z) for z in v_new))
+
+        if preamble_lines and latex_out:
+            preamble_body = newline_str.join(preamble_lines)
             preamble_str = "\\begin{gathered}\n%s\n\\end{gathered}"
             preamble_str = preamble_str % (preamble_body)
-            res = "\n\\\\\n".join([preamble_str] + body_strs)
+            res = newline_str.join([preamble_str] + body_strs)
         else:
-            res = "\n".join(pstate.preamble_lines + body_strs)
+            res = newline_str.join(preamble_lines + body_strs)
 
         if latex_out and latex_env:
             label_out = f'\\label{{{latex_label}}}\n' if latex_label else ''
@@ -346,10 +508,13 @@ class PreamblePPrinter(theano.printing.PPrinter):
 
 tt_pprint = PreamblePPrinter()
 
-tt_pprint.assign(lambda pstate, r: True, VariableWithShapePrinter)
-tt_pprint.assign(UniformRV, RandomVariablePrinter('U'))
-tt_pprint.assign(GammaRV, RandomVariablePrinter('Gamma'))
-tt_pprint.assign(ExponentialRV, RandomVariablePrinter('Exp'))
+# The order here is important!
+tt_pprint.printers.insert(0, (lambda pstate, r: isinstance(r, tt.Variable),
+                              VariableWithShapePrinter))
+tt_pprint.printers.insert(0, (lambda pstate, r:
+                              r.owner and isinstance(r.owner.op,
+                                                     RandomVariable),
+                              RandomVariablePrinter()))
 
 
 class ObservationPrinter(object):
@@ -403,19 +568,25 @@ class NormalRVPrinter(RandomVariablePrinter):
 
 
 tt_pprint.assign(NormalRV, NormalRVPrinter())
-tt_pprint.assign(MvNormalRV, RandomVariablePrinter('N'))
+tt_pprint.assign(tt.basic._dot, theano.printing.OperatorPrinter('*', -1,
+                                                                'left'))
 
-tt_pprint.assign(DirichletRV, RandomVariablePrinter('Dir'))
-tt_pprint.assign(PoissonRV, RandomVariablePrinter('Pois'))
-tt_pprint.assign(CauchyRV, RandomVariablePrinter('C'))
-tt_pprint.assign(MultinomialRV, RandomVariablePrinter('MN'))
-tt_pprint.assign(tt.basic._dot, theano.printing.OperatorPrinter('*', -1, 'left'))
+subtensor_printer = GenericSubtensorPrinter()
+tt_pprint.assign(tt.Subtensor, subtensor_printer)
+tt_pprint.assign(tt.AdvancedSubtensor1, subtensor_printer)
+# TODO: Might need to use `isinstance` for this.
+tt_pprint.assign(tt.BaseAdvancedSubtensor, subtensor_printer)
 
-tt_tex_pprint = PreamblePPrinter(pstate_defaults={'latex': True})
-tt_tex_pprint.printers = copy(tt_pprint.printers)
-tt_tex_pprint.printers_dict = dict(tt_pprint.printers_dict)
+tt_tprint = PreamblePPrinter(pstate_defaults={'latex': True})
+tt_tprint.printers = copy(tt_pprint.printers)
+tt_tprint.printers_dict = dict(tt_pprint.printers_dict)
 
-tt_tex_pprint.assign(tt.basic._dot, theano.printing.OperatorPrinter('\\;', -1, 'left'))
-tt_tex_pprint.assign(tt.mul, theano.printing.OperatorPrinter('\\odot', -1, 'either'))
-tt_tex_pprint.assign(tt.true_div, theano.printing.PatternPrinter(('\\frac{%(0)s}{%(1)s}', -1000)))
-tt_tex_pprint.assign(tt.pow, theano.printing.PatternPrinter(('{%(0)s}^{%(1)s}', -1000)))
+tt_tprint.assign(tt.basic._dot, theano.printing.OperatorPrinter('\\;', -1,
+                                                                'left'))
+tt_tprint.assign(tt.mul, theano.printing.OperatorPrinter('\\odot', -1,
+                                                         'either'))
+tt_tprint.assign(tt.true_div,
+                 theano.printing.PatternPrinter(('\\frac{%(0)s}{%(1)s}',
+                                                 -1000)))
+tt_tprint.assign(tt.pow, theano.printing.PatternPrinter(('{%(0)s}^{%(1)s}',
+                                                         -1000)))

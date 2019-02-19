@@ -94,8 +94,8 @@ Z_rv = 10.0
 ```
 
 ```python
->>> from symbolic_pymc.printing import tt_tex_pprint
->>> print(tt_tex_pprint(fgraph))
+>>> from symbolic_pymc.printing import tt_tprint
+>>> print(tt_tprint(fgraph))
 ```
 produces
 ```latex
