@@ -226,10 +226,18 @@ def model_graph(pymc_model, output_vars=None, convert_rvs=True,
             # is not identical to the `ViewOp` argument, so we use the former
             # to avoid dups.
             if isinstance(v.owner.op, theano.compile.ops.ViewOp):
-                v.tag.observations = v.owner.inputs[0]
+                v.tag.observations = tt.as_tensor_variable(v.owner.inputs[0])
             else:
                 # TODO: Is it ever not a `ViewOp`?
-                v.tag.observations = v.observations
+                v.tag.observations = tt.as_tensor_variable(v.observations)
+
+            # For us, the observation variable is a distinct graph variable and
+            # not identical to the observation distribution's output variable
+            # (i.e. the symbol for a sample).
+            # That means we need to give it name distinct from the
+            # corresponding `RandomVariable`'s output variable.
+            if v.name == v.tag.observations.name:
+                v.tag.observations.name = f'{v.name}_obs'
 
     if not output_vars:
         raise ValueError('No derived or observable variables specified')
@@ -322,7 +330,6 @@ def convert_pymc3_rvs(fgraph, clone=True, rand_state=None):
         dist = pm_var.tag.distribution
 
         new_rv = convert_pymc_to_rv(dist, rand_state)
-
         new_rv.name = pm_var.name
 
         if isinstance(pm_var, pm.model.ObservedRV):
@@ -356,8 +363,10 @@ def convert_pymc3_rvs(fgraph, clone=True, rand_state=None):
         # `distribution` object (e.g. variables in distribution parameters).
         nodes_updates = replace_nodes(
             tt_inputs([new_rv]), [new_rv], memo=fgraph_.memo)
-        # It's possible that our new `RandomVariable` itself was cloned,
-        # in which case we need to use the new one.
+
+        # It's possible that our new `RandomVariable` itself was cloned
+        # (because once you clone its inputs, you have to create a new one), in
+        # which case we need to use the new one.
         new_rv = nodes_updates.get(new_rv, new_rv)
 
         # Update the memo so that next time around we don't

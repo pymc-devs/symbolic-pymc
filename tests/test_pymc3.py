@@ -3,7 +3,14 @@ import pytest
 import numpy as np
 import theano
 import theano.tensor as tt
+
+tt.config.on_opt_error = 'raise'
+theano.config.mode = 'FAST_COMPILE'
+theano.config.cxx = ''
+
 import pymc3 as pm
+
+tt.config.compute_test_value = 'ignore'
 
 # from theano.configparser import change_flags
 from theano.gof.graph import inputs as tt_inputs
@@ -13,11 +20,6 @@ from symbolic_pymc.opt import FunctionGraph
 from symbolic_pymc.pymc3 import model_graph, graph_model
 from symbolic_pymc.utils import canonicalize
 from symbolic_pymc.meta import mt
-
-tt.config.on_opt_error = 'raise'
-tt.config.compute_test_value = 'ignore'
-theano.config.mode = 'FAST_COMPILE'
-theano.config.cxx = ''
 
 
 # @change_flags
@@ -40,6 +42,9 @@ def test_pymc_normals():
                          observed=10.)
 
     fgraph = model_graph(model, output_vars=[Z_rv])
+
+    assert fgraph.outputs[0].owner.inputs[0].name == 'Z_rv_obs'
+
     Z_rv_tt = canonicalize(fgraph)
 
     # This will break comparison if we don't reuse it
@@ -55,9 +60,11 @@ def test_pymc_normals():
     Z_rv_ = mt.NormalRV(mt.add(X_rv_, Y_rv_),
                         mt.add(sd_X_, sd_Y_),
                         None, rng, name='Z_rv')
-    Z_rv_ = mt.observed(Z_rv.observations, Z_rv_)
+    obs_ = mt(Z_rv.observations)
+    obs_.name = 'Z_rv_obs'
+    Z_rv_obs_ = mt.observed(obs_, Z_rv_)
 
-    Z_rv_meta = canonicalize(Z_rv_.reify())
+    Z_rv_meta = canonicalize(Z_rv_obs_.reify())
 
     assert mt(Z_rv_tt) == mt(Z_rv_meta)
 
@@ -142,8 +149,11 @@ def test_pymc_broadcastable():
     Z_rv_ = mt.NormalRV(mt.add(X_rv_, Y_rv_),
                         mt.add(sd_X_, sd_Y_),
                         (1,), rng, name='Z_rv')
-    Z_rv_ = mt.observed(Z_rv.observations, Z_rv_)
 
-    Z_rv_meta = canonicalize(Z_rv_.reify())
+    obs_ = mt(Z_rv.observations)
+    obs_.name = 'Z_rv_obs'
+    Z_rv_obs_ = mt.observed(obs_, Z_rv_)
+
+    Z_rv_meta = canonicalize(Z_rv_obs_.reify())
 
     assert mt(Z_rv_tt) == mt(Z_rv_meta)
