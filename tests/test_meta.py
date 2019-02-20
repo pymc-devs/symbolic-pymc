@@ -1,8 +1,10 @@
 import theano
 import theano.tensor as tt
 
-from symbolic_pymc.meta import *
-from symbolic_pymc.utils import *
+from unification import var
+from symbolic_pymc.meta import (MetaSymbol, MetaTensorVariable, MetaTensorType,
+                                mt)
+from symbolic_pymc.utils import graph_equal
 
 
 def test_meta_classes():

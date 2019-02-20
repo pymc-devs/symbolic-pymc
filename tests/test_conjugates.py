@@ -1,4 +1,3 @@
-import theano
 import theano.tensor as tt
 import numpy as np
 
@@ -10,12 +9,8 @@ from symbolic_pymc.opt import KanrenRelationSub, FunctionGraph
 from symbolic_pymc.utils import optimize_graph
 from symbolic_pymc.relations.conjugates import conjugate_posteriors
 
-theano.config.mode = 'FAST_COMPILE'
-theano.config.cxx = ''
-
 
 def test_mvnormal_mvnormal():
-    theano.config.compute_test_value = 'ignore'
     a_tt = tt.vector('a')
     R_tt = tt.matrix('R')
     F_t_tt = tt.matrix('F')

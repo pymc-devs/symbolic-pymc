@@ -4,13 +4,7 @@ import numpy as np
 import theano
 import theano.tensor as tt
 
-tt.config.on_opt_error = 'raise'
-theano.config.mode = 'FAST_COMPILE'
-theano.config.cxx = ''
-
 import pymc3 as pm
-
-tt.config.compute_test_value = 'ignore'
 
 from collections import Counter
 
@@ -27,7 +21,6 @@ from symbolic_pymc.utils import canonicalize
 from symbolic_pymc.meta import mt
 
 
-# @change_flags
 def test_pymc_normals():
     mu_X = tt.scalar('mu_X')
     sd_X = tt.scalar('sd_X')

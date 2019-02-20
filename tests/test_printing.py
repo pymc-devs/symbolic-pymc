@@ -1,11 +1,7 @@
-import theano
 import theano.tensor as tt
 
 from symbolic_pymc import NormalRV
 from symbolic_pymc.printing import tt_pprint
-
-theano.config.cxx = ''
-tt.config.compute_test_value = 'ignore'
 
 
 def test_notex_print():
@@ -21,9 +17,6 @@ def test_notex_print():
                                                       size=[2, 1], name='X')
     expected = 'b in R, \\mu in R, \\sigma in R\nX ~ N(\\mu, \\sigma**2) in R**(2 x 1)\n(b * X)'
     assert tt_pprint(tt_normalrv_name_expr) == expected
-
-    test_fgraph = tt_normalrv_name_expr.fgraph
-    test_i = tt_normalrv_name_expr.fgraph.inputs[0]
 
     tt_2_normalrv_noname_expr = tt.matrix('M') * NormalRV(tt.scalar('\\mu_2'),
                                                           tt.scalar('\\sigma_2'))
