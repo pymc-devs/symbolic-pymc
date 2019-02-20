@@ -38,6 +38,21 @@ class NormalRVType(RandomVariable):
 
 NormalRV = NormalRVType()
 
+class HalfNormalRVType(RandomVariable):
+    print_name = ('N**+', '\\operatorname{N^{+}}')
+
+    def __init__(self):
+        super().__init__(
+            'halfnormal', theano.config.floatX, 0, [0, 0],
+            lambda rng, *args: scipy.stats.halfnorm.rvs(*args,
+                                                        random_state=rng),
+            inplace=True)
+
+    def make_node(self, mu=0., sigma=1., size=None, rng=None, name=None):
+        return super().make_node(mu, sigma, size=size, rng=rng, name=name)
+
+
+HalfNormalRV = HalfNormalRVType()
 
 class GammaRVType(RandomVariable):
     print_name = ('Gamma', '\\operatorname{Gamma}')

@@ -20,6 +20,7 @@ from theano.gof.graph import (Variable, Apply, inputs as tt_inputs,
 from . import (Observed, observed,
                UniformRV, UniformRVType,
                NormalRV, NormalRVType,
+               HalfNormalRV, HalfNormalRVType,
                MvNormalRV, MvNormalRVType,
                GammaRV, GammaRVType,
                InvGammaRV, InvGammaRVType,
@@ -94,6 +95,20 @@ def _convert_rv_to_dist(op, rv):
     params = {'mu': rv.inputs[0],
               'sd': rv.inputs[1]}
     return pm.Normal, params
+
+
+@dispatch(pm.HalfNormal, object)
+def convert_dist_to_rv(dist, rng):
+    size = dist.shape.astype(int)[HalfNormalRV.ndim_supp:]
+    res = HalfNormalRV(0.0, dist.sd, size=size, rng=rng)
+    return res
+
+
+@dispatch(HalfNormalRVType, Apply)
+def _convert_rv_to_dist(op, rv):
+    # TODO: Assert that `rv.inputs[0]` must be all zeros!
+    params = {'sd': rv.inputs[1]}
+    return pm.HalfNormal, params
 
 
 @dispatch(pm.MvNormal, object)
