@@ -1,10 +1,10 @@
-# Most of these entries are from https://github.com/github/gitignore/raw/master/Python.gitignore
-*~
-/.noseids
-
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
+*.pyc
+*.sw[op]
+examples/*.png
+nb_examples/
+nb_tutorials/
+build/*
+dist/*
 *$py.class
 
 # C extensions
@@ -25,10 +25,10 @@ sdist/
 var/
 wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
+.ipynb_checkpoints
+tmtags
+tags
+.DS_Store
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -45,9 +45,9 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
-nosetests.xml
-coverage.xml
-*.cover
+# IntelliJ IDE
+.idea
+*.iml
 .hypothesis/
 .pytest_cache/
 
@@ -57,11 +57,11 @@ docs/_build/
 # PyBuilder
 target/
 
-# pyenv
-.python-version
+# Sphinx
+_build
 
-# Environments
-.env
+# Merge tool
+*.orig
 .venv
 env/
 venv/
@@ -69,17 +69,20 @@ ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
-.spyderproject
+# Test artifacts
+mcmc.sqlite
 .spyproject
 
-# Rope project settings
-.ropeproject
+# Docker development
+# notebooks/
 
-# mkdocs documentation
-/site
+# air speed velocity (asv)
+benchmarks/env/
+benchmarks/html/
+benchmarks/results/
+.pytest_cache/
 
-# mypy
-.mypy_cache/
+# VSCode
+.vscode/
 .dmypy.json
 dmypy.json
