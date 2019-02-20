@@ -53,10 +53,38 @@ class FunctionGraph(theano.gof.fg.FunctionGraph):
 
         return super().attach_feature(feature)
 
-    def clone(self, *args, **kwargs):
-        res = super().clone(*args, **kwargs)
-        res.__class__ = type(self)
-        return res
+    def replace(self, r, new_r, reason=None, verbose=None,
+                remove_dup_inputs=True):
+        """See `theano.gof.fg.FunctionGraph.replace`.
+
+        The original `FunctionGraph.replace` will not replace the actual input
+        list.  This one will.
+        """
+        super().replace(r, new_r, reason=reason, verbose=verbose)
+
+        if r in self.inputs:
+            # TODO: Is there a reason to do this in-place instead?
+            # Is anyone supposed to hold a reference to the original inputs
+            # list?
+
+            # Remove duplicate inputs, if any.
+            if remove_dup_inputs and new_r in self.inputs:
+                self.inputs.remove(new_r)
+                # import ipdb; ipdb.set_trace()
+
+            assert r not in self.variables
+
+            new_inputs = [new_r if i == r else i for i in self.inputs]
+            self.inputs = new_inputs
+
+            # TODO: Inputs-changed callback?
+
+            assert r not in self.inputs
+
+    def clone_get_equiv(self, *args, **kwargs):
+        fg, var_map = super().clone_get_equiv(*args, **kwargs)
+        fg.__class__ = type(self)
+        return fg, var_map
 
 
 class KanrenRelationSub(LocalOptimizer):
@@ -71,7 +99,8 @@ class KanrenRelationSub(LocalOptimizer):
     reentrant = True
 
     def __init__(self, kanren_relation, relation_lvars=None,
-                 results_filter=lambda x: next(iter(x), None)):
+                 results_filter=lambda x: next(iter(x), None),
+                 node_filter=lambda x: False):
         """
         Parameters
         ==========
@@ -84,10 +113,14 @@ class KanrenRelationSub(LocalOptimizer):
         results_filter: function
             A function that returns a single result from a stream of
             miniKanren results.  The default function returns the first result.
+        node_filter: function
+            A function taking a single node as an argument that returns `True`
+            when the node should be skipped.
         """
         self.kanren_relation = kanren_relation
         self.relation_lvars = relation_lvars or []
         self.results_filter = results_filter
+        self.node_filter = node_filter
         super().__init__()
 
     def adjust_outputs(self, node, new_node, old_node=None):
@@ -112,6 +145,9 @@ class KanrenRelationSub(LocalOptimizer):
 
     def transform(self, node):
         if not isinstance(node, tt.Apply):
+            return False
+
+        if self.node_filter(node):
             return False
 
         input_expr = node.default_output()

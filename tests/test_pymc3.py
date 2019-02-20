@@ -43,8 +43,6 @@ def test_pymc_normals():
 
     fgraph = model_graph(model, output_vars=[Z_rv])
 
-    assert fgraph.outputs[0].owner.inputs[0].name == 'Z_rv_obs'
-
     Z_rv_tt = canonicalize(fgraph)
 
     # This will break comparison if we don't reuse it
@@ -61,7 +59,6 @@ def test_pymc_normals():
                         mt.add(sd_X_, sd_Y_),
                         None, rng, name='Z_rv')
     obs_ = mt(Z_rv.observations)
-    obs_.name = 'Z_rv_obs'
     Z_rv_obs_ = mt.observed(obs_, Z_rv_)
 
     Z_rv_meta = canonicalize(Z_rv_obs_.reify())
@@ -149,11 +146,8 @@ def test_pymc_broadcastable():
     Z_rv_ = mt.NormalRV(mt.add(X_rv_, Y_rv_),
                         mt.add(sd_X_, sd_Y_),
                         (1,), rng, name='Z_rv')
-
     obs_ = mt(Z_rv.observations)
-    obs_.name = 'Z_rv_obs'
     Z_rv_obs_ = mt.observed(obs_, Z_rv_)
-
     Z_rv_meta = canonicalize(Z_rv_obs_.reify())
 
     assert mt(Z_rv_tt) == mt(Z_rv_meta)

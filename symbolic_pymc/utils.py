@@ -9,6 +9,8 @@ from theano.gof.graph import (inputs as tt_inputs, clone_get_equiv,
 from theano.compile import optdb
 
 
+from . import Observed
+from .rv import RandomVariable
 from .opt import FunctionGraph
 from .meta import MetaSymbol, _check_eq
 
@@ -16,9 +18,27 @@ from .meta import MetaSymbol, _check_eq
 canonicalize_opt = optdb.query(Query(include=['canonicalize']))
 
 
-def replace_nodes(inputs, outputs, replacements=None,
+def get_rv_observation(node):
+    """Return a `RandomVariable` node's corresponding `Observed` node,
+    or `None`.
+    """
+    if not getattr(node, 'fgraph', None):
+        raise ValueError('Node does not belong to a `FunctionGraph`')
+
+    if isinstance(node.op, RandomVariable):
+        fgraph = node.fgraph
+        for o, i in node.default_output().clients:
+            if o == 'output':
+                o = fgraph.outputs[i].owner
+
+            if isinstance(o.op, Observed):
+                return o
+    return None
+
+
+def replace_input_nodes(inputs, outputs, replacements=None,
                   memo=None, clone_inputs=True):
-    """Recreate a graph, replacing some variables according to a given map.
+    """Recreate a graph, replacing input variables according to a given map.
 
     This is helpful if you want to replace the variable dependencies of
     an existing variable according to a `clone_get_equiv` map and/or
@@ -77,28 +97,37 @@ def replace_nodes(inputs, outputs, replacements=None,
     return memo
 
 
-def parts_unequal(x, y):
+def meta_parts_unequal(x, y, pdb=False):
     """Traverse meta objects and return the first pair of elements
     that are not equal.
     """
+    res = None
     if type(x) != type(y):
         print('unequal types')
-        return x, y
+        res = (x, y)
     elif isinstance(x, MetaSymbol):
         if x.base != y.base:
             print('unequal bases')
-            return x.base, y.base
-        for a, b in zip(x.rands(), y.rands()):
-            z = parts_unequal(a, b)
-            if z is not None:
-                return z
+            res = (x.base, y.base)
+        else:
+            for a, b in zip(x.rands(), y.rands()):
+                z = meta_parts_unequal(a, b, pdb=pdb)
+                if z is not None:
+                    res = z
+                    break
     elif isinstance(x, (tuple, list)):
         for a, b in zip(x, y):
-            z = parts_unequal(a, b)
+            z = meta_parts_unequal(a, b, pdb=pdb)
             if z is not None:
-                return z
+                res = z
+                break
     elif not _check_eq(x, y):
-        return x, y
+        res = (x, y)
+
+    if res is not None:
+        if pdb:
+            import pdb; pdb.set_trace()
+        return res
 
 
 def expand_meta(x, tt_print=tt.pprint):
