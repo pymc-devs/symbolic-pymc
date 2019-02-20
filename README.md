@@ -31,6 +31,7 @@ import theano.tensor as tt
 import pymc3 as pm
 
 from symbolic_pymc.pymc3 import model_graph
+from symbolic_pymc.utils import canonicalize
 
 theano.config.cxx = ''
 
