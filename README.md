@@ -35,19 +35,19 @@ from symbolic_pymc.utils import canonicalize
 
 theano.config.cxx = ''
 
-mu_X = tt.scalar('mu_X')
-sd_X = tt.scalar('sd_X')
-mu_Y = tt.scalar('mu_Y')
-sd_Y = tt.scalar('sd_Y')
+mu_X = tt.scalar('\\mu_X')
+sd_X = tt.scalar('\\sigma_X')
+mu_Y = tt.scalar('\\mu_Y')
+sd_Y = tt.scalar('\\sigma_Y')
 mu_X.tag.test_value = np.array(0., dtype=tt.config.floatX)
 sd_X.tag.test_value = np.array(1., dtype=tt.config.floatX)
 mu_Y.tag.test_value = np.array(1., dtype=tt.config.floatX)
 sd_Y.tag.test_value = np.array(0.5, dtype=tt.config.floatX)
 
 with pm.Model() as model:
-    X_rv = pm.Normal('X_rv', mu_X, sd=sd_X)
-    Y_rv = pm.Normal('Y_rv', mu_Y, sd=sd_Y)
-    Z_rv = pm.Normal('Z_rv',
+    X_rv = pm.Normal('X', mu_X, sd=sd_X)
+    Y_rv = pm.Normal('Y', mu_Y, sd=sd_Y)
+    Z_rv = pm.Normal('Z',
                      X_rv + Y_rv,
                      sd=sd_X + sd_Y,
                      observed=10.)
@@ -55,46 +55,43 @@ with pm.Model() as model:
 fgraph = model_graph(model)
 fgraph = canonicalize(fgraph)
 ```
-```python
+
+```
 >>> from theano.printing import debugprint as tt_dprint
 >>> tt_dprint(fgraph)
-<symbolic_pymc.Observed object at 0x7f0e50556a90> [id A] ''
+<symbolic_pymc.Observed object at 0x7f61b61385f8> [id A] ''   5
  |TensorConstant{10.0} [id B]
- |normal_rv.1 [id C] 'Z_rv'
-   |Elemwise{add,no_inplace} [id D] ''
-   | |normal_rv.1 [id E] 'X_rv'
-   | | |mu_X [id F]
-   | | |sd_X [id G]
+ |normal_rv.1 [id C] 'Z'   4
+   |Elemwise{add,no_inplace} [id D] ''   3
+   | |normal_rv.1 [id E] 'X'   2
+   | | |\\mu_X [id F]
+   | | |\\sigma_X [id G]
    | | |TensorConstant{[]} [id H]
    | | |<RandomStateType> [id I]
-   | |normal_rv.1 [id J] 'Y_rv'
-   |   |mu_Y [id K]
-   |   |sd_Y [id L]
+   | |normal_rv.1 [id J] 'Y'   1
+   |   |\\mu_Y [id K]
+   |   |\\sigma_Y [id L]
    |   |TensorConstant{[]} [id H]
    |   |<RandomStateType> [id I]
-   |Elemwise{add,no_inplace} [id M] ''
-   | |sd_X [id G]
-   | |sd_Y [id L]
+   |Elemwise{add,no_inplace} [id M] ''   0
+   | |\\sigma_X [id G]
+   | |\\sigma_Y [id L]
    |TensorConstant{[]} [id H]
    |<RandomStateType> [id I]
 
 ```
 ### Mathematical Notation Pretty Printing
 
-```python
+```
 >>> from symbolic_pymc.printing import tt_pprint
 >>> print(tt_pprint(fgraph))
-mu_X in R
-sd_X in R
-X_rv ~ N(mu_X, sd_X**2),  X_rv in R
-mu_Y in R
-sd_Y in R
-Y_rv ~ N(mu_Y, sd_Y**2),  Y_rv in R
-Z_rv ~ N((X_rv + Y_rv), (sd_X + sd_Y)**2),  Z_rv in R
-Z_rv = 10.0
+\\mu_X in R, \\sigma_X in R, \\mu_Y in R, \\sigma_Y in R
+X ~ N(\\mu_X, \\sigma_X**2) in R, Y ~ N(\\mu_Y, \\sigma_Y**2) in R
+Z ~ N((X + Y), (\\sigma_X + \\sigma_Y)**2) in R
+Z = 10.0
 ```
 
-```python
+```
 >>> from symbolic_pymc.printing import tt_tprint
 >>> print(tt_tprint(fgraph))
 ```
@@ -102,22 +99,18 @@ produces
 ```latex
 \begin{equation}
   \begin{gathered}
-  mu_X \in \mathbb{R}
+  \mu_X \in \mathbb{R}, \,\sigma_X \in \mathbb{R}
   \\
-  sd_X \in \mathbb{R}
+  \mu_Y \in \mathbb{R}, \,\sigma_Y \in \mathbb{R}
   \\
-  X_rv \sim \operatorname{N}\left(mu_X, {sd_X}^{2}\right), \quad X_rv \in \mathbb{R}
+  X \sim \operatorname{N}\left(\mu_X, {\sigma_X}^{2}\right)\,  \in \mathbb{R}
   \\
-  mu_Y \in \mathbb{R}
+  Y \sim \operatorname{N}\left(\mu_Y, {\sigma_Y}^{2}\right)\,  \in \mathbb{R}
   \\
-  sd_Y \in \mathbb{R}
-  \\
-  Y_rv \sim \operatorname{N}\left(mu_Y, {sd_Y}^{2}\right), \quad Y_rv \in \mathbb{R}
-  \\
-  Z_rv \sim \operatorname{N}\left((X_rv + Y_rv), {(sd_X + sd_Y)}^{2}\right), \quad Z_rv \in \mathbb{R}
+  Z \sim \operatorname{N}\left((X + Y), {(\sigma_X + \sigma_Y)}^{2}\right)\,  \in \mathbb{R}
   \end{gathered}
   \\
-  Z_rv = 10.0
+  Z = 10.0
 \end{equation}
 ```
 
@@ -170,19 +163,17 @@ posterior_opt = EquilibriumOptimizer(
     [KanrenRelationSub(conjugate_posteriors)],
     max_use_ratio=10)
 
-fgraph_opt = optimize_graph(fgraph, posterior_opt, return_graph=True)
+fgraph_opt = optimize_graph(fgraph, posterior_opt)
 fgraph_opt = canonicalize(fgraph_opt)
 ```
 
-```python
->>> print(tt_pprint(fgraph_opt[0]))
-a in R**(N^a_0)
-R in R**(N^R_0 x N^R_1)
-F in R**(N^F_0 x N^F_1)
-c in R**(N^c_0 x N^c_1)
-V in R**(N^V_0 x N^V_1)
-b ~ N((a + (((R * F.T) * c) * ([-3.] - (F * a)))), (R - ((((R * F.T) * c) * (V + (F * (R * F.T)))) * (c.T * (F * R.T))))),  b in R**(N^b_0)
+```
+>>> print(tt_pprint(fgraph_opt))
+a in R**(N^a_0), R in R**(N^R_0 x N^R_1), F in R**(N^F_0 x N^F_1)
+c in R**(N^c_0 x N^c_1), V in R**(N^V_0 x N^V_1)
+b ~ N((a + (((R * F.T) * c) * ([-3.] - (F * a)))), (R - ((((R * F.T) * c) * (V + (F * (R * F.T)))) * (c.T * (F * R.T))))) in R**(N^b_0)
 b
+[-3.]
 ```
 
 ## Installation

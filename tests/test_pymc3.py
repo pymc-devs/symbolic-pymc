@@ -12,10 +12,15 @@ import pymc3 as pm
 
 tt.config.compute_test_value = 'ignore'
 
+from collections import Counter
+
+from unification.utils import transitive_get as walk
+
 # from theano.configparser import change_flags
 from theano.gof.graph import inputs as tt_inputs
 
-from symbolic_pymc import (MvNormalRV, observed)
+from symbolic_pymc import (MvNormalRV, Observed, observed)
+from symbolic_pymc.rv import RandomVariable
 from symbolic_pymc.opt import FunctionGraph
 from symbolic_pymc.pymc3 import model_graph, graph_model
 from symbolic_pymc.utils import canonicalize
@@ -27,43 +32,77 @@ def test_pymc_normals():
     mu_X = tt.scalar('mu_X')
     sd_X = tt.scalar('sd_X')
     mu_Y = tt.scalar('mu_Y')
-    sd_Y = tt.scalar('sd_Y')
     mu_X.tag.test_value = np.array(0., dtype=tt.config.floatX)
     sd_X.tag.test_value = np.array(1., dtype=tt.config.floatX)
     mu_Y.tag.test_value = np.array(1., dtype=tt.config.floatX)
-    sd_Y.tag.test_value = np.array(0.5, dtype=tt.config.floatX)
 
+    # We need something that uses transforms...
     with pm.Model() as model:
         X_rv = pm.Normal('X_rv', mu_X, sd=sd_X)
-        Y_rv = pm.Normal('Y_rv', mu_Y, sd=sd_Y)
+        S_rv = pm.HalfCauchy('S_rv', beta=0.5)
+        Y_rv = pm.Normal('Y_rv', X_rv * S_rv, sd=S_rv)
         Z_rv = pm.Normal('Z_rv',
                          X_rv + Y_rv,
-                         sd=sd_X + sd_Y,
+                         sd=sd_X,
                          observed=10.)
 
     fgraph = model_graph(model, output_vars=[Z_rv])
 
-    Z_rv_tt = canonicalize(fgraph)
+    Z_rv_tt = canonicalize(fgraph, return_graph=False)
 
     # This will break comparison if we don't reuse it
     rng = Z_rv_tt.owner.inputs[1].owner.inputs[-1]
 
     mu_X_ = mt.scalar('mu_X')
     sd_X_ = mt.scalar('sd_X')
-    mu_Y_ = mt.scalar('mu_Y')
-    sd_Y_ = mt.scalar('sd_Y')
     tt.config.compute_test_value = 'ignore'
     X_rv_ = mt.NormalRV(mu_X_, sd_X_, None, rng, name='X_rv')
-    Y_rv_ = mt.NormalRV(mu_Y_, sd_Y_, None, rng, name='Y_rv')
+    S_rv_ = mt.HalfCauchyRV(0., 0.5, None, rng, name='S_rv')
+    Y_rv_ = mt.NormalRV(mt.mul(X_rv_, S_rv_), S_rv_, None, rng, name='Y_rv')
     Z_rv_ = mt.NormalRV(mt.add(X_rv_, Y_rv_),
-                        mt.add(sd_X_, sd_Y_),
+                        sd_X,
                         None, rng, name='Z_rv')
     obs_ = mt(Z_rv.observations)
     Z_rv_obs_ = mt.observed(obs_, Z_rv_)
 
-    Z_rv_meta = canonicalize(Z_rv_obs_.reify())
+    Z_rv_meta = canonicalize(Z_rv_obs_.reify(), return_graph=False)
 
     assert mt(Z_rv_tt) == mt(Z_rv_meta)
+
+    # Now, let's try that with multiple outputs.
+    fgraph.disown()
+    fgraph = model_graph(model, output_vars=[Y_rv, Z_rv])
+
+    assert len(fgraph.variables) == 25
+
+    Y_new_rv = walk(Y_rv, fgraph.memo)
+    S_new_rv = walk(S_rv, fgraph.memo)
+    X_new_rv = walk(X_rv, fgraph.memo)
+    Z_new_rv = walk(Z_rv, fgraph.memo)
+
+    # Make sure our new vars are actually in the graph and where
+    # they should be.
+    assert Y_new_rv == fgraph.outputs[0]
+    assert Z_new_rv == fgraph.outputs[1]
+    assert X_new_rv in fgraph.variables
+    assert S_new_rv in fgraph.variables
+    assert isinstance(Z_new_rv.owner.op, Observed)
+
+    # Let's only look at the variables involved in the `Z_rv` subgraph.
+    Z_vars = theano.gof.graph.variables(
+        theano.gof.graph.inputs([Z_new_rv]),
+        [Z_new_rv])
+
+    # Let's filter for only the `RandomVariables` with names.
+    Z_vars_count = Counter(
+        [n.name for n in Z_vars
+         if n.name and n.owner and isinstance(n.owner.op, RandomVariable)])
+
+    # Each new RV should be present and only occur once.
+    assert Y_new_rv.name in Z_vars_count.keys()
+    assert X_new_rv.name in Z_vars_count.keys()
+    assert Z_new_rv.owner.inputs[1].name in Z_vars_count.keys()
+    assert all(v == 1 for v in Z_vars_count.values())
 
 
 def test_normals_to_model():
@@ -129,7 +168,7 @@ def test_pymc_broadcastable():
     with pytest.warns(UserWarning):
         fgraph = model_graph(model)
 
-    Z_rv_tt = canonicalize(fgraph)
+    Z_rv_tt = canonicalize(fgraph, return_graph=False)
 
     # This will break comparison if we don't reuse it
     rng = Z_rv_tt.owner.inputs[1].owner.inputs[-1]
@@ -148,6 +187,6 @@ def test_pymc_broadcastable():
                         (1,), rng, name='Z_rv')
     obs_ = mt(Z_rv.observations)
     Z_rv_obs_ = mt.observed(obs_, Z_rv_)
-    Z_rv_meta = canonicalize(Z_rv_obs_.reify())
+    Z_rv_meta = canonicalize(Z_rv_obs_.reify(), return_graph=False)
 
     assert mt(Z_rv_tt) == mt(Z_rv_meta)

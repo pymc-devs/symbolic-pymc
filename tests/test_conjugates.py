@@ -43,7 +43,7 @@ def test_mvnormal_mvnormal():
         [KanrenRelationSub(conjugate_posteriors)],
         max_use_ratio=10)
 
-    fgraph_opt = optimize_graph(fgraph, posterior_opt)
+    fgraph_opt = optimize_graph(fgraph, posterior_opt, return_graph=False)
 
     # Make sure that it removed the old, integrated observation distribution.
     assert fgraph_opt[1].owner.inputs[1].equals(tt.NoneConst)

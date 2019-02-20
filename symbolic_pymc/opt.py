@@ -39,6 +39,22 @@ class FunctionGraph(theano.gof.fg.FunctionGraph):
     a PR to Theano.
     """
 
+    def __init__(self, inputs, outputs, features=None, clone=True, memo=None,
+                 update_mapping=None, copy_inputs=True, copy_orphans=None):
+
+        if clone:
+            if copy_orphans is None:
+                copy_orphans = copy_inputs
+
+            self.memo = theano.gof.graph.clone_get_equiv(
+                inputs, outputs, copy_inputs, copy_orphans, memo)
+
+            inputs = [self.memo[i] for i in inputs]
+            outputs = [self.memo[o] for o in outputs]
+
+        super().__init__(inputs, outputs, features=features, clone=False,
+                         update_mapping=None)
+
     def attach_feature(self, feature):
         if isinstance(feature, theano.gof.opt.MergeFeature):
             _process_node = feature.process_node
@@ -83,7 +99,7 @@ class FunctionGraph(theano.gof.fg.FunctionGraph):
 
     def clone_get_equiv(self, *args, **kwargs):
         fg, var_map = super().clone_get_equiv(*args, **kwargs)
-        fg.__class__ = type(self)
+        fg.__class__ = self.__class__
         return fg, var_map
 
 

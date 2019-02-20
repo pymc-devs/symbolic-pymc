@@ -3,11 +3,12 @@ import theano.tensor as tt
 
 from collections import OrderedDict
 
+from unification.utils import transitive_get as walk
+
 from theano.gof import (FunctionGraph as tt_FunctionGraph, Query)
 from theano.gof.graph import (inputs as tt_inputs, clone_get_equiv,
                               io_toposort)
 from theano.compile import optdb
-
 
 from . import Observed
 from .rv import RandomVariable
@@ -37,7 +38,7 @@ def get_rv_observation(node):
 
 
 def replace_input_nodes(inputs, outputs, replacements=None,
-                  memo=None, clone_inputs=True):
+                        memo=None, clone_inputs=True):
     """Recreate a graph, replacing input variables according to a given map.
 
     This is helpful if you want to replace the variable dependencies of
@@ -79,19 +80,19 @@ def replace_input_nodes(inputs, outputs, replacements=None,
     if replacements is not None:
         memo.update(replacements)
     for apply in io_toposort(inputs, outputs):
-        if clone_inputs:
-            apply_inputs = [memo.setdefault(i, i.clone())
-                            for i in apply.inputs]
-        else:
-            apply_inputs = apply.inputs
 
-        if any(i in memo for i in apply.inputs):
-            new_apply = apply.clone_with_new_inputs(
-                [memo.get(i, apply_inputs[n])
-                 for n, i in enumerate(apply.inputs)])
+        walked_inputs = []
+        for i in apply.inputs:
+            if clone_inputs:
+                # TODO: What if all the inputs are in the memo?
+                walked_inputs.append(memo.setdefault(i, i.clone()))
+            else:
+                walked_inputs.append(walk(i, memo))
+
+        if any(w != i for w, i in zip(apply.inputs, walked_inputs)):
+            new_apply = apply.clone_with_new_inputs(walked_inputs)
 
             memo.setdefault(apply, new_apply)
-
             for output, new_output in zip(apply.outputs, new_apply.outputs):
                 memo.setdefault(output, new_output)
     return memo
@@ -163,7 +164,7 @@ def mt_type_params(x):
     return {'ttype': x.type, 'index': x.index, 'name': x.name}
 
 
-def optimize_graph(x, optimization, return_graph=False, in_place=False):
+def optimize_graph(x, optimization, return_graph=None, in_place=False):
     """Apply an optimization to either the graph formed by a Theano variable or
     an existing graph and return the resulting optimized graph.
 
@@ -175,13 +176,20 @@ def optimize_graph(x, optimization, return_graph=False, in_place=False):
         outputs = [x]
         model_memo = clone_get_equiv(inputs, outputs,
                                      copy_orphans=False)
-        cloned_inputs = [model_memo[i] for i in inputs]
+        cloned_inputs = [model_memo[i] for i in inputs
+                         if not isinstance(i, tt.Constant)]
         cloned_outputs = [model_memo[i] for i in outputs]
 
         x_graph = FunctionGraph(cloned_inputs, cloned_outputs, clone=False)
         x_graph.memo = model_memo
+
+        if return_graph is None:
+            return_graph = False
     else:
         x_graph = x
+
+        if return_graph is None:
+            return_graph = True
 
     x_graph_opt = x_graph if in_place else x_graph.clone()
     _ = optimization.optimize(x_graph_opt)

@@ -10,12 +10,11 @@ import pymc3 as pm
 tt.config.compute_test_value = _ctv
 
 from warnings import warn
-from itertools import chain
 
 from multipledispatch import dispatch
+from unification.utils import transitive_get as walk
 
-from theano.gof.graph import (Variable, Apply, inputs as tt_inputs,
-                              clone_get_equiv)
+from theano.gof.graph import (Apply, inputs as tt_inputs)
 
 from . import (Observed, observed,
                UniformRV, UniformRVType,
@@ -33,7 +32,7 @@ from . import (Observed, observed,
 )
 from .opt import FunctionGraph
 from .rv import RandomVariable
-from .utils import replace_input_nodes, get_rv_observation
+from .utils import (replace_input_nodes, get_rv_observation)
 
 logger = logging.getLogger("symbolic_pymc")
 
@@ -61,12 +60,6 @@ def convert_rv_to_dist(node, obs):
                      shape=shape,
                      observed=obs,
                      **dist_params)
-
-
-# @dispatch(pm.distributions.transforms.TransformedDistribution, object)
-# def convert_dist_to_rv(dist, rng):
-#     # TODO: Anything more to do with the transform information?
-#     return convert_dist_to_rv(dist.dist, rng)
 
 
 @dispatch(pm.Uniform, object)
@@ -205,6 +198,8 @@ def pymc3_var_to_rv(pm_var, rand_state=None):
 
     if isinstance(pm_var, pm.model.ObservedRV):
         obs = tt.as_tensor_variable(pm_var.observations)
+        if getattr(obs, 'cached', False):
+            obs = obs.clone()
         new_rv = observed(obs, new_rv)
 
     # Let's attempt to fix the PyMC3 broadcastable dims "oracle" issue,
@@ -227,8 +222,48 @@ def pymc3_var_to_rv(pm_var, rand_state=None):
     return new_rv
 
 
-def model_graph(pymc_model, output_vars=None, convert_rvs=True,
-                rand_state=None):
+def rec_conv_to_rv(v, replacements, model, rand_state=None):
+    """Recursively convert a PyMC3 random variable to a Theano graph.
+    """
+    if v in replacements:
+        return walk(v, replacements)
+    elif v.name and pm.util.is_transformed_name(v.name):
+        untrans_name = pm.util.get_untransformed_name(v.name)
+        v_untrans = getattr(model, untrans_name)
+
+        rv_new = rec_conv_to_rv(v_untrans, replacements,
+                                model, rand_state=rand_state)
+        replacements[v] = rv_new
+        return rv_new
+    elif hasattr(v, 'distribution'):
+        rv = pymc3_var_to_rv(v, rand_state=rand_state)
+
+        rv_ins = []
+        for i in tt_inputs([rv]):
+            i_rv = rec_conv_to_rv(
+                i, replacements, model, rand_state=rand_state)
+
+            if i_rv is not None:
+                replacements[i] = i_rv
+                rv_ins.append(i_rv)
+            else:
+                rv_ins.append(i)
+
+        _ = replace_input_nodes(rv_ins, [rv],
+                                memo=replacements,
+                                clone_inputs=False)
+
+        rv_new = walk(rv, replacements)
+
+        replacements[v] = rv_new
+
+        return rv_new
+    else:
+        return None
+
+
+def model_graph(pymc_model, output_vars=None, rand_state=None,
+                attach_memo=True):
     """Convert a PyMC3 model into a Theano `FunctionGraph`.
 
     Parameters
@@ -240,6 +275,9 @@ def model_graph(pymc_model, output_vars=None, convert_rvs=True,
         the model's observed random variables are used.
     rand_state: Numpy rng (optional)
         When converting to `RandomVariable`s, use this random state object.
+    attach_memo: boolean (optional)
+        Add a property to the returned `FunctionGraph` name `memo` that
+        contains the mappings between PyMC and `RandomVariable` terms.
 
     Results
     =======
@@ -247,37 +285,29 @@ def model_graph(pymc_model, output_vars=None, convert_rvs=True,
     """
     model = pm.modelcontext(pymc_model)
     replacements = {}
-    topo_sorted_rvs = []
 
+    if output_vars is None:
+        output_vars = list(model.observed_RVs)
     if rand_state is None:
         rand_state = theano.shared(np.random.RandomState())
 
-    for v in theano.gof.graph.io_toposort(
-            theano.gof.graph.inputs([model.varlogpt] + model.observed_RVs),
-            [model.varlogpt] + model.observed_RVs):
-        for i in v.inputs + v.outputs:
-            if isinstance(i, pm.Factor):
-                if i.name and pm.util.is_transformed_name(i.name):
-                    untrans_name = pm.util.get_untransformed_name(i.name)
-                    i_untrans = getattr(model, untrans_name)
-                    replacements[i] = i_untrans
-                    i = i_untrans
+    replacements = {}
+    # First pass...
+    for i, o in enumerate(output_vars):
+        _ = rec_conv_to_rv(o, replacements, model, rand_state=rand_state)
+        output_vars[i] = walk(o, replacements)
 
-                if i not in topo_sorted_rvs:
-                    topo_sorted_rvs.append(i)
-                    old_rv_var = pymc3_var_to_rv(i, rand_state=rand_state)
-                    rv_var = theano.scan_module.scan_utils.clone(
-                        old_rv_var, replace=replacements)
-                    replacements[i] = rv_var
-
-    obs_rvs = [replacements[o] for o in model.observed_RVs]
+    output_vars = [walk(o, replacements) for o in output_vars]
 
     fg_features = [tt.opt.ShapeFeature()]
-    model_fg = FunctionGraph([i for i in tt_inputs(obs_rvs)
+    model_fg = FunctionGraph([i for i in tt_inputs(output_vars)
                               if not isinstance(i, tt.Constant)],
-                             obs_rvs,
-                             clone=True,
+                             output_vars,
+                             clone=True, memo=replacements,
                              features=fg_features)
+    if attach_memo:
+        model_fg.memo = replacements
+
     return model_fg
 
 
