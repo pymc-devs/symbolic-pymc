@@ -3,9 +3,9 @@
 from unification import var
 from kanren import conde, eq
 from kanren.facts import fact
-from symbolic_pymc.meta import mt
 
 from . import constant_neq, concat
+from ..meta import mt
 
 from kanren.facts import Relation
 

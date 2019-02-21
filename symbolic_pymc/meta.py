@@ -99,7 +99,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
         res = tuple(c.base for c in cls.__subclasses__())
         if cls is not MetaSymbol:
             res = (cls.base,) + res
-        sorted(res, key=lambda cls: len(cls.mro()), reverse=mro_order)
+        sorted(res, key=lambda c: len(c.mro()), reverse=mro_order)
         return res
 
     @classmethod
