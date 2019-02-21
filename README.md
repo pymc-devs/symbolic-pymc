@@ -19,8 +19,15 @@ This work stems from a series of articles starting [here](https://brandonwillard
 * A LaTeX pretty printer that displays shape information and distributions in mathematical notation
 * (In progress) Theano optimizations for symbolic closed-form posteriors and other probability theory-based model reformulations
 
+## Installation
 
-## Usage
+The package name is `symbolic_pymc` and it can be installed with `pip` directly from GitHub
+```shell
+$ pip install git+https://github.com/pymc-devs/symbolic-pymc
+```
+or after cloning the repo (and then installing with `pip`).
+
+## Examples
 
 ### Convert a PyMC3 model to a Theano graph
 
@@ -117,15 +124,9 @@ produces
 ### Compute Symbolic Closed-form Posteriors
 
 ```python
-import numpy as np
-import theano
-import theano.tensor as tt
-import pymc3 as pm
-
 from theano.gof.opt import EquilibriumOptimizer
 
-from symbolic_pymc.pymc3 import model_graph
-from symbolic_pymc.utils import optimize_graph, canonicalize
+from symbolic_pymc.utils import optimize_graph
 from symbolic_pymc.printing import tt_pprint
 from symbolic_pymc.opt import KanrenRelationSub
 from symbolic_pymc.relations.conjugates import conjugate_posteriors
@@ -176,7 +177,61 @@ b
 [-3.]
 ```
 
-## Installation
+### Automatic Re-centering and Re-scaling
 
-The package name is `symbolic_pymc` and it can be installed with `pip` directly from
-GitHub, or after cloning the repo.
+
+Using the problem in https://twiecki.io/blog/2017/02/08/bayesian-hierchical-non-centered/, we can automate the model reformulations that improve sample chain quality:
+
+```python
+import pandas as pd
+from symbolic_pymc.utils import get_rv_observation
+from symbolic_pymc.relations.distributions import scale_loc_transform
+
+# Skip compilation temporarily
+_cxx_config = theano.config.cxx
+theano.config.cxx = ''
+
+tt.config.compute_test_value = 'ignore'
+
+data = pd.read_csv('https://github.com/pymc-devs/pymc3/raw/master/pymc3/examples/data/radon.csv')
+data['log_radon'] = data['log_radon'].astype(theano.config.floatX)
+county_names = data.county.unique()
+county_idx = data.county_code.values
+
+n_counties = len(data.county.unique())
+
+with pm.Model() as model_centered:
+    mu_a = pm.Normal('mu_a', mu=0., sd=100**2)
+    sigma_a = pm.HalfCauchy('sigma_a', 5)
+    mu_b = pm.Normal('mu_b', mu=0., sd=100**2)
+    sigma_b = pm.HalfCauchy('sigma_b', 5)
+    a = pm.Normal('a', mu=mu_a, sd=sigma_a, shape=n_counties)
+    b = pm.Normal('b', mu=mu_b, sd=sigma_b, shape=n_counties)
+    eps = pm.HalfCauchy('eps', 5)
+    radon_est = a[county_idx] + b[county_idx] * data.floor.values
+    radon_like = pm.Normal('radon_like', mu=radon_est, sd=eps,
+                           observed=data.log_radon)
+
+
+fgraph = model_graph(model_centered)
+fgraph = canonicalize(fgraph, in_place=False)
+
+posterior_opt = EquilibriumOptimizer(
+    [KanrenRelationSub(scale_loc_transform,
+                       node_filter=get_rv_observation)],
+    max_use_ratio=10)
+
+fgraph_opt = optimize_graph(fgraph, posterior_opt, return_graph=True)
+fgraph_opt = canonicalize(fgraph_opt, in_place=False)
+
+theano.config.cxx = _cxx_config
+model_recentered = graph_model(fgraph_opt)
+
+np.random.seed(123)
+
+with model_centered:
+    centered_trace = pm.sample(draws=5000, tune=1000, njobs=2)[1000:]
+
+with model_recentered:
+    recentered_trace = pm.sample(draws=5000, tune=1000, njobs=2)[1000:]
+```
