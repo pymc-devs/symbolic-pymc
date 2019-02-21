@@ -129,7 +129,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
             except StopIteration:
                 # The current class is the best fit.
                 if cls.base == obj:
-                    return cls.base
+                    return cls
                 # This object is a subclass of the base type.
                 new_type = type(f'Meta{obj.__name__}', (cls,), {})
                 return new_type(obj)
