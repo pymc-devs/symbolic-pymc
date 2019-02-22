@@ -305,6 +305,16 @@ class MetaOp(MetaSymbol):
     """
     base = tt.Op
 
+    @property
+    def obj(self):
+        return self._obj
+
+    @obj.setter
+    def obj(self, x):
+        if hasattr(self, '_obj'):
+            raise ValueError('Cannot reset obj in an `Op`')
+        self._obj = x
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.op_sig = inspect.signature(self.obj.make_node)
@@ -601,7 +611,7 @@ class MetaScalarSharedVariable(MetaSharedVariable):
     base = tt.sharedvar.ScalarSharedVariable
 
 
-class TheanoMetaAccessor(object):
+class MetaAccessor(object):
     """Creates an object that can be used to implicitly
     convert Theano functions and object into meta objects.
 
@@ -622,10 +632,13 @@ class TheanoMetaAccessor(object):
     """
     namespaces = [tt]
 
-    def __init__(self):
-        import symbolic_pymc
-        from symbolic_pymc import meta
-        self.namespaces += [symbolic_pymc, meta]
+    def __init__(self, namespace=None):
+        if namespace is None:
+            import symbolic_pymc
+            from symbolic_pymc import meta
+            self.namespaces += [symbolic_pymc, meta]
+        else:
+            self.namespaces = [namespace]
 
     def __call__(self, x):
         return MetaSymbol.from_obj(x)
@@ -646,24 +659,35 @@ class TheanoMetaAccessor(object):
                     ns_obj = f_back.f_globals.get(obj)
 
         if isinstance(ns_obj, (types.FunctionType, partial)):
-            # It's a function, so let's provide a wrapper
-            # that converts to-and-from theano and meta objects.
-            @staticmethod
+            # It's a function, so let's provide a wrapper that converts
+            # to-and-from theano and meta objects.
             @wraps(ns_obj)
             def meta_obj(*args, **kwargs):
                 args = [o.reify() if hasattr(o, 'reify') else o
                         for o in args]
                 res = ns_obj(*args, **kwargs)
                 return MetaSymbol.from_obj(res)
+
+        elif isinstance(ns_obj, types.ModuleType):
+            # It's a sub-module, so let's create another
+            # `MetaAccessor` and check within there.
+            meta_obj = MetaAccessor(namespace=ns_obj)
         else:
+            # Hopefully, it's convertible to a meta object...
             meta_obj = MetaSymbol.from_obj(ns_obj)
 
-        setattr(TheanoMetaAccessor, obj, meta_obj)
+        if isinstance(meta_obj, (MetaSymbol, MetaSymbolType,
+                                 types.FunctionType)):
+            setattr(self, obj, meta_obj)
+            return getattr(self, obj)
+        elif isinstance(meta_obj, MetaAccessor):
+            setattr(self, obj, meta_obj)
+            return meta_obj
+        else:
+            raise AttributeError(f'Meta object for {obj} not found.')
 
-        return getattr(TheanoMetaAccessor, obj)
 
-
-mt = TheanoMetaAccessor()
+mt = MetaAccessor()
 
 mt.dot = MetaSymbol.from_obj(tt.basic._dot)
 
