@@ -98,6 +98,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
     def base_classes(cls, mro_order=True):
         res = tuple(c.base for c in cls.__subclasses__())
         if cls is not MetaSymbol:
+            assert isinstance(cls, type)
             res = (cls.base,) + res
         sorted(res, key=lambda c: len(c.mro()), reverse=mro_order)
         return res
@@ -130,8 +131,9 @@ class MetaSymbol(metaclass=MetaSymbolType):
                 # The current class is the best fit.
                 if cls.base == obj:
                     return cls
+
                 # This object is a subclass of the base type.
-                new_type = type(f'Meta{obj.__name__}', (cls,), {})
+                new_type = type(f'Meta{obj.__name__}', (cls,), {'base': obj})
                 return new_type(obj)
             else:
                 return obj_cls.from_obj(obj)
