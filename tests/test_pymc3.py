@@ -22,6 +22,8 @@ from symbolic_pymc.meta import mt
 
 
 def test_pymc_normals():
+    tt.config.compute_test_value = 'ignore'
+
     mu_X = tt.scalar('mu_X')
     sd_X = tt.scalar('sd_X')
     mu_Y = tt.scalar('mu_Y')
@@ -99,6 +101,8 @@ def test_pymc_normals():
 
 
 def test_normals_to_model():
+    tt.config.compute_test_value = 'ignore'
+
     a_tt = tt.vector('a')
     R_tt = tt.matrix('R')
     F_t_tt = tt.matrix('F')
@@ -140,6 +144,8 @@ def test_normals_to_model():
 
 
 def test_pymc_broadcastable():
+    tt.config.compute_test_value = 'ignore'
+
     mu_X = tt.vector('mu_X')
     sd_X = tt.vector('sd_X')
     mu_Y = tt.vector('mu_Y')

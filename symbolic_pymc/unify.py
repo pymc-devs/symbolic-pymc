@@ -1,9 +1,12 @@
-import types
-from functools import partial, wraps
+import reprlib
 
 import theano.tensor as tt
 
-from multipledispatch import dispatch, MDNotImplementedError
+from functools import wraps
+
+from collections import Callable
+
+from multipledispatch import dispatch
 
 from kanren import isvar
 from kanren.term import term, operator, arguments
@@ -16,6 +19,74 @@ from unification.core import reify, _unify, _reify, Var
 from .meta import MetaSymbol, MetaVariable, MetaOp, mt
 
 tt_class_abstractions = tuple(c.base for c in MetaSymbol.__subclasses__())
+
+
+class ExpressionTuple(tuple):
+    """A tuple object that represents an expression.
+
+    This object carries the underlying object, if any, and preserves
+    it through limited forms of concatenation/cons-ing.
+    """
+
+    @property
+    def eval_obj(self):
+        """Return the evaluation of this expression tuple.
+
+        XXX: If the object isn't cached, it will be evaluated recursively.
+        """
+        if hasattr(self, '_eval_obj'):
+            return self._eval_obj
+        else:
+            evaled_args = [getattr(i, 'eval_obj', i)
+                           for i in self[1:]]
+            self._eval_obj = self[0](*evaled_args)
+            return self._eval_obj
+
+    @eval_obj.setter
+    def eval_obj(self, obj):
+        raise ValueError('Value of evaluated expression cannot be set!')
+
+    def __getitem__(self, key):
+        # if isinstance(key, slice):
+        #     return [self.list[i] for i in xrange(key.start, key.stop, key.step)]
+        # return self.list[key]
+        tuple_res = super().__getitem__(key)
+        if isinstance(key, slice) and isinstance(tuple_res, tuple):
+            tuple_res = type(self)(tuple_res)
+            tuple_res.orig_expr = self
+        return tuple_res
+
+    def __add__(self, x):
+        res = type(self)(super().__add__(x))
+        if res == getattr(self, 'orig_expr', None):
+            return self.orig_expr
+        return res
+
+    def __radd__(self, x):
+        res = type(self)(x + tuple(self))
+        if res == getattr(self, 'orig_expr', None):
+            return self.orig_expr
+        return res
+
+    def __str__(self):
+        return f'e{reprlib.repr(tuple(self))}'
+
+    def __repr__(self):
+        return f'ExpressionTuple({reprlib.repr(tuple(self))})'
+
+
+def etuple(*args, **kwargs):
+    """Create an expression tuple from the arguments.
+
+    If the keyword 'eval_obj' is given, the `ExpressionTuple`'s evaluated
+    object is set to the corresponding value.
+    """
+    res = ExpressionTuple(args)
+
+    if 'eval_obj' in kwargs:
+        res._eval_obj = kwargs.pop('eval_obj')
+
+    return res
 
 
 class UnificationFailure(Exception):
@@ -118,12 +189,28 @@ def operator_MetaSymbol(x):
 def operator_MetaVariable(x):
     """Get a tuple of the arguments used to construct this meta object.
 
-    This applies a special consideration for Theano `Variable`s: if it has a
-    non-`None` `owner` with non-`None` `op` and `inputs`, then the `Variable`
-    is more aptly given as the output of `op(inputs)`.
+    This function applies a special consideration for Theano `Variable`s:
 
-    Otherwise, considering the `Variable` in isolation, it can be constructed
-    directly using its `type` constructor.
+    If the `Variable` has a non-`None` `owner` attribute, then we use the
+    `owner`'s `op` and `inputs` to construct an expression-tuple that should
+    (when evaluated) produce said `Variable`.
+
+    Otherwise, we generate an expression-tuple for the graph representing the
+    output of whatever `Apply` node (plus `Op`) would've produced said
+    `Variable`.
+
+    Graphically, the complete expressions resulting from the former and the
+    later, respectively, are as follows:
+
+      a + b => etuple(mt.add, a, b)
+
+      a + b => etuple(mt.TensorVariable,
+                      type,
+                      mt.Apply(op=mt.add, inputs=[a, b]),
+                      index
+
+    XXX: To achieve the more succinct former representation, we assume that
+    `owner.op(owner.inputs)` is consistent, of course.
     """
     x_owner = getattr(x, 'owner', None)
     if x_owner and hasattr(x_owner, 'op'):
@@ -137,23 +224,29 @@ operator.add((tt.Variable,), lambda x: operator(MetaVariable.from_obj(x)))
 
 
 def arguments_MetaSymbol(x):
-    return tuple(x.rands())
+    """Get a tuple of the arguments used to construct this meta object
+    (i.e. an expression-tuple/`etuple`'s `cdr`/tail).
+
+    We build the full `etuple` for the argument, then return the `cdr`/tail, so
+    that the original object is retained when/if the original object is later
+    reconstructed and evaluated (e.g. using `term`).
+    """
+    x_e = etuple(type(x), *x.rands(), eval_obj=x)
+    return x_e[1:]
 
 
 def arguments_MetaVariable(x):
     """Get a tuple of the arguments used to construct this meta object.
 
-    This applies a special consideration for Theano `Variable`s: if it has a
-    non-`None` `owner` with non-`None` `op` and `inputs`, then the `Variable`
-    is more aptly given as the output of `op(inputs)`.
-
-    Otherwise, considering the `Variable` in isolation, it can be constructed
-    directly using its `type` constructor.
+    See the special considerations for `TensorVariable`s described in
+    `operator_MetaVariable`.
     """
-    # Get an apply node, if any
     x_owner = getattr(x, 'owner', None)
     if x_owner and hasattr(x_owner, 'op'):
-        return x_owner.inputs
+        x_e = etuple(x_owner.op, *x_owner.inputs,
+                     eval_obj=x)
+        return x_e[1:]
+
     return arguments_MetaSymbol(x)
 
 
@@ -161,87 +254,13 @@ arguments.add((MetaSymbol,), arguments_MetaSymbol)
 arguments.add((MetaVariable,), arguments_MetaVariable)
 arguments.add((tt.Variable,), lambda x: arguments(MetaVariable.from_obj(x)))
 
-# Enable [re]construction of terms
-term.add((tt.Op, (list, tuple)),
-         lambda op, args: term(MetaOp.from_obj(op), args))
-term.add((MetaOp, (list, tuple)), lambda op, args: op(*args))
-
-# Function application for tuples/lists starting with a function or partial
-term.add(((types.FunctionType, partial),
-          (tuple, list)), lambda op, args: op(*args))
-
-
-class ExpressionTuple(tuple):
-    """A tuple object that represents an expression.
-
-    This object carries the underlying object, if any, and preserves
-    it through limited forms of concatenation/cons-ing.
-    """
-
-    @property
-    def eval_obj(self):
-        """Return the evaluation of this expression tuple.
-
-        XXX: If the object isn't cached, it will be evaluated recursively.
-        """
-        if hasattr(self, '_eval_obj'):
-            return self._eval_obj
-        else:
-            self._eval_obj = self[0](
-                *[getattr(i, 'eval_obj', i) for i in self[1:]])
-            return self._eval_obj
-
-    @eval_obj.setter
-    def eval_obj(self, obj):
-        raise ValueError('Value of evaluated expression cannot be set!')
-
-    def __getitem__(self, key):
-        # if isinstance(key, slice):
-        #     return [self.list[i] for i in xrange(key.start, key.stop, key.step)]
-        # return self.list[key]
-        tuple_res = super().__getitem__(key)
-        if isinstance(key, slice) and isinstance(tuple_res, tuple):
-            tuple_res = type(self)(tuple_res)
-            tuple_res.orig_expr = self
-        return tuple_res
-
-    def __add__(self, x):
-        res = type(self)(super().__add__(x))
-        if res == getattr(self, 'orig_expr', None):
-            return self.orig_expr
-        return res
-
-    def __radd__(self, x):
-        return type(self)(x) + self
-
-    def __str__(self):
-        return f'e{super().__repr__()}'
-
-    def __repr__(self):
-        return f'ExpressionTuple({super().__repr__()})'
-
-
-def etuple(*args, **kwargs):
-    """Create an expression tuple from the arguments.
-
-    If the keyword 'eval_obj' is given, the `ExpressionTuple`'s evaluated
-    object is set to the corresponding value.
-    """
-    res = ExpressionTuple(args)
-
-    if 'eval_obj' in kwargs:
-        res._eval_obj = kwargs.pop('eval_obj')
-
-    return res
-
 
 def _term_ExpressionTuple(rand, rators):
     res = (rand,) + rators
     return res.eval_obj
 
 
-term.add(((object, MetaOp, types.FunctionType, partial), ExpressionTuple),
-         _term_ExpressionTuple)
+term.add((object, ExpressionTuple), _term_ExpressionTuple)
 term.add((tt.Op, ExpressionTuple),
          lambda op, args: term(MetaOp.from_obj(op), args))
 
@@ -270,23 +289,34 @@ def tuple_expression(x):
     return tuple_expression(mt(x))
 
 
-def reify_all_terms(obj, s=None):
-    """Recursively reifies all terms tuples/lists with some awareness
-    for meta objects."""
-    try:
-        if isinstance(obj, MetaSymbol):
-            # Avoid using `operator`/`arguments` and unnecessarily
-            # breaking apart meta objects and the base objects they
-            # hold onto (i.e. their reified forms).
-            res = obj.reify()
-            if not MetaSymbol.is_meta(res):
-                return res
-        op, args = operator(obj), arguments(obj)
-        op = reify_all_terms(op, s)
-        args = reify_all_terms(args, s)
-        return term(op, args)
-    except (IndexError, NotImplementedError):
-        return reify(obj, s or {})
+def _reify_ExpressionTuple(t, s):
+    """When `kanren` reifies `etuple`s, we don't want them to turn into regular
+    `tuple`s.
+
+    We also don't want to lose the expression tracking/caching information.
+    """
+    res = tuple(reify(iter(t), s))
+    t_chg = [a == b for a, b in zip(t, res)
+             if not isvar(a) and not isvar(b)]
+
+    if all(t_chg):
+        if len(t_chg) == len(t):
+            # Nothing changed/updated; return the original `etuple`.
+            return t
+
+        if hasattr(t, 'orig_expr'):
+            # Everything is equal and/or there are some non-logic variables in
+            # the result.  Keep tracking the original expression information,
+            # in case the original expression is reproduced.
+            res = etuple(*res)
+            res.orig_expr = t.orig_expr
+            return res
+
+    res = etuple(*res)
+    return res
+
+
+_reify.add((ExpressionTuple, dict), _reify_ExpressionTuple)
 
 
 fact(commutative, mt.add)
@@ -294,4 +324,4 @@ fact(commutative, mt.mul)
 fact(associative, mt.add)
 fact(associative, mt.mul)
 
-__all__ = ['debug_unify', 'reify_all_terms', 'etuple', 'tuple_expression']
+__all__ = ['debug_unify', 'etuple', 'tuple_expression']

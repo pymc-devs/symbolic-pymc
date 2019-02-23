@@ -6,6 +6,9 @@ from kanren.goals import goalify
 
 from unification.utils import transitive_get as walk
 
+from ..meta import MetaConstant
+
+
 # Hierarchical models that we recognize.
 hierarchical_model = Relation('hierarchical')
 
@@ -21,8 +24,6 @@ def constant_neq(lvar, val):
 
     Scalar values are broadcast across arrays.
     """
-    from symbolic_pymc.meta import MetaConstant
-
     def _goal(s):
         lvar_val = walk(lvar, s)
         if isinstance(lvar_val, (tt.Constant, MetaConstant)):

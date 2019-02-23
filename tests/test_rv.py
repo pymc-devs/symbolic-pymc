@@ -9,6 +9,8 @@ def rv_numpy_tester(rv, *params, size=None):
     """Test for correspondence between `RandomVariable` and NumPy shape and
     broadcast dimensions.
     """
+    tt.config.compute_test_value = 'ignore'
+
     test_rv = rv(*params, size=size)
     param_vals = [tt.gof.op.get_test_value(p) for p in params]
     size_val = None if size is None else tt.gof.op.get_test_value(size)

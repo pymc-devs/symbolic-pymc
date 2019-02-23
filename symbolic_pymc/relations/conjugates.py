@@ -4,10 +4,11 @@ from unification import var
 from kanren import conde, eq
 from kanren.facts import Relation, fact
 
+from . import conjugate
 from .. import (MvNormalRV, observed)
+from ..unify import etuple
 from ..meta import mt
 from ..utils import mt_type_params
-from . import conjugate
 
 
 # The prior distribution
@@ -23,8 +24,7 @@ obs_sample_mt = var('obs_sample')
 # Make the observation relationship explicit in the graph.
 obs_mt = mt.observed(obs_sample_mt, obs_dist_mt)
 
-
-conde_clauses = tuple()
+conde_clauses = []
 
 
 def create_normal_normal_goals():
@@ -80,41 +80,41 @@ def create_normal_normal_goals():
 
     # Create tuple-form expressions for the posterior
     e_expr = mt.sub(Y_obs_mt, mt.dot(F_t_lv, a_lv))
-    F_expr = (mt.transpose, F_t_lv)
-    R_F_expr = (mt.dot, R_lv, F_expr)
-    Q_expr = (mt.add,
-              V_lv,
-              (mt.dot,
-               F_t_lv,
-               R_F_expr))
-    A_expr = (mt.dot, R_F_expr, (mt.matrix_inverse, Q_expr))
+    F_expr = etuple(mt.transpose, F_t_lv)
+    R_F_expr = etuple(mt.dot, R_lv, F_expr)
+    Q_expr = etuple(mt.add,
+                    V_lv,
+                    etuple(mt.dot,
+                           F_t_lv,
+                           R_F_expr))
+    A_expr = etuple(mt.dot, R_F_expr, etuple(mt.matrix_inverse, Q_expr))
     # m = C \left(F V^{-1} y + R^{-1} a\right)
-    m_expr = (mt.add, a_lv, (mt.dot, A_expr, e_expr))
+    m_expr = etuple(mt.add, a_lv, etuple(mt.dot, A_expr, e_expr))
     # C = \left(R^{-1} + F V^{-1} F^{\top}\right)^{-1}
     # TODO: We could use the naive posterior forms and apply identities, like
     # Woodbury's, in another set of "simplification" relations.
     # In some cases, this might make the patterns simpler and more broadly
     # applicable.
-    C_expr = (mt.sub,
-              R_lv,
-              (mt.dot,
-               (mt.dot, A_expr, Q_expr),
-                  (mt.transpose, A_expr)))
+    C_expr = etuple(mt.sub,
+                    R_lv,
+                    etuple(mt.dot,
+                           etuple(mt.dot, A_expr, Q_expr),
+                           etuple(mt.transpose, A_expr)))
 
-    norm_posterior_exprs = (mt.MvNormalRV,
-                            m_expr, C_expr,
-                            y_size_lv, y_rng_lv)
+    norm_posterior_exprs = etuple(mt.MvNormalRV,
+                                  m_expr, C_expr,
+                                  y_size_lv, y_rng_lv)
 
     fact(conjugate,
          # MvNormal likelihood, MvNormal prior mean
          Y_obs_mt, norm_posterior_exprs)
 
-    return ((eq, prior_dist_mt, beta_prior_mt),
+    return [(eq, prior_dist_mt, beta_prior_mt),
             # This should unify `Y_mt` and `obs_dist_mt`.
-            (eq, obs_mt, Y_obs_mt))
+            (eq, obs_mt, Y_obs_mt)]
 
 
-conde_clauses += (create_normal_normal_goals(),)
+conde_clauses += create_normal_normal_goals()
 
 
 def create_normal_wishart_goals():
@@ -130,7 +130,6 @@ def create_normal_wishart_goals():
     Sigma_prior_mt = mt.WishartRV(V_lv, n_lv,
                                   Sigma_size_lv, Sigma_rng_lv,
                                   name=Sigma_name_lv)
-    Sigma_type_lvars = mt_type_params(Sigma_prior_mt)
 
     y_name_lv = var('y_name')
     y_size_lv = var('y_size')
@@ -144,11 +143,11 @@ def create_normal_wishart_goals():
     y_mt = var('y')
     Y_obs_mt = mt.observed(y_mt, Y_mt)
 
-    n_post_mt = (mt.add, n_lv, (mt.Shape, Y_obs_mt))
+    n_post_mt = etuple(mt.add, n_lv, etuple(mt.Shape, Y_obs_mt))
 
-    # wishart_posterior_exprs = (mt.MvStudentTRV,
-    #                            m_expr, C_expr,
-    #                            y_size_lv, y_rng_lv)
+    # wishart_posterior_exprs = etuple(mt.MvStudentTRV,
+    #                                  m_expr, C_expr,
+    #                                  y_size_lv, y_rng_lv)
 
     # fact(conjugates,
     #      Y_obs_mt, wishart_posterior_exprs)
@@ -167,24 +166,24 @@ def conjugate_posteriors(x, y):
     z = var()
 
     # First, find a basic conjugate structure match.
-    goals = ((conjugate, x, z),)
+    goals = [(conjugate, x, z)]
 
     # Second, each conjugate case might have its own special conditions.
-    goals += ((conde,) + conde_clauses,)
+    goals += [(conde, conde_clauses)]
 
     # Third, connect the discovered pieces and produce the necessary output.
-    # TODO: We could have a "reifiable" goal that makes sure the output is
-    # a valid base/non-meta object.
-    goals += ((eq, y,
-               (dict,
-                [
-                    # Replace observation with one that doesn't link to
-                    # the integrated one
-                    (x, (mt.observed, obs_sample_mt, None)),
-                    # (Y_mt, None),
-                    # Replace the prior with the posterior
-                    (prior_dist_mt, z),
-                ])),)
+    # TODO: We could have a "reifiable" goal that makes sure the output is a
+    # valid base/non-meta object.
+    goals += [(eq, y,
+               etuple(dict,
+                      [
+                          # Replace observation with one that doesn't link to
+                          # the integrated one
+                          (x, etuple(mt.observed, obs_sample_mt, None)),
+                          # (Y_mt, None),
+                          # Replace the prior with the posterior
+                          (prior_dist_mt, z),
+                      ]))]
 
     # This conde is just a lame way to form the conjunction
     # TODO: Use one of the *all* functions.

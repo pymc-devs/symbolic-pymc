@@ -7,24 +7,26 @@ from functools import wraps
 from unification import var, variables
 
 from kanren import run
-from kanren.core import evalt
 
 from theano.gof.opt import LocalOptimizer
 
 from .meta import MetaSymbol
-from .unify import reify_all_terms
+from .unify import ExpressionTuple
 
 
-def reify_meta(x):
-
-    # Evaluate tuple-form expressions
-    res = reify_all_terms(x)
+def eval_and_reify_meta(x):
+    """Get Theano objects from combinations of `etuple`s and meta objects.
+    """
+    res = x
 
     # Create base objects from the resulting meta object
+    if isinstance(res, ExpressionTuple):
+        res = res.eval_obj
+
     if isinstance(res, MetaSymbol):
         res = res.reify()
 
-    if MetaSymbol.is_meta(res) or isinstance(res, (list, tuple)):
+    if MetaSymbol.is_meta(res):
         raise ValueError(
             "Kanren results not fully reifiable: {}".format(res))
 
@@ -86,7 +88,6 @@ class FunctionGraph(theano.gof.fg.FunctionGraph):
             # Remove duplicate inputs, if any.
             if remove_dup_inputs and new_r in self.inputs:
                 self.inputs.remove(new_r)
-                # import ipdb; ipdb.set_trace()
 
             assert r not in self.variables
 
@@ -115,7 +116,7 @@ class KanrenRelationSub(LocalOptimizer):
     reentrant = True
 
     def __init__(self, kanren_relation, relation_lvars=None,
-                 results_filter=lambda x: next(iter(x), None),
+                 results_filter=lambda x: next(x, None),
                  node_filter=lambda x: False):
         """
         Parameters
@@ -170,22 +171,30 @@ class KanrenRelationSub(LocalOptimizer):
 
         with variables(*self.relation_lvars):
             q = var()
-            kanren_results = run(1, q, (self.kanren_relation, input_expr, q))
+            kanren_results = run(None, q,
+                                 (self.kanren_relation, input_expr, q))
 
         chosen_res = self.results_filter(kanren_results)
 
         if chosen_res:
-            # Turn the meta objects and tuple-form expressions into Theano
-            # objects.
-            if isinstance(chosen_res, tuple) and chosen_res[0] == dict:
-                # We got a dictionary of replacements.
-                new_node = {k.obj: reify_meta(v)
-                            for k, v in evalt(chosen_res).items()}
+            if isinstance(chosen_res, ExpressionTuple):
+                chosen_res = eval_and_reify_meta(chosen_res)
 
+            if isinstance(chosen_res, dict):
+                # We got a dictionary of replacements.
+                new_node = {eval_and_reify_meta(k): eval_and_reify_meta(v)
+                            for k, v in chosen_res.items()}
                 assert all(k in node.fgraph.variables
-                           for k in new_node)
+                           for k in new_node.keys())
+            elif isinstance(chosen_res, tt.Variable):
+                # Attempt to automatically format the output for multi-output
+                # `Apply` nodes.
+                new_node = self.adjust_outputs(
+                    node, eval_and_reify_meta(chosen_res))
             else:
-                new_node = self.adjust_outputs(node, reify_meta(chosen_res))
+                raise ValueError(
+                    'Unsupported FunctionGraph replacement variable'
+                    f'type: {chosen_res}')
 
             return new_node
         else:

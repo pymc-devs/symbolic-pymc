@@ -11,6 +11,11 @@ from symbolic_pymc.relations.conjugates import conjugate_posteriors
 
 
 def test_mvnormal_mvnormal():
+    """Test that we can produce the closed-form distribution for the conjugate
+    multivariate normal-regression with normal-prior model.
+    """
+    tt.config.compute_test_value = 'ignore'
+
     a_tt = tt.vector('a')
     R_tt = tt.matrix('R')
     F_t_tt = tt.matrix('F')

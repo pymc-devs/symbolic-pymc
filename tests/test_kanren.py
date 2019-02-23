@@ -5,9 +5,10 @@ from kanren.term import term, operator, arguments
 from kanren.assoccomm import eq_assoc, eq_comm
 from unification import var
 
-from symbolic_pymc.utils import graph_equal
 from symbolic_pymc import MvNormalRV
 from symbolic_pymc.meta import mt
+from symbolic_pymc.unify import etuple
+from symbolic_pymc.utils import graph_equal
 
 
 def test_terms():
@@ -15,9 +16,22 @@ def test_terms():
     test_expr = x + a * b
 
     assert mt(test_expr.owner.op) == operator(test_expr)
-    assert mt(tuple(test_expr.owner.inputs)) == arguments(test_expr)
+    assert mt(tuple(test_expr.owner.inputs)) == tuple(arguments(test_expr))
+
+    assert tuple(arguments(test_expr)) == mt(tuple(test_expr.owner.inputs))
+
+    # Implicit `etuple` conversion should retain the original object
+    # (within the implicitly introduced meta object, of course).
+    assert test_expr == arguments(test_expr).orig_expr._eval_obj.obj
+
     assert graph_equal(test_expr, term(operator(test_expr),
                                        arguments(test_expr)))
+    assert mt(test_expr) == term(operator(test_expr),
+                                 arguments(test_expr))
+
+    # Same here: should retain the original object.
+    assert test_expr == term(operator(test_expr),
+                             arguments(test_expr)).reify()
 
 
 def test_kanren():
@@ -86,9 +100,15 @@ def test_assoccomm():
               (eq_assoc,
                mt.add(a, b, c),
                mt.add(a, var('x'))))
-    assert graph_equal(res[0], b + c)
+
+    # TODO: `res[0]` should return `etuple`s.  Since `eq_assoc` effectively
+    # picks apart the results of `arguments(...)`, I don't know if we can
+    # keep the `etuple`s around.  We might be able to convert the results
+    # to `etuple`s automatically by wrapping `eq_assoc`, though.
+    assert etuple(*res[0]).eval_obj == mt(b + c)
+
     res = run(0, var('x'),
               (eq_assoc,
                mt.mul(a, b, c),
                mt.mul(a, var('x'))))
-    assert graph_equal(res[0], b * c)
+    assert etuple(*res[0]).eval_obj == mt(b * c)
