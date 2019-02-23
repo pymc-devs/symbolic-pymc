@@ -38,6 +38,7 @@ class NormalRVType(RandomVariable):
 
 NormalRV = NormalRVType()
 
+
 class HalfNormalRVType(RandomVariable):
     print_name = ('N**+', '\\operatorname{N^{+}}')
 
@@ -53,6 +54,7 @@ class HalfNormalRVType(RandomVariable):
 
 
 HalfNormalRV = HalfNormalRVType()
+
 
 class GammaRVType(RandomVariable):
     print_name = ('Gamma', '\\operatorname{Gamma}')

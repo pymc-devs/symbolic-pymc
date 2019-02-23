@@ -1,6 +1,7 @@
 import abc
 import types
 import inspect
+import reprlib
 
 import numpy as np
 
@@ -255,17 +256,17 @@ class MetaSymbol(metaclass=MetaSymbolType):
     def __str__(self):
         obj = getattr(self, 'obj', None)
         if obj is None:
-            params = self.rands()
-            args = ', '.join([str(p) for p in params])
-            res = '{}({})'.format(self.__class__.__name__, args)
+            res = self.__repr__()
         else:
             res = str(obj)
         return res
 
     def __repr__(self):
         obj = getattr(self, 'obj', None)
-        args = ', '.join([repr(p) for p in self.rands()] +
-                         ['obj={}'.format(repr(obj))])
+        args = reprlib.repr(self.rands()).strip('()')
+        if args:
+            args += ', '
+        args += f'obj={reprlib.repr(obj)}'
         return '{}({})'.format(
             self.__class__.__name__, args)
 
