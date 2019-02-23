@@ -21,6 +21,10 @@ from .utils import _check_eq
 # TODO: Replace `from_obj` with a dispatched function?
 # from multipledispatch import dispatch
 
+meta_repr = reprlib.Repr()
+meta_repr.maxstring = 100
+meta_repr.maxother = 100
+
 
 def _meta_reify_iter(rands):
     # We want as many of the rands reified as possible,
@@ -258,12 +262,36 @@ class MetaSymbol(metaclass=MetaSymbolType):
 
     def __repr__(self):
         obj = getattr(self, 'obj', None)
-        args = reprlib.repr(self.rands()).strip('()')
+        args = meta_repr.repr(self.rands()).strip('()')
         if args:
             args += ', '
-        args += f'obj={reprlib.repr(obj)}'
+        args += f'obj={meta_repr.repr(obj)}'
         return '{}({})'.format(
             self.__class__.__name__, args)
+
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text(f'{self.__class__.__name__}(...)')
+        else:
+            with p.group(2, f'{self.__class__.__name__}(', ')'):
+                p.breakable()
+                idx = None
+                if hasattr(self, '__slots__'):
+                    for idx, (name, item) in enumerate(
+                            zip(self.__slots__, self.rands())):
+                        if idx:
+                            p.text(',')
+                            p.breakable()
+                        p.text(name)
+                        p.text('=')
+                        p.pretty(item)
+                obj = getattr(self, 'obj', None)
+                if obj:
+                    if idx:
+                        p.text(',')
+                        p.breakable()
+                    p.text('obj=')
+                    p.pretty(obj)
 
 
 class MetaType(MetaSymbol):

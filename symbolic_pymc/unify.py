@@ -19,6 +19,10 @@ from .utils import _check_eq
 
 tt_class_abstractions = tuple(c.base for c in MetaSymbol.__subclasses__())
 
+etuple_repr = reprlib.Repr()
+etuple_repr.maxstring = 100
+etuple_repr.maxother = 100
+
 
 class ExpressionTuple(tuple):
     """A tuple object that represents an expression.
@@ -68,10 +72,22 @@ class ExpressionTuple(tuple):
         return res
 
     def __str__(self):
-        return f'e{reprlib.repr(tuple(self))}'
+        return f'e{etuple_repr.repr(tuple(self))}'
 
     def __repr__(self):
-        return f'ExpressionTuple({reprlib.repr(tuple(self))})'
+        return f'ExpressionTuple({etuple_repr.repr(tuple(self))})'
+
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text(f'{self.__class__.__name__}(...)')
+        else:
+            with p.group(2, f'{self.__class__.__name__}((', '))'):
+                p.breakable()
+                for idx, item in enumerate(self):
+                    if idx:
+                        p.text(',')
+                        p.breakable()
+                    p.pretty(item)
 
 
 def etuple(*args, **kwargs):
