@@ -9,6 +9,8 @@ from .rv import RandomVariable, param_supp_shape_fn
 # We need this so that `multipledispatch` initialization occurs
 from .unify import *
 
+from .meta import mt
+
 
 # Continuous Numpy-generated variates
 class UniformRVType(RandomVariable):

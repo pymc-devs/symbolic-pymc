@@ -15,6 +15,8 @@ from collections.abc import Iterator
 from unification import var, isvar, Var
 
 from .rv import RandomVariable
+from .utils import _check_eq
+
 
 # TODO: Replace `from_obj` with a dispatched function?
 # from multipledispatch import dispatch
@@ -41,13 +43,6 @@ def _meta_reify_iter(rands):
             reified_rands += [s]
 
     return reified_rands, any_unreified
-
-
-def _check_eq(a, b):
-    if isinstance(a, np.ndarray) or isinstance(b, np.ndarray):
-        return np.array_equal(a, b)
-    else:
-        return a == b
 
 
 class MetaSymbolType(abc.ABCMeta):

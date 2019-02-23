@@ -1,6 +1,10 @@
 import theano
 import theano.tensor as tt
 
+import numpy as np
+
+import symbolic_pymc as sp
+
 from collections import OrderedDict
 
 from unification.utils import transitive_get as walk
@@ -10,13 +14,15 @@ from theano.gof.graph import (inputs as tt_inputs, clone_get_equiv,
                               io_toposort)
 from theano.compile import optdb
 
-from . import Observed
-from .rv import RandomVariable
-from .opt import FunctionGraph
-from .meta import MetaSymbol, _check_eq
-
 
 canonicalize_opt = optdb.query(Query(include=['canonicalize']))
+
+
+def _check_eq(a, b):
+    if isinstance(a, np.ndarray) or isinstance(b, np.ndarray):
+        return np.array_equal(a, b)
+    else:
+        return a == b
 
 
 def get_rv_observation(node):
@@ -26,13 +32,13 @@ def get_rv_observation(node):
     if not getattr(node, 'fgraph', None):
         raise ValueError('Node does not belong to a `FunctionGraph`')
 
-    if isinstance(node.op, RandomVariable):
+    if isinstance(node.op, sp.rv.RandomVariable):
         fgraph = node.fgraph
         for o, i in node.default_output().clients:
             if o == 'output':
                 o = fgraph.outputs[i].owner
 
-            if isinstance(o.op, Observed):
+            if isinstance(o.op, sp.Observed):
                 return o
     return None
 
@@ -106,7 +112,7 @@ def meta_parts_unequal(x, y, pdb=False):
     if type(x) != type(y):
         print('unequal types')
         res = (x, y)
-    elif isinstance(x, MetaSymbol):
+    elif isinstance(x, sp.meta.MetaSymbol):
         if x.base != y.base:
             print('unequal bases')
             res = (x.base, y.base)
@@ -133,7 +139,7 @@ def meta_parts_unequal(x, y, pdb=False):
 
 def expand_meta(x, tt_print=tt.pprint):
     """Produce a dictionary representation of a meta object."""
-    if isinstance(x, MetaSymbol):
+    if isinstance(x, sp.meta.MetaSymbol):
         return OrderedDict([('rator', x.base),
                             ('rands', tuple(expand_meta(p)
                                             for p in x.rands())),
@@ -153,9 +159,9 @@ def graph_equal(x, y):
     try:
         if isinstance(x, (list, tuple)) and isinstance(y, (list, tuple)):
             return (len(x) == len(y) and
-                    all(MetaSymbol.from_obj(xx) == MetaSymbol.from_obj(yy)
+                    all(sp.mt(xx) == sp.mt(yy)
                         for xx, yy in zip(x, y)))
-        return MetaSymbol.from_obj(x) == MetaSymbol.from_obj(y)
+        return sp.mt(x) == sp.mt(y)
     except ValueError:
         return False
 
@@ -180,7 +186,8 @@ def optimize_graph(x, optimization, return_graph=None, in_place=False):
                          if not isinstance(i, tt.Constant)]
         cloned_outputs = [model_memo[i] for i in outputs]
 
-        x_graph = FunctionGraph(cloned_inputs, cloned_outputs, clone=False)
+        x_graph = sp.opt.FunctionGraph(cloned_inputs, cloned_outputs,
+                                       clone=False)
         x_graph.memo = model_memo
 
         if return_graph is None:

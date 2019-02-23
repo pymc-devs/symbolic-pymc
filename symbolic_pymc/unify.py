@@ -4,8 +4,6 @@ import theano.tensor as tt
 
 from functools import wraps
 
-from collections import Callable
-
 from multipledispatch import dispatch
 
 from kanren import isvar
@@ -17,6 +15,7 @@ from unification.more import unify
 from unification.core import reify, _unify, _reify, Var
 
 from .meta import MetaSymbol, MetaVariable, MetaOp, mt
+from .utils import _check_eq
 
 tt_class_abstractions = tuple(c.base for c in MetaSymbol.__subclasses__())
 
@@ -296,7 +295,7 @@ def _reify_ExpressionTuple(t, s):
     We also don't want to lose the expression tracking/caching information.
     """
     res = tuple(reify(iter(t), s))
-    t_chg = [a == b for a, b in zip(t, res)
+    t_chg = [_check_eq(a, b) for a, b in zip(t, res)
              if not isvar(a) and not isvar(b)]
 
     if all(t_chg):
