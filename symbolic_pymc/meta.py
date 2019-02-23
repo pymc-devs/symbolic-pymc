@@ -363,23 +363,24 @@ class MetaOp(MetaSymbol):
             tt_out = self.obj(*op_args)
             res_var = MetaVariable.from_obj(tt_out)
 
-            # If the name is indeterminate, we still want all the reified info,
-            # but we need to make sure that certain parts aren't known.
-            # TODO: In this case, the reified Theano object is a sort of
-            # "proxy" object; we should use this approach for dtype, as well.
-            # TODO: We should also put this kind of logic in the appropriate places
-            # (e.g. `MetaVariable.reify`), when possible.
-            if MetaSymbol.is_meta(name):
-                # This should also invalidate `res_var.obj`.
-                res_var.name = name
-                # Allow the base object to be unified, so that reification
-                # can recover the underlying object--instead of recreating
-                # it and sacrificing equality.
-                res_var.obj = var()
+            if not isinstance(tt_out, (list, tuple)):
+                # If the name is indeterminate, we still want all the reified info,
+                # but we need to make sure that certain parts aren't known.
+                # TODO: In this case, the reified Theano object is a sort of
+                # "proxy" object; we should use this approach for dtype, as well.
+                # TODO: We should also put this kind of logic in the appropriate places
+                # (e.g. `MetaVariable.reify`), when possible.
+                if MetaSymbol.is_meta(name):
+                    # This should also invalidate `res_var.obj`.
+                    res_var.name = name
+                    # Allow the base object to be unified, so that reification
+                    # can recover the underlying object--instead of recreating
+                    # it and sacrificing equality.
+                    res_var.obj = var()
 
-            elif tt_out.name != name:
-                tt_out.name = name
-                res_var.name = name
+                elif tt_out.name != name:
+                    tt_out.name = name
+                    res_var.name = name
 
         else:
             # XXX: It's not always clear how `Op.make_node` arguments map to
