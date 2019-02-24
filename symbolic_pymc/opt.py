@@ -167,7 +167,10 @@ class KanrenRelationSub(LocalOptimizer):
         if self.node_filter(node):
             return False
 
-        input_expr = node.default_output()
+        try:
+            input_expr = node.default_output()
+        except AttributeError:
+            input_expr = node.outputs
 
         with variables(*self.relation_lvars):
             q = var()
@@ -181,9 +184,13 @@ class KanrenRelationSub(LocalOptimizer):
                 chosen_res = eval_and_reify_meta(chosen_res)
 
             if isinstance(chosen_res, dict):
-                # We got a dictionary of replacements.
+                chosen_res = list(chosen_res.items())
+
+            if isinstance(chosen_res, list):
+                # We got a dictionary of replacements
                 new_node = {eval_and_reify_meta(k): eval_and_reify_meta(v)
-                            for k, v in chosen_res.items()}
+                            for k, v in chosen_res}
+
                 assert all(k in node.fgraph.variables
                            for k in new_node.keys())
             elif isinstance(chosen_res, tt.Variable):

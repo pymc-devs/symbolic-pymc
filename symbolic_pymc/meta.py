@@ -92,13 +92,12 @@ class MetaSymbol(metaclass=MetaSymbolType):
     def base(self):
         """The base type/rator for this meta object.
         """
-        pass
+        raise NotImplementedError()
 
     @classmethod
     def base_classes(cls, mro_order=True):
         res = tuple(c.base for c in cls.__subclasses__())
         if cls is not MetaSymbol:
-            assert isinstance(cls, type)
             res = (cls.base,) + res
         sorted(res, key=lambda c: len(c.mro()), reverse=mro_order)
         return res
