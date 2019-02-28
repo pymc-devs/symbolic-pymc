@@ -4,15 +4,15 @@ from operator import itemgetter, attrgetter
 
 from theano.tensor.nlinalg import QRFull
 
-from unification import var
+from unification import var, isvar
 
 from kanren import eq
-from kanren.core import lall
-from kanren.goals import heado, not_equalo
-from kanren.assoccomm import buildo
+from kanren.core import (lany, lall, lallgreedy, fail, conde)
+from kanren.goals import not_equalo, LCons
+from kanren.term import term, operator, arguments
 
 from ..meta import mt
-from ..unify import etuple, tuple_expression
+from ..unify import etuple, tuple_expression, ExpressionTuple
 
 
 mt.nlinalg.qr_full = mt(QRFull('reduced'))
@@ -27,21 +27,63 @@ def update_name_suffix(x, old_x, suffix):
     return x
 
 
-def normal_normal_regression(Y, X, beta, sd=None, size=None, rng=None):
-    """Relation for a normal-normal regression, i.e.
+def buildo(op, args, obj):
+    if not isvar(obj):
+        if not (isinstance(obj, ExpressionTuple) and
+                isinstance(args, ExpressionTuple)):
+            obj = tuple_expression(obj)
+            args = tuple_expression(args)
+        oop, oargs = operator(obj), arguments(obj)
+        return lallgreedy((eq, op, oop), (eq, args, oargs))
+    elif isvar(args) or isvar(op):
+        return conso(op, args, obj)
+    else:
+        return eq(obj, term(op, args))
 
-        Y ~ N(X * beta, )
 
+def conso(h, t, l):
+    """ Logical cons -- l[0], l[1:] == h, t
+
+    This implementation attempts to preserve collection types.
+
+    XXX: Use this until https://github.com/logpy/logpy/pull/66 goes through.
     """
-    mu_lv = var()
-    sd = sd or var()
-    size = size or var()
-    rng = rng or var()
+    if isinstance(l, (tuple, list)):
+        if len(l) == 0:
+            return fail
+        else:
+            return (conde, [(eq, h, l[0]), (eq, t, l[1:])])
+    elif isinstance(t, tuple):
+        return eq((h,) + t, l)
+    elif isinstance(t, list):
+        return eq([h] + t, l)
+    else:
+        return (
+            lall,
+            (eq, LCons(h, t), l),
+            (lany, (eq, t, ()), (eq, t, LCons(var(), var())))
+        )
+
+
+def normal_normal_regression(Y, X, beta, Y_args_tail=None, beta_args=None):
+    """Relation for a normal-normal regression of the form `Y ~ N(X * beta, sd**2)`.
+    """
+    Y_args_tail = Y_args_tail or var()
+    Y_args = var()
+    beta_args = beta_args or var()
+    Y_mean_lv = var()
+    dot_args_lv = var()
 
     res = (lall,
-           (eq, Y, etuple(mt.NormalRV, mu_lv, sd, size, rng)),
-           (eq, mu_lv, etuple(mt.dot, X, beta)),
-           (heado, mt.NormalRV, beta),
+           # `Y` is a `NormalRV`
+           (buildo, mt.NormalRV, Y_args, Y),
+           # `beta` is also a `NormalRV`
+           (buildo, mt.NormalRV, beta_args, beta),
+           # Obtain its mean parameter and remaining args
+           (conso, Y_mean_lv, Y_args_tail, Y_args),
+           (eq, dot_args_lv, etuple(X, beta)),
+           # Relate it to a dot product of `X` and `beta`
+           (buildo, mt.dot, dot_args_lv, Y_mean_lv),
     )
 
     return res
@@ -51,9 +93,11 @@ def normal_qr_transform(in_expr, out_expr):
     """Relation for normal-normal regression and its QR-reduced form.
     """
     y_lv, Y_lv, X_lv, beta_lv = var(), var(), var(), var()
-    Y_sd_lv, Y_size_lv, Y_rng_lv = var(), var(), var()
+    Y_args_lv, beta_args_lv = var(), var()
     QR_lv, Q_lv, R_lv = var(), var(), var()
     beta_til_lv, beta_new_lv = var(), var()
+    beta_mean_lv, beta_sd_lv = var(), var()
+    beta_size_lv, beta_rng_lv = var(), var()
     Y_new_lv = var()
     X_op_lv = var()
 
@@ -64,10 +108,9 @@ def normal_qr_transform(in_expr, out_expr):
         # Only applies to regression models on observed RVs
         (eq, in_expr, etuple(mt.observed, y_lv, Y_lv)),
         # Relate the model components
-        (normal_normal_regression,
-         Y_lv, X_lv, beta_lv,
-         Y_sd_lv, Y_size_lv, Y_rng_lv),
-        # Let's not do this to an already QR-reduce graph
+        normal_normal_regression(Y_lv, X_lv, beta_lv, Y_args_lv, beta_args_lv),
+        # Let's not do all this to an already QR-reduce graph;
+        # otherwise, we'll loop forever!
         (buildo, X_op_lv, var(), X_lv),
         # XXX: This type of dis-equality goal isn't the best,
         # but it will definitely work for now.
@@ -76,11 +119,16 @@ def normal_qr_transform(in_expr, out_expr):
         (eq, QR_lv, etuple(mt.nlinalg.qr_full, X_lv)),
         (eq, Q_lv, etuple(itemgetter(0), QR_lv)),
         (eq, R_lv, etuple(itemgetter(1), QR_lv)),
-        # Relate the transformed coeffs
+        # The new `beta_tilde`
+        (eq, beta_args_lv,
+         (beta_mean_lv, beta_sd_lv, beta_size_lv, beta_rng_lv)),
         (eq, beta_til_lv,
-         etuple(mt.NormalRV, 0., 1.,
-                etuple(normal_get_size, beta_lv),
-                etuple(normal_get_rng, beta_lv))),
+         etuple(mt.NormalRV,
+                # Use these `tt.[ones|zeros]_like` functions to preserve the
+                # correct shape (and a valid `tt.dot`).
+                etuple(mt.zeros_like, beta_mean_lv),
+                etuple(mt.ones_like, beta_sd_lv),
+                beta_size_lv, beta_rng_lv)),
         # Relate the new and old coeffs
         (eq, beta_new_lv,
          etuple(mt.dot,
@@ -88,18 +136,17 @@ def normal_qr_transform(in_expr, out_expr):
                 beta_til_lv)),
         # Use the relation the other way to produce the new/transformed
         # observation distribution
-        (normal_normal_regression,
-         Y_new_lv, Q_lv, beta_til_lv,
-         Y_sd_lv, Y_size_lv, Y_rng_lv),
+        normal_normal_regression(Y_new_lv, Q_lv, beta_til_lv, Y_args_lv),
         (eq, out_expr,
          [
              (in_expr,
-              etuple(mt.observed, y_lv, Y_new_lv)),
-             (beta_lv,
-              etuple(update_name_suffix,
-                     beta_new_lv,
-                     beta_lv,
-                     '_tilde'))
+              etuple(mt.observed, y_lv,
+                     etuple(update_name_suffix,
+                            Y_new_lv,
+                            Y_lv,
+                            '')
+                     )),
+             (beta_lv, beta_new_lv)
          ])
     )
     return res
