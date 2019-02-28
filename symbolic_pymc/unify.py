@@ -10,6 +10,7 @@ from kanren import isvar
 from kanren.term import term, operator, arguments
 from kanren.facts import fact
 from kanren.assoccomm import commutative, associative
+# from kanren.goals import LCons, _lcons_unify
 
 from unification.more import unify
 from unification.core import reify, _unify, _reify, Var
@@ -42,7 +43,11 @@ class ExpressionTuple(tuple):
         else:
             evaled_args = [getattr(i, 'eval_obj', i)
                            for i in self[1:]]
-            self._eval_obj = self[0](*evaled_args)
+            _eval_obj = self[0](*evaled_args)
+
+            assert not isinstance(_eval_obj, ExpressionTuple)
+
+            self._eval_obj = _eval_obj
             return self._eval_obj
 
     @eval_obj.setter
@@ -99,7 +104,11 @@ def etuple(*args, **kwargs):
     res = ExpressionTuple(args)
 
     if 'eval_obj' in kwargs:
-        res._eval_obj = kwargs.pop('eval_obj')
+        _eval_obj = kwargs.pop('eval_obj')
+
+        assert not isinstance(_eval_obj, ExpressionTuple)
+
+        res._eval_obj = _eval_obj
 
     return res
 
@@ -258,7 +267,8 @@ def arguments_MetaVariable(x):
     """
     x_owner = getattr(x, 'owner', None)
     if x_owner and hasattr(x_owner, 'op'):
-        x_e = etuple(x_owner.op, *x_owner.inputs,
+        x_e = etuple(x_owner.op,
+                     *x_owner.inputs,
                      eval_obj=x)
         return x_e[1:]
 
@@ -284,7 +294,13 @@ term.add((tt.Op, ExpressionTuple),
 def tuple_expression(x):
     """Return a tuple of rand and rators that, when evaluated, would
     construct the object; otherwise, return the object itself.
+
+    NOTE: `tuple_expression(...)[2:]` and `arguments(...)` will *not* return
+    the same thing, because the former is recursive and the latter is not.
     """
+    if isinstance(x, ExpressionTuple):
+        return x
+
     try:
         # This can throw an `IndexError` if `x` is an empty
         # `list`/`tuple`.
@@ -295,6 +311,10 @@ def tuple_expression(x):
 
     assert isinstance(args, (list, tuple))
 
+    # Not everything in a list/tuple should be considered an expression.
+    if not callable(op):
+        return x
+
     res = etuple(op, *tuple(tuple_expression(a) for a in args), eval_obj=x)
     return res
 
@@ -304,6 +324,7 @@ def tuple_expression(x):
     return tuple_expression(mt(x))
 
 
+@_reify.register(ExpressionTuple, dict)
 def _reify_ExpressionTuple(t, s):
     """When `kanren` reifies `etuple`s, we don't want them to turn into regular
     `tuple`s.
@@ -329,9 +350,6 @@ def _reify_ExpressionTuple(t, s):
 
     res = etuple(*res)
     return res
-
-
-_reify.add((ExpressionTuple, dict), _reify_ExpressionTuple)
 
 
 fact(commutative, mt.add)
