@@ -13,9 +13,9 @@ from theano import gof
 from sympy import Array as SympyArray
 from sympy.printing import latex as sympy_latex
 
-from . import Observed, NormalRV
 from .opt import FunctionGraph
-from .rv import RandomVariable
+from .ops import RandomVariable
+from .random_variables import Observed, NormalRV
 
 
 class RandomVariablePrinter(object):

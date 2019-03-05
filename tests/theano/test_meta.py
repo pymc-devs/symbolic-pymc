@@ -6,9 +6,12 @@ import theano.tensor as tt
 import pytest
 
 from unification import var, isvar, variables
-from symbolic_pymc.meta import (MetaSymbol, MetaTensorVariable, MetaTensorType,
-                                mt, metatize)
-from symbolic_pymc.utils import graph_equal
+from symbolic_pymc.meta import MetaSymbol
+from symbolic_pymc.theano.meta import (metatize,
+                                       TheanoMetaTensorVariable,
+                                       TheanoMetaTensorType, mt)
+from symbolic_pymc.theano.utils import graph_equal
+
 
 def test_metatize():
     vec_tt = tt.vector('vec')
@@ -50,11 +53,12 @@ def test_metatize():
     assert test_out.obj == TestOp
     assert test_out.base == TestOp
 
+
 def test_meta_classes():
     vec_tt = tt.vector('vec')
     vec_m = metatize(vec_tt)
     assert vec_m.obj == vec_tt
-    assert type(vec_m) == MetaTensorVariable
+    assert type(vec_m) == TheanoMetaTensorVariable
 
     # This should invalidate the underlying base object.
     vec_m.index = 0
@@ -63,7 +67,7 @@ def test_meta_classes():
     assert vec_m.reify().name == vec_tt.name
 
     vec_type_m = vec_m.type
-    assert type(vec_type_m) == MetaTensorType
+    assert type(vec_type_m) == TheanoMetaTensorType
     assert vec_type_m.dtype == vec_tt.dtype
     assert vec_type_m.broadcastable == vec_tt.type.broadcastable
     assert vec_type_m.name == vec_tt.type.name
@@ -71,7 +75,7 @@ def test_meta_classes():
     assert graph_equal(tt.add(1, 2), mt.add(1, 2).reify())
 
     meta_var = mt.add(1, var()).reify()
-    assert isinstance(meta_var, MetaTensorVariable)
+    assert isinstance(meta_var, TheanoMetaTensorVariable)
     assert isinstance(meta_var.owner.op.obj, theano.Op)
     assert isinstance(meta_var.owner.inputs[0].obj, tt.TensorConstant)
 

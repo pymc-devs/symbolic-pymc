@@ -4,9 +4,9 @@ import numpy as np
 from theano.gof.opt import EquilibriumOptimizer
 from theano.gof.graph import inputs as tt_inputs
 
-from symbolic_pymc import MvNormalRV, observed
-from symbolic_pymc.opt import KanrenRelationSub, FunctionGraph
-from symbolic_pymc.utils import optimize_graph
+from symbolic_pymc.theano.random_variables import MvNormalRV, observed
+from symbolic_pymc.theano.opt import KanrenRelationSub, FunctionGraph
+from symbolic_pymc.theano.utils import optimize_graph
 from symbolic_pymc.relations.conjugates import conjugate_posteriors
 
 

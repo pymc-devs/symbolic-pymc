@@ -2,7 +2,7 @@ import numpy as np
 
 import theano.tensor as tt
 
-from symbolic_pymc import NormalRV, MvNormalRV
+from symbolic_pymc.theano.random_variables import NormalRV, MvNormalRV
 
 
 def rv_numpy_tester(rv, *params, size=None):

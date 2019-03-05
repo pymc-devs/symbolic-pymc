@@ -5,10 +5,10 @@ from kanren.term import term, operator, arguments
 from kanren.assoccomm import eq_assoc, eq_comm
 from unification import var
 
-from symbolic_pymc import MvNormalRV
-from symbolic_pymc.meta import mt
+from symbolic_pymc.theano.random_variables import MvNormalRV
+from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.unify import etuple
-from symbolic_pymc.utils import graph_equal
+from symbolic_pymc.theano.utils import graph_equal
 
 
 def test_terms():

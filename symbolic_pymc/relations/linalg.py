@@ -11,7 +11,7 @@ from kanren.core import lall, lallgreedy
 from kanren.goals import not_equalo, conso
 from kanren.term import term, operator, arguments
 
-from ..meta import mt
+from ..theano.meta import mt
 from ..unify import etuple, tuple_expression, ExpressionTuple
 
 

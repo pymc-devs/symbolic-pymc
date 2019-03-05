@@ -1,5 +1,4 @@
 import pytest
-import theano
 import theano.tensor as tt
 
 from operator import add
@@ -8,8 +7,8 @@ from unification import unify, reify, var, variables
 
 from kanren.term import term, operator, arguments
 
-from symbolic_pymc.meta import mt
-from symbolic_pymc.utils import graph_equal
+from symbolic_pymc.theano.meta import mt
+from symbolic_pymc.theano.utils import graph_equal
 from symbolic_pymc.unify import (ExpressionTuple, etuple, tuple_expression)
 
 
@@ -19,13 +18,9 @@ def test_unification():
     y_s = tt.scalar('y_s')
     c_tt = tt.constant(1, 'c')
     d_tt = tt.constant(2, 'd')
-    # x_l = tt.vector('x_l')
-    # y_l = tt.vector('y_l')
-    # z_l = tt.vector('z_l')
 
     x_l = var('x_l')
     y_l = var('y_l')
-    z_l = var('z_l')
 
     assert a == reify(x_l, {x_l: a}).reify()
     test_expr = mt.add(1, mt.mul(2, x_l))

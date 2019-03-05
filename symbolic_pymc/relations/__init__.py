@@ -6,7 +6,7 @@ from kanren.goals import goalify
 
 from unification.utils import transitive_get as walk
 
-from ..meta import MetaConstant
+from ..theano.meta import TheanoMetaConstant
 
 
 # Hierarchical models that we recognize.
@@ -29,7 +29,7 @@ def constant_neq(lvar, val):
 
     def _goal(s):
         lvar_val = walk(lvar, s)
-        if isinstance(lvar_val, (tt.Constant, MetaConstant)):
+        if isinstance(lvar_val, (tt.Constant, TheanoMetaConstant)):
             data = lvar_val.data
             if (isinstance(val, np.ndarray) and not np.array_equal(data, val)) or not all(
                 np.atleast_1d(data) == val

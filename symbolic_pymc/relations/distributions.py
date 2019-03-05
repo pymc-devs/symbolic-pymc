@@ -4,8 +4,8 @@ from kanren import conde, eq
 from kanren.facts import fact
 
 from . import constant_neq, concat
-from ..meta import mt
 from ..unify import etuple
+from ..theano.meta import mt
 
 from kanren.facts import Relation
 
