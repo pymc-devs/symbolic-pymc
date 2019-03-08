@@ -6,6 +6,7 @@ import theano.tensor as tt
 
 from copy import copy
 from collections import OrderedDict
+from functools import reduce
 
 from theano import gof
 
@@ -421,7 +422,8 @@ class PreamblePPrinter(theano.printing.PPrinter):
         raise NotImplementedError()
 
     def __call__(self, *args, latex_env='equation', latex_label=None):
-        var = args[0]
+        in_vars = args[0]
+
         pstate = next(iter(args[1:]), None)
         if isinstance(pstate, (theano.printing.PrinterState, dict)):
             pstate = self.create_state(args[1])
@@ -429,29 +431,43 @@ class PreamblePPrinter(theano.printing.PPrinter):
             pstate = self.create_state(None)
 
         # This pretty printer needs more information about shapes and inputs,
-        # which it gets from a `FunctionGraph`.  Create one, if `var` isn't
-        # already assigned one.
-        if isinstance(var, gof.fg.FunctionGraph):
-            fgraph = var
+        # which it gets from a `FunctionGraph`.
+        fgraph = None
+        out_vars = None
+        if isinstance(in_vars, gof.fg.FunctionGraph):
+            # We were given a `FunctionGraph` to start with; let's make sure
+            # it has the shape information we need.
+            fgraph = in_vars
             if not hasattr(fgraph, 'shape_feature'):
                 shape_feature = tt.opt.ShapeFeature()
                 fgraph.attach_feature(shape_feature)
+            in_vars = fgraph.inputs
             out_vars = fgraph.outputs
-        else:
-            fgraph = getattr(var, 'fgraph', None)
-            out_vars = [var]
+        elif not isinstance(in_vars, (tuple, list)):
+            in_vars = [in_vars]
 
-        if not fgraph:
-            fgraph = FunctionGraph(
-                [o for o in gof.graph.inputs([var])
-                 if not isinstance(o, tt.Constant)],
-                out_vars,
-                # XXX: Cloning will cause `ShapeFeature` to fail.
-                clone=False)
+        if fgraph is None:
+            fgraphs = [getattr(v, 'fgraph', None) for v in in_vars]
 
-            # Use this to get better shape info
-            shape_feature = tt.opt.ShapeFeature()
-            fgraph.attach_feature(shape_feature)
+            # Check that every input's `FunctionGraph` is present and the same.
+            # If one of those isn't true, then we'll create one `FunctionGraph`
+            # for all of the inputs.
+            if (all(filter(lambda x: isinstance(x, FunctionGraph), fgraphs))
+                    and reduce(lambda x, y: x == y and y, fgraphs)):
+                # Just take the first one
+                fgraph = next(fgraphs)
+                in_vars = fgraph.inputs
+                out_vars = fgraph.outputs
+            else:
+                # Create a new `FunctionGraph`
+                fgraph = FunctionGraph(
+                    [o for o in gof.graph.inputs(in_vars)
+                     if not isinstance(o, tt.Constant)],
+                    in_vars,
+                    features=[tt.opt.ShapeFeature()],
+                    clone=True)
+                in_vars = [fgraph.memo[i] for i in in_vars]
+                out_vars = fgraph.outputs
 
         # TODO: How should this be formatted to better designate
         # the output numbers (in LaTeX, as well)?
