@@ -13,6 +13,7 @@ from symbolic_pymc.theano.meta import (metatize,
 from symbolic_pymc.theano.utils import graph_equal
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_metatize():
     vec_tt = tt.vector('vec')
     vec_m = metatize(vec_tt)
@@ -54,6 +55,7 @@ def test_metatize():
     assert test_out.base == TestOp
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_meta_classes():
     vec_tt = tt.vector('vec')
     vec_m = metatize(vec_tt)

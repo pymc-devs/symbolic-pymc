@@ -22,6 +22,7 @@ from symbolic_pymc.theano.utils import canonicalize
 from symbolic_pymc.theano.meta import mt
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_pymc_normals():
     tt.config.compute_test_value = 'ignore'
 
@@ -104,6 +105,7 @@ def test_pymc_normals():
     assert all(v == 1 for v in Z_vars_count.values())
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_normals_to_model():
     tt.config.compute_test_value = 'ignore'
 
@@ -147,6 +149,7 @@ def test_normals_to_model():
     assert isinstance(beta_pm, pm.MvNormal)
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_pymc_broadcastable():
     tt.config.compute_test_value = 'ignore'
 

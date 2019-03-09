@@ -1,4 +1,5 @@
 import pytest
+
 import theano
 import theano.tensor as tt
 
@@ -16,6 +17,7 @@ from symbolic_pymc.relations.linalg import (normal_normal_regression, buildo,
 from kanren import run, eq, var
 
 
+@pytest.mark.usefixtures("run_with_theano")
 @pytest.mark.xfail(strict=True)
 def test_normal_normal_regression():
     tt.config.compute_test_value = 'ignore'
@@ -93,6 +95,7 @@ def test_normal_normal_regression():
     assert Y_out_mt == Y_new_mt
 
 
+@pytest.mark.usefixtures("run_with_theano")
 @pytest.mark.xfail(strict=True)
 def test_normal_qr_transform():
     np.random.seed(9283)

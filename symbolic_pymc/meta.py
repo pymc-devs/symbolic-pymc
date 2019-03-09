@@ -1,13 +1,12 @@
 import abc
 import types
-import inspect
 import reprlib
 
 import numpy as np
 
 from itertools import chain
 from functools import partial
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 
 from unification import isvar, Var
 
@@ -39,27 +38,42 @@ def _metatize(obj):
     return iter([metatize(o) for o in obj])
 
 
+def _make_hashable(x):
+    if isinstance(x, list):
+        return tuple(x)
+    elif isinstance(x, np.ndarray):
+        return x.data.tobytes()
+    else:
+        return x
+
+
 def _meta_reify_iter(rands):
+    """Recursively reify an iterable object and return a boolean indicating the presence of un-reifiable objects, if any."""
     # We want as many of the rands reified as possible,
     any_unreified = False
     reified_rands = []
-    for s in rands:
+    if isinstance(rands, Mapping):
+        _rands = rands.items()
+    else:
+        _rands = rands
+
+    for s in _rands:
         if isinstance(s, MetaSymbol):
             rrand = s.reify()
-            reified_rands += [rrand]
+            reified_rands.append(rrand)
             any_unreified |= isinstance(rrand, MetaSymbol)
             any_unreified |= isvar(rrand)
         elif MetaSymbol.is_meta(s):
-            reified_rands += [s]
+            reified_rands.append(s)
             any_unreified |= True
         elif isinstance(s, (list, tuple)):
             _reified_rands, _any_unreified = _meta_reify_iter(s)
-            reified_rands += [type(s)(_reified_rands)]
+            reified_rands.append(type(s)(_reified_rands))
             any_unreified |= _any_unreified
         else:
             reified_rands += [s]
 
-    return reified_rands, any_unreified
+    return type(rands)(reified_rands), any_unreified
 
 
 class MetaSymbolType(abc.ABCMeta):
@@ -75,7 +89,10 @@ class MetaSymbolType(abc.ABCMeta):
 
         def __setattr__(self, attr, obj):
             """If a slot value is changed, discard any associated non-meta/base objects."""
-            if (
+            if attr == "obj":
+                if isinstance(obj, MetaSymbol):
+                    raise ValueError("base object cannot be a meta object!")
+            elif (
                 getattr(self, "obj", None) is not None
                 and not isinstance(self.obj, Var)
                 and attr in getattr(self, "__all_slots__", {})
@@ -83,28 +100,24 @@ class MetaSymbolType(abc.ABCMeta):
                 and getattr(self, attr) != obj
             ):
                 self.obj = None
-            elif attr == "obj":
-                if isinstance(obj, MetaSymbol):
-                    raise ValueError("base object cannot be a meta object!")
 
             object.__setattr__(self, attr, obj)
 
         clsdict["__setattr__"] = __setattr__
 
+        @classmethod
+        def __metatize(cls, obj):
+            return cls(
+                *[getattr(obj, s) for s in getattr(cls, "__slots__", [])],
+                obj=obj
+            )
+
+        clsdict.setdefault("_metatize", __metatize)
+
         new_cls = super().__new__(cls, name, bases, clsdict)
 
-        # making sure namespaces are consistent
         if isinstance(new_cls.base, type):
-            if hasattr(new_cls, "_metatize"):
-                __metatize = new_cls._metatize
-            else:
-
-                def __metatize(obj):
-                    return new_cls(
-                        *[getattr(obj, s) for s in getattr(new_cls, "__slots__", [])], obj=obj
-                    )
-
-            _metatize.add((new_cls.base,), __metatize)
+            _metatize.add((new_cls.base,), new_cls._metatize)
 
         # TODO: Could register base classes.
         # E.g. cls.register(bases)
@@ -112,7 +125,10 @@ class MetaSymbolType(abc.ABCMeta):
 
 
 class MetaSymbol(metaclass=MetaSymbolType):
-    """Meta objects for unification and such."""
+    """Meta objects for unification and such.
+
+    TODO: Should `MetaSymbol.obj` be an abstract property and a `weakref`?
+    """
 
     @property
     @abc.abstractmethod
@@ -141,7 +157,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
 
     def reify(self):
         """Create a concrete base object from this meta object (and its rands)."""
-        if self.obj and not isinstance(self.obj, Var):
+        if self.obj is not None and not isinstance(self.obj, Var):
             return self.obj
         else:
             reified_rands, any_unreified = _meta_reify_iter(self.rands())
@@ -157,46 +173,30 @@ class MetaSymbol(metaclass=MetaSymbolType):
             return res
 
     def __eq__(self, other):
-        """Syntactic equality between meta objects and their bases."""
-        # TODO: Allow a sort of cross-inheritance equivalence (e.g. a
-        # `tt.Variable` or `tt.TensorVariable`)?
-        # a_sub_b = isinstance(self, type(other))
-        # b_sub_a = isinstance(other, type(self))
-        # if not (a_sub_b or b_sub_a):
-        #     return False
+        """Implement an equivalence between meta objects and their bases."""
+        if self is other:
+            return True
+
         if not (type(self) == type(other)):
             return False
 
-        # TODO: ?
-        # Same for base objects
-        # a_sub_b = isinstance(self.base, type(other.base))
-        # b_sub_a = isinstance(other.base, type(self.base))
-        # if not (a_sub_b or b_sub_a):
-        #     return False
         if not (self.base == other.base):
             return False
 
-        # TODO: ?
-        # # `self` is the super class, that might be generalizing
-        # # `other`
-        a_slots = getattr(self, "__slots__", [])
-        # b_slots = getattr(other, '__slots__', [])
-        # if (b_sub_a and not a_sub_b and
-        #     not all(getattr(self, attr) == getattr(other, attr)
-        #             for attr in a_slots)):
-        #     return False
-        # # `other` is the super class, that might be generalizing
-        # # `self`
-        # elif (a_sub_b and not b_sub_a and
-        #       not all(getattr(self, attr) == getattr(other, attr)
-        #               for attr in b_slots)):
-        #     return False
-        if not all(_check_eq(getattr(self, attr), getattr(other, attr)) for attr in a_slots):
+        a_slots = getattr(self, "__slots__", None)
+        if a_slots is not None:
+            if not all(_check_eq(getattr(self, attr), getattr(other, attr)) for attr in a_slots):
+                return False
+        elif getattr(other, "__slots__", None) is not None:
+            # The other object has slots, but this one doesn't.
             return False
-
-        # if (self.obj and not isvar(self.obj) and
-        #         other.obj and not isvar(other.objj)):
-        #     assert self.obj == other.obj
+        else:
+            # Neither have slots, so best we can do is compare
+            # base objects (if any).
+            # If there aren't base objects, we say they're not equal.
+            # (Maybe we should *require* base objects in this case
+            # and raise an exception?)
+            return getattr(self, "obj", None) == getattr(other, "obj", None) is not None
 
         return True
 
@@ -204,16 +204,11 @@ class MetaSymbol(metaclass=MetaSymbolType):
         return not self.__eq__(other)
 
     def __hash__(self):
-        def _make_hashable(x):
-            if isinstance(x, list):
-                return tuple(x)
-            elif isinstance(x, np.ndarray):
-                return x.data.tobytes()
-            else:
-                return x
-
-        rands = tuple(_make_hashable(p) for p in self.rands())
-        return hash(rands + (self.base,))
+        if getattr(self, "__slots__", None) is not None:
+            rands = tuple(_make_hashable(p) for p in self.rands())
+            return hash(rands + (self.base,))
+        else:
+            return hash((self.base, self.obj))
 
     def __str__(self):
         obj = getattr(self, "obj", None)
@@ -246,9 +241,11 @@ class MetaSymbol(metaclass=MetaSymbolType):
                         p.text(name)
                         p.text("=")
                         p.pretty(item)
+
                 obj = getattr(self, "obj", None)
-                if obj:
-                    if idx:
+
+                if obj is not None:
+                    if idx is not None:
                         p.text(",")
                         p.breakable()
                     p.text("obj=")
@@ -261,7 +258,7 @@ def _metatize(obj):
 
 
 class MetaOp(MetaSymbol):
-    """A meta object that represents a `MetaVaribale`-producing operator.
+    """A meta object that represents a `MetaVariable`-producing operator.
 
     Also, make sure to override `Op.out_meta_type` and make it return the
     expected meta variable type, if it isn't the default: `MetaTensorVariable`.
@@ -274,42 +271,43 @@ class MetaOp(MetaSymbol):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.op_sig = inspect.signature(self.obj.make_node)
 
     @property
     def obj(self):
-        return self._obj
+        return object.__getattribute__(self, "_obj")
 
     @obj.setter
     def obj(self, x):
         if hasattr(self, "_obj"):
             raise ValueError("Cannot reset obj in an `Op`")
-        self._obj = x
+        object.__setattr__(self, "_obj", x)
 
     @abc.abstractmethod
-    def out_meta_type(self, inputs=None):
-        """Return the type of meta variable this `Op` is expected to produce given the inputs."""
+    def out_meta_types(self, inputs=None):
+        """Return the types of meta variables this `Op` is expected to produce given the inputs."""
         raise NotImplementedError()
 
     @abc.abstractmethod
     def __call__(self, *args, ttype=None, index=None, **kwargs):
         raise NotImplementedError()
 
-    def __eq__(self, other):
-        # Since these have no rands/slots, we can only really compare against
-        # the underlying base objects (which should be there!).
-        if not super().__eq__(other):
-            return False
 
-        assert self.obj
+class MetaVariable(MetaSymbol):
+    @property
+    @abc.abstractmethod
+    def operator(self):
+        """Return a meta object representing an operator, if any, capable of producing this variable.
 
-        if self.obj != other.obj:
-            return False
+        It should be callable with all inputs necessary to reproduce this
+        tensor given by `MetaVariable.inputs`.
+        """
+        raise NotImplementedError()
 
-        return True
-
-    def __hash__(self):
-        return hash((self.base, self.obj))
+    @property
+    @abc.abstractmethod
+    def inputs(self):
+        """Return the inputs necessary for `MetaVariable.operator` to produced this variable, if any."""
+        raise NotImplementedError()
 
 
 def _find_meta_type(obj_type, meta_abs_type):
@@ -345,7 +343,3 @@ def _metatize(obj_type):
 
         if obj_cls is not None:
             return obj_cls
-
-
-class MetaVariable(MetaSymbol):
-    pass

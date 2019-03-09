@@ -1,3 +1,4 @@
+import pytest
 import theano.tensor as tt
 import numpy as np
 
@@ -10,6 +11,7 @@ from symbolic_pymc.theano.utils import optimize_graph
 from symbolic_pymc.relations.conjugates import conjugate_posteriors
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_mvnormal_mvnormal():
     """Test that we can produce the closed-form distribution for the conjugate
     multivariate normal-regression with normal-prior model.

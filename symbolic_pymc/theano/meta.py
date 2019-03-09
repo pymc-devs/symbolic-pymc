@@ -1,6 +1,7 @@
 import types
 import inspect
 
+import weakref
 import theano
 import theano.tensor as tt
 
@@ -24,13 +25,20 @@ from ..meta import (
 )
 
 
-@dispatch(object)
-def _metatize(obj):
+def _metatize_theano_object(obj):
     try:
         obj = tt.as_tensor_variable(obj)
     except (ValueError, tt.AsTensorError):
         raise ValueError("Could not find a MetaSymbol class for {}".format(obj))
     return _metatize(obj)
+
+
+def load_dispatcher():
+    """Set/override dispatcher to default to TF objects."""
+    _metatize.add((object,), _metatize_theano_object)
+
+
+load_dispatcher()
 
 
 class TheanoMetaSymbol(MetaSymbol):
@@ -69,22 +77,23 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
     `Op.make_node`'s arguments aren't one-to-one with the expected `Apply` node
     inputs.  See `MetaOp.__call__` for more details.
 
-    Also, make sure to override `Op.out_meta_type` and make it return the
-    expected meta variable type, if it isn't the default: `TheanoMetaTensorVariable`.
+    Also, make sure to override `Op.out_meta_types` and make it return the
+    expected meta variable types, if it isn't the default: `TheanoMetaTensorVariable`.
     """
 
     base = tt.Op
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.op_sig = inspect.signature(self.obj.make_node)
 
-    def out_meta_type(self, inputs=None):
-        """Return the type of meta variable this `Op` is expected to produce given the inputs.
+    def out_meta_types(self, inputs=None):
+        """Return the types of meta variables this `Op` is expected to produce given the inputs.
 
         The default is `TheanoMetaTensorVariable` (corresponding to
         `TheanoTensorVariable` outputs from the base `Op`).
         """
-        return TheanoMetaTensorVariable
+        return (TheanoMetaTensorVariable,)
 
     def __call__(self, *args, ttype=None, index=None, **kwargs):
         """Emulate `make_node` for this `Op` and return .
@@ -120,12 +129,15 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
             res_var = metatize(tt_out)
 
             if not isinstance(tt_out, (list, tuple)):
-                # If the name is indeterminate, we still want all the reified info,
-                # but we need to make sure that certain parts aren't known.
+                # If the name is indeterminate, we still want all the reified
+                # info, but we need to make sure that certain parts aren't
+                # known.
                 # TODO: In this case, the reified Theano object is a sort of
-                # "proxy" object; we should use this approach for dtype, as well.
-                # TODO: We should also put this kind of logic in the appropriate places
-                # (e.g. `MetaVariable.reify`), when possible.
+                # "proxy" object; we should use this approach for dtype, as
+                # well.
+                # TODO: We should also put this kind of logic in the
+                # appropriate places (e.g. `MetaVariable.reify`), when
+                # possible.
                 if TheanoMetaSymbol.is_meta(name):
                     # This should also invalidate `res_var.obj`.
                     res_var.name = name
@@ -162,7 +174,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
             # XXX: We don't have a higher-order meta object model, so being
             # wrong about the exact type of output variable will cause
             # problems.
-            out_meta_type = self.out_meta_type(op_args)
+            out_meta_type, = self.out_meta_types(op_args)
             res_var = out_meta_type(ttype, res_apply, index, name)
             res_var.obj = var()
 
@@ -210,6 +222,11 @@ class TheanoMetaApply(TheanoMetaSymbol):
         self.op = metatize(op)
         self.inputs = tuple(metatize(i) for i in inputs)
         self.outputs = outputs
+        if outputs is not None:
+            # TODO: Convert these to meta objects?
+            self.outputs = tuple(weakref.ref(o) for o in outputs)
+        else:
+            self.outputs = None
 
     def reify(self):
         if self.obj and not isinstance(self.obj, Var):
@@ -234,8 +251,6 @@ class TheanoMetaApply(TheanoMetaSymbol):
             return len(self.outputs)
         elif self.obj:
             return len(self.obj.outputs)
-        # TODO: Would be cool if we could return
-        # a logic variable representing this.
 
 
 class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
@@ -245,9 +260,22 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
     def __init__(self, type, owner, index, name, obj=None):
         super().__init__(obj=obj)
         self.type = metatize(type)
-        self.owner = metatize(owner)
+        if owner is not None:
+            self.owner = metatize(owner)
+        else:
+            self.owner = None
         self.index = index
         self.name = name
+
+    @property
+    def operator(self):
+        if self.owner is not None:
+            return self.owner.op
+
+    @property
+    def inputs(self):
+        if self.owner is not None:
+            return self.owner.inputs
 
     def reify(self):
         if self.obj and not isinstance(self.obj, Var):
@@ -300,12 +328,12 @@ class TheanoMetaTensorVariable(TheanoMetaVariable):
 
     @property
     def ndim(self):
+        # TODO: Would be cool if we could return
+        # a logic variable representing this.
         if isinstance(self.type, TheanoMetaTensorType) and isinstance(
             self.type.broadastable, (list, tuple)
         ):
             return len(self.type.broadcastable)
-        # TODO: Would be cool if we could return
-        # a logic variable representing this.
 
 
 class TheanoMetaConstant(TheanoMetaVariable):
@@ -353,7 +381,7 @@ class TheanoMetaScalarSharedVariable(TheanoMetaSharedVariable):
 
 
 class TheanoMetaAccessor(object):
-    """Create an object that can be used to implicitly convert Theano functions and object into meta objects.
+    """Create an object that can be used to implicitly convert Theano functions and objects into meta objects.
 
     Use it like a namespace/module/package object, e.g.
 

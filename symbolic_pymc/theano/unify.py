@@ -1,18 +1,15 @@
 import theano.tensor as tt
 
-from multipledispatch import dispatch
-
 from kanren.term import term, operator, arguments
 
 from unification.core import _reify, _unify, reify
 
 from ..meta import metatize
-from ..unify import ExpressionTuple, unify_MetaSymbol
-from .meta import mt, TheanoMetaSymbol
+from ..unify import ExpressionTuple, unify_MetaSymbol, tuple_expression
+from .meta import TheanoMetaSymbol
 
 
 tt_class_abstractions = tuple(c.base for c in TheanoMetaSymbol.__subclasses__())
-
 
 _unify.add(
     (TheanoMetaSymbol, tt_class_abstractions, dict),
@@ -41,7 +38,7 @@ arguments.add((tt.Variable,), lambda x: arguments(metatize(x)))
 
 term.add((tt.Op, ExpressionTuple), lambda op, args: term(metatize(op), args))
 
+tuple_expression.add(tt_class_abstractions,
+                     lambda x: tuple_expression(metatize(x)))
 
-@dispatch(tt_class_abstractions)
-def tuple_expression(x):
-    return tuple_expression(mt(x))
+__all__ = []

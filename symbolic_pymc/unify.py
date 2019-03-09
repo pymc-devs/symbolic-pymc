@@ -167,8 +167,17 @@ _unify.add((MetaSymbol, MetaSymbol, dict), unify_MetaSymbol)
 
 def _reify_MetaSymbol(o, s):
     if isinstance(o.obj, Var):
+        # We allow reification of the base object field for
+        # a meta object.
+        # TODO: This is a weird thing that we should probably reconsider.
+        # It's part of the functionality that allows base objects to fill-in
+        # as logic variables, though.
         obj = s.get(o.obj, o.obj)
     else:
+        # Otherwise, if there's a base object, it should indicate that there
+        # are no logic variables or meta terms.
+        # TODO: Seems like we should be able to skip the reify and comparison
+        # below.
         obj = None
 
     rands = o.rands()
@@ -220,9 +229,9 @@ def operator_MetaVariable(x):
     `owner.op(owner.inputs)` is consistent, of course.
 
     """
-    x_owner = getattr(x, "owner", None)
-    if x_owner and hasattr(x_owner, "op"):
-        return x_owner.op
+    x_op = x.operator
+    if x_op is not None:
+        return x_op
     return operator_MetaSymbol(x)
 
 
@@ -252,9 +261,9 @@ def arguments_MetaVariable(x):
     `operator_MetaVariable`.
 
     """
-    x_owner = getattr(x, "owner", None)
-    if x_owner and hasattr(x_owner, "op"):
-        x_e = etuple(x_owner.op, *x_owner.inputs, eval_obj=x)
+    x_op = x.operator
+    if x_op is not None:
+        x_e = etuple(x_op, *x.inputs, eval_obj=x)
         return x_e[1:]
 
     return arguments_MetaSymbol(x)
