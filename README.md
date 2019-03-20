@@ -1,5 +1,7 @@
 # Symbolic PyMC
 
+[![Build Status](https://travis-ci.org/pymc-devs/symbolic-pymc.svg?branch=master)](https://travis-ci.org/pymc-devs/symbolic-pymc) [![Coverage Status](https://coveralls.io/repos/github/pymc-devs/symbolic-pymc/badge.svg?branch=master)](https://coveralls.io/github/pymc-devs/symbolic-pymc?branch=master)
+
 A Python package with tools for the symbolic manipulation of [Theano](https://github.com/Theano) graphs and [PyMC3](https://github.com/pymc-devs/pymc3) models.
 
 *This package is currently in alpha, so expect large-scale changes at any time!*
@@ -13,11 +15,22 @@ This work stems from a series of articles starting [here](https://brandonwillard
 
 ## Features
 
+### General
+
+* Full [miniKanren](http://minikanren.org/) integration for truly relational graph/model manipulation
+* Optimizations for symbolic closed-form posteriors
+* Generalized and automatic model reformulations for improved sampling
+
+### Theano
+
 * A more robust Theano `Op` for representing random variables
-* Full miniKanren integration
 * Conversion of PyMC3 models into sample-able Theano graphs representing all random variable inter-dependencies
 * A LaTeX pretty printer that displays shape information and distributions in mathematical notation
-* (In progress) Theano optimizations for symbolic closed-form posteriors and other probability theory-based model reformulations
+
+### TensorFlow
+
+* [In progress] TensorFlow meta objects support
+* [In progress] PyMC4 model conversion
 
 ## Installation
 

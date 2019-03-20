@@ -11,6 +11,7 @@ from .unify import *
 
 from .meta import mt
 
+__version__ = "0.0.1"
 
 # Continuous Numpy-generated variates
 class UniformRVType(RandomVariable):
