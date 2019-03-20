@@ -15,8 +15,7 @@ from .unify import ExpressionTuple
 
 
 def eval_and_reify_meta(x):
-    """Get Theano objects from combinations of `etuple`s and meta objects.
-    """
+    """Get Theano objects from combinations of `etuple`s and meta objects."""
     res = x
 
     # Create base objects from the resulting meta object
@@ -27,35 +26,43 @@ def eval_and_reify_meta(x):
         res = res.reify()
 
     if MetaSymbol.is_meta(res):
-        raise ValueError(
-            "Kanren results not fully reifiable: {}".format(res))
+        raise ValueError("Kanren results not fully reifiable: {}".format(res))
 
     return res
 
 
 class FunctionGraph(theano.gof.fg.FunctionGraph):
-    """A version of `FunctionGraph` that knows not to merge
-    non-deterministic `Op`s.
+    """A version of `FunctionGraph` that knows not to merge non-deterministic `Op`s.
 
     TODO: Add a check to `MergeFeature.process_node` and submit
     a PR to Theano.
+
     """
 
-    def __init__(self, inputs, outputs, features=None, clone=True, memo=None,
-                 update_mapping=None, copy_inputs=True, copy_orphans=None):
+    def __init__(
+        self,
+        inputs,
+        outputs,
+        features=None,
+        clone=True,
+        memo=None,
+        update_mapping=None,
+        copy_inputs=True,
+        copy_orphans=None,
+    ):
 
         if clone:
             if copy_orphans is None:
                 copy_orphans = copy_inputs
 
             self.memo = theano.gof.graph.clone_get_equiv(
-                inputs, outputs, copy_inputs, copy_orphans, memo)
+                inputs, outputs, copy_inputs, copy_orphans, memo
+            )
 
             inputs = [self.memo[i] for i in inputs]
             outputs = [self.memo[o] for o in outputs]
 
-        super().__init__(inputs, outputs, features=features, clone=False,
-                         update_mapping=None)
+        super().__init__(inputs, outputs, features=features, clone=False, update_mapping=None)
 
     def attach_feature(self, feature):
         if isinstance(feature, theano.gof.opt.MergeFeature):
@@ -63,7 +70,7 @@ class FunctionGraph(theano.gof.fg.FunctionGraph):
 
             @wraps(feature.process_node)
             def _f(self, fgraph, node):
-                if getattr(node.op, 'nondeterministic', False):
+                if getattr(node.op, "nondeterministic", False):
                     return
                 return _process_node(fgraph, node)
 
@@ -71,12 +78,12 @@ class FunctionGraph(theano.gof.fg.FunctionGraph):
 
         return super().attach_feature(feature)
 
-    def replace(self, r, new_r, reason=None, verbose=None,
-                remove_dup_inputs=True):
+    def replace(self, r, new_r, reason=None, verbose=None, remove_dup_inputs=True):
         """See `theano.gof.fg.FunctionGraph.replace`.
 
-        The original `FunctionGraph.replace` will not replace the actual input
-        list.  This one will.
+        The original `FunctionGraph.replace` will not replace the actual
+        input list.  This one will.
+
         """
         super().replace(r, new_r, reason=reason, verbose=verbose)
 
@@ -105,22 +112,27 @@ class FunctionGraph(theano.gof.fg.FunctionGraph):
 
 
 class KanrenRelationSub(LocalOptimizer):
-    """A local optimizer that uses miniKanren goals to match and replace
-    terms in a Theano `FunctionGraph`.
-
+    """A local optimizer that uses miniKanren goals to match and replace terms in a Theano `FunctionGraph`.
 
     TODO: Only uses *one* miniKanren `run` result (chosen by a configurable
     filter function).  We might want an option to produce multiple graphs, but
     I imagine that would involve an entirely different optimizer type.
+
     """
+
     reentrant = True
 
-    def __init__(self, kanren_relation, relation_lvars=None,
-                 results_filter=lambda x: next(x, None),
-                 node_filter=lambda x: False):
-        """
+    def __init__(
+        self,
+        kanren_relation,
+        relation_lvars=None,
+        results_filter=lambda x: next(x, None),
+        node_filter=lambda x: False,
+    ):
+        """Create a `KanrenRelationSub`.
+
         Parameters
-        ==========
+        ----------
         kanren_relation: kanren.Relation or goal
             The miniKanren relation store or goal to use.  Custom goals should
             take an input and output argument, respectively.
@@ -141,21 +153,24 @@ class KanrenRelationSub(LocalOptimizer):
         super().__init__()
 
     def adjust_outputs(self, node, new_node, old_node=None):
-        """Handle (some) nodes with multiple outputs by returning a list with
-        the appropriate length and containing the new node (at the correct
+        """Make adjustments for multiple outputs.
+
+        This handles (some) nodes with multiple outputs by returning a list
+        with the appropriate length and containing the new node (at the correct
         index if `default_output` is available and correct, or 0--and it
         happens to be the correct one).
 
         TODO: We should be able to get the correct index from the something
         like `node.outputs.index(old_node)`, but we don't exactly have
         `old_node` unless the miniKanren results give it to us.
+
         """
         res = list(node.outputs)
         try:
             new_node_idx = res.index(old_node)
         except ValueError:
             # Guesstimate it
-            new_node_idx = getattr(node.op, 'default_output', 0) or 0
+            new_node_idx = getattr(node.op, "default_output", 0) or 0
 
         res[new_node_idx] = new_node
         return res
@@ -174,8 +189,7 @@ class KanrenRelationSub(LocalOptimizer):
 
         with variables(*self.relation_lvars):
             q = var()
-            kanren_results = run(None, q,
-                                 (self.kanren_relation, input_expr, q))
+            kanren_results = run(None, q, (self.kanren_relation, input_expr, q))
 
         chosen_res = self.results_filter(kanren_results)
 
@@ -188,20 +202,17 @@ class KanrenRelationSub(LocalOptimizer):
 
             if isinstance(chosen_res, list):
                 # We got a dictionary of replacements
-                new_node = {eval_and_reify_meta(k): eval_and_reify_meta(v)
-                            for k, v in chosen_res}
+                new_node = {eval_and_reify_meta(k): eval_and_reify_meta(v) for k, v in chosen_res}
 
-                assert all(k in node.fgraph.variables
-                           for k in new_node.keys())
+                assert all(k in node.fgraph.variables for k in new_node.keys())
             elif isinstance(chosen_res, tt.Variable):
                 # Attempt to automatically format the output for multi-output
                 # `Apply` nodes.
-                new_node = self.adjust_outputs(
-                    node, eval_and_reify_meta(chosen_res))
+                new_node = self.adjust_outputs(node, eval_and_reify_meta(chosen_res))
             else:
                 raise ValueError(
-                    'Unsupported FunctionGraph replacement variable'
-                    f'type: {chosen_res}')
+                    "Unsupported FunctionGraph replacement variable" f"type: {chosen_res}"
+                )
 
             return new_node
         else:

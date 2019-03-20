@@ -7,6 +7,7 @@ import theano.tensor as tt
 # Don't let pymc3 play with this setting!
 _ctv = tt.config.compute_test_value
 import pymc3 as pm
+
 tt.config.compute_test_value = _ctv
 
 from warnings import warn
@@ -14,25 +15,32 @@ from warnings import warn
 from multipledispatch import dispatch
 from unification.utils import transitive_get as walk
 
-from theano.gof.graph import (Apply, inputs as tt_inputs)
+from theano.gof.graph import Apply, inputs as tt_inputs
 
-from . import (Observed, observed,
-               UniformRV, UniformRVType,
-               NormalRV, NormalRVType,
-               HalfNormalRV, HalfNormalRVType,
-               MvNormalRV, MvNormalRVType,
-               GammaRV, GammaRVType,
-               InvGammaRV, InvGammaRVType,
-               ExponentialRV, ExponentialRVType,
-               CauchyRV, CauchyRVType,
-               HalfCauchyRV, HalfCauchyRVType,
-               # MultinomialRV, MultinomialRVType,
-               # DirichletRV, DirichletRVType,
-               # PoissonRV, PoissonRVType,
+from . import (
+    observed,
+    UniformRV,
+    UniformRVType,
+    NormalRV,
+    NormalRVType,
+    HalfNormalRV,
+    HalfNormalRVType,
+    MvNormalRV,
+    MvNormalRVType,
+    GammaRV,
+    GammaRVType,
+    InvGammaRV,
+    InvGammaRVType,
+    ExponentialRV,
+    ExponentialRVType,
+    CauchyRV,
+    CauchyRVType,
+    HalfCauchyRV,
+    HalfCauchyRVType,
 )
 from .opt import FunctionGraph
 from .rv import RandomVariable
-from .utils import (replace_input_nodes, get_rv_observation)
+from .utils import replace_input_nodes, get_rv_observation
 
 logger = logging.getLogger("symbolic_pymc")
 
@@ -40,11 +48,11 @@ logger = logging.getLogger("symbolic_pymc")
 @dispatch(Apply, object)
 def convert_rv_to_dist(node, obs):
     if not isinstance(node.op, RandomVariable):
-        raise TypeError(f'{node} is not of type `RandomVariable`')
+        raise TypeError(f"{node} is not of type `RandomVariable`")
 
     rv = node.default_output()
 
-    if hasattr(node, 'fgraph') and hasattr(node.fgraph, 'shape_feature'):
+    if hasattr(node, "fgraph") and hasattr(node.fgraph, "shape_feature"):
         shape = list(node.fgraph.shape_feature.shape_tuple(rv))
     else:
         shape = list(rv.shape)
@@ -56,43 +64,38 @@ def convert_rv_to_dist(node, obs):
             shape[i] = s.tag.test_value
 
     dist_type, dist_params = _convert_rv_to_dist(node.op, node)
-    return dist_type(rv.name,
-                     shape=shape,
-                     observed=obs,
-                     **dist_params)
+    return dist_type(rv.name, shape=shape, observed=obs, **dist_params)
 
 
 @dispatch(pm.Uniform, object)
 def convert_dist_to_rv(dist, rng):
-    size = dist.shape.astype(int)[UniformRV.ndim_supp:]
+    size = dist.shape.astype(int)[UniformRV.ndim_supp :]
     res = UniformRV(dist.lower, dist.upper, size=size, rng=rng)
     return res
 
 
 @dispatch(UniformRVType, Apply)
 def _convert_rv_to_dist(op, rv):
-    params = {'lower': rv.inputs[0],
-              'upper': rv.inputs[1]}
+    params = {"lower": rv.inputs[0], "upper": rv.inputs[1]}
     return pm.Uniform, params
 
 
 @dispatch(pm.Normal, object)
 def convert_dist_to_rv(dist, rng):
-    size = dist.shape.astype(int)[NormalRV.ndim_supp:]
+    size = dist.shape.astype(int)[NormalRV.ndim_supp :]
     res = NormalRV(dist.mu, dist.sd, size=size, rng=rng)
     return res
 
 
 @dispatch(NormalRVType, Apply)
 def _convert_rv_to_dist(op, rv):
-    params = {'mu': rv.inputs[0],
-              'sd': rv.inputs[1]}
+    params = {"mu": rv.inputs[0], "sd": rv.inputs[1]}
     return pm.Normal, params
 
 
 @dispatch(pm.HalfNormal, object)
 def convert_dist_to_rv(dist, rng):
-    size = dist.shape.astype(int)[HalfNormalRV.ndim_supp:]
+    size = dist.shape.astype(int)[HalfNormalRV.ndim_supp :]
     res = HalfNormalRV(0.0, dist.sd, size=size, rng=rng)
     return res
 
@@ -100,82 +103,78 @@ def convert_dist_to_rv(dist, rng):
 @dispatch(HalfNormalRVType, Apply)
 def _convert_rv_to_dist(op, rv):
     # TODO: Assert that `rv.inputs[0]` must be all zeros!
-    params = {'sd': rv.inputs[1]}
+    params = {"sd": rv.inputs[1]}
     return pm.HalfNormal, params
 
 
 @dispatch(pm.MvNormal, object)
 def convert_dist_to_rv(dist, rng):
-    size = dist.shape.astype(int)[MvNormalRV.ndim_supp:]
+    size = dist.shape.astype(int)[MvNormalRV.ndim_supp :]
     res = MvNormalRV(dist.mu, dist.cov, size=size, rng=rng)
     return res
 
 
 @dispatch(MvNormalRVType, Apply)
 def _convert_rv_to_dist(op, rv):
-    params = {'mu': rv.inputs[0],
-              'cov': rv.inputs[1]}
+    params = {"mu": rv.inputs[0], "cov": rv.inputs[1]}
     return pm.MvNormal, params
 
 
 @dispatch(pm.Gamma, object)
 def convert_dist_to_rv(dist, rng):
-    size = dist.shape.astype(int)[GammaRV.ndim_supp:]
+    size = dist.shape.astype(int)[GammaRV.ndim_supp :]
     res = GammaRV(dist.alpha, tt.inv(dist.beta), size=size, rng=rng)
     return res
 
 
 @dispatch(GammaRVType, Apply)
 def _convert_rv_to_dist(op, rv):
-    params = {'alpha': rv.inputs[0],
-              'beta': rv.inputs[1]}
+    params = {"alpha": rv.inputs[0], "beta": rv.inputs[1]}
     return pm.Gamma, params
 
 
 @dispatch(pm.InverseGamma, object)
 def convert_dist_to_rv(dist, rng):
-    size = dist.shape.astype(int)[InvGammaRV.ndim_supp:]
+    size = dist.shape.astype(int)[InvGammaRV.ndim_supp :]
     res = InvGammaRV(dist.alpha, dist.beta, size=size, rng=rng)
     return res
 
 
 @dispatch(InvGammaRVType, Apply)
 def _convert_rv_to_dist(op, rv):
-    params = {'alpha': rv.inputs[0],
-              'beta': rv.inputs[1]}
+    params = {"alpha": rv.inputs[0], "beta": rv.inputs[1]}
     return pm.InverseGamma, params
 
 
 @dispatch(pm.Exponential, object)
 def convert_dist_to_rv(dist, rng):
-    size = dist.shape.astype(int)[ExponentialRV.ndim_supp:]
+    size = dist.shape.astype(int)[ExponentialRV.ndim_supp :]
     res = ExponentialRV(tt.inv(dist.lam), size=size, rng=rng)
     return res
 
 
 @dispatch(ExponentialRVType, Apply)
 def _convert_rv_to_dist(op, rv):
-    params = {'lam': tt.inv(rv.inputs[0])}
+    params = {"lam": tt.inv(rv.inputs[0])}
     return pm.Exponential, params
 
 
 @dispatch(pm.Cauchy, object)
 def convert_dist_to_rv(dist, rng):
-    size = dist.shape.astype(int)[CauchyRV.ndim_supp:]
+    size = dist.shape.astype(int)[CauchyRV.ndim_supp :]
     res = CauchyRV(dist.alpha, dist.beta, size=size, rng=rng)
     return res
 
 
 @dispatch(CauchyRVType, Apply)
 def _convert_rv_to_dist(op, rv):
-    params = {'alpha': rv.inputs[0],
-              'beta': rv.inputs[1]}
+    params = {"alpha": rv.inputs[0], "beta": rv.inputs[1]}
     return pm.Cauchy, params
 
 
 @dispatch(pm.HalfCauchy, object)
 def convert_dist_to_rv(dist, rng):
-    size = dist.shape.astype(int)[HalfCauchyRV.ndim_supp:]
+    size = dist.shape.astype(int)[HalfCauchyRV.ndim_supp :]
     res = HalfCauchyRV(0.0, dist.beta, size=size, rng=rng)
     return res
 
@@ -183,22 +182,22 @@ def convert_dist_to_rv(dist, rng):
 @dispatch(HalfCauchyRVType, Apply)
 def _convert_rv_to_dist(op, rv):
     # TODO: Assert that `rv.inputs[0]` must be all zeros!
-    params = {'beta': rv.inputs[1]}
+    params = {"beta": rv.inputs[1]}
     return pm.HalfCauchy, params
+
 
 # TODO: More RV conversions!
 
 
 def pymc3_var_to_rv(pm_var, rand_state=None):
-    """Convert a PyMC3 random variable into a `RandomVariable`
-    """
+    """Convert a PyMC3 random variable into a `RandomVariable`."""
     dist = pm_var.distribution
     new_rv = convert_dist_to_rv(dist, rand_state)
     new_rv.name = pm_var.name
 
     if isinstance(pm_var, pm.model.ObservedRV):
         obs = tt.as_tensor_variable(pm_var.observations)
-        if getattr(obs, 'cached', False):
+        if getattr(obs, "cached", False):
             obs = obs.clone()
         new_rv = observed(obs, new_rv)
 
@@ -207,41 +206,40 @@ def pymc3_var_to_rv(pm_var, rand_state=None):
     # are broadcastable--but don't need to be--and restrict our
     # `RandomVariable`s to be broadcastable there, too.
     diff_bcasts = tuple(
-        i for i, (a, b) in enumerate(
-            zip(pm_var.type.broadcastable,
-                new_rv.type.broadcastable))
-        if a > b)
+        i
+        for i, (a, b) in enumerate(zip(pm_var.type.broadcastable, new_rv.type.broadcastable))
+        if a > b
+    )
 
     if len(diff_bcasts) > 0:
-        warn(f'The tensor type for {pm_var} has an overly restrictive'
-             ' broadcast dimension.  Try re-creating the model without'
-             ' specifying a shape with a dimension value of 1'
-             ' (e.g. `(1,)`).')
+        warn(
+            f"The tensor type for {pm_var} has an overly restrictive"
+            " broadcast dimension.  Try re-creating the model without"
+            " specifying a shape with a dimension value of 1"
+            " (e.g. `(1,)`)."
+        )
         new_rv = tt.addbroadcast(new_rv, *diff_bcasts)
 
     return new_rv
 
 
 def rec_conv_to_rv(v, replacements, model, rand_state=None):
-    """Recursively convert a PyMC3 random variable to a Theano graph.
-    """
+    """Recursively convert a PyMC3 random variable to a Theano graph."""
     if v in replacements:
         return walk(v, replacements)
     elif v.name and pm.util.is_transformed_name(v.name):
         untrans_name = pm.util.get_untransformed_name(v.name)
         v_untrans = getattr(model, untrans_name)
 
-        rv_new = rec_conv_to_rv(v_untrans, replacements,
-                                model, rand_state=rand_state)
+        rv_new = rec_conv_to_rv(v_untrans, replacements, model, rand_state=rand_state)
         replacements[v] = rv_new
         return rv_new
-    elif hasattr(v, 'distribution'):
+    elif hasattr(v, "distribution"):
         rv = pymc3_var_to_rv(v, rand_state=rand_state)
 
         rv_ins = []
         for i in tt_inputs([rv]):
-            i_rv = rec_conv_to_rv(
-                i, replacements, model, rand_state=rand_state)
+            i_rv = rec_conv_to_rv(i, replacements, model, rand_state=rand_state)
 
             if i_rv is not None:
                 replacements[i] = i_rv
@@ -249,9 +247,7 @@ def rec_conv_to_rv(v, replacements, model, rand_state=None):
             else:
                 rv_ins.append(i)
 
-        _ = replace_input_nodes(rv_ins, [rv],
-                                memo=replacements,
-                                clone_inputs=False)
+        _ = replace_input_nodes(rv_ins, [rv], memo=replacements, clone_inputs=False)
 
         rv_new = walk(rv, replacements)
 
@@ -262,12 +258,11 @@ def rec_conv_to_rv(v, replacements, model, rand_state=None):
         return None
 
 
-def model_graph(pymc_model, output_vars=None, rand_state=None,
-                attach_memo=True):
+def model_graph(pymc_model, output_vars=None, rand_state=None, attach_memo=True):
     """Convert a PyMC3 model into a Theano `FunctionGraph`.
 
     Parameters
-    ==========
+    ----------
     pymc_model: `Model`
         A PyMC3 model object.
     output_vars: list (optional)
@@ -280,8 +275,9 @@ def model_graph(pymc_model, output_vars=None, rand_state=None,
         contains the mappings between PyMC and `RandomVariable` terms.
 
     Results
-    =======
+    -------
     out: `FunctionGraph`
+
     """
     model = pm.modelcontext(pymc_model)
     replacements = {}
@@ -300,11 +296,13 @@ def model_graph(pymc_model, output_vars=None, rand_state=None,
     output_vars = [walk(o, replacements) for o in output_vars]
 
     fg_features = [tt.opt.ShapeFeature()]
-    model_fg = FunctionGraph([i for i in tt_inputs(output_vars)
-                              if not isinstance(i, tt.Constant)],
-                             output_vars,
-                             clone=True, memo=replacements,
-                             features=fg_features)
+    model_fg = FunctionGraph(
+        [i for i in tt_inputs(output_vars) if not isinstance(i, tt.Constant)],
+        output_vars,
+        clone=True,
+        memo=replacements,
+        features=fg_features,
+    )
     if attach_memo:
         model_fg.memo = replacements
 
@@ -312,12 +310,9 @@ def model_graph(pymc_model, output_vars=None, rand_state=None,
 
 
 def graph_model(fgraph, *model_args, **model_kwargs):
-    """Create a PyMC3 model from a Theano graph with `RandomVariable`
-    nodes.
-    """
+    """Create a PyMC3 model from a Theano graph with `RandomVariable` nodes."""
     model = pm.Model(*model_args, **model_kwargs)
-    nodes = [n for n in fgraph.toposort()
-             if isinstance(n.op, RandomVariable)]
+    nodes = [n for n in fgraph.toposort() if isinstance(n.op, RandomVariable)]
     rv_replacements = {}
 
     for node in nodes:
@@ -329,25 +324,23 @@ def graph_model(fgraph, *model_args, **model_kwargs):
 
             if isinstance(obs, tt.Constant):
                 obs = obs.data
-            elif isinstance(
-                    obs, theano.compile.sharedvalue.SharedVariable):
+            elif isinstance(obs, theano.compile.sharedvalue.SharedVariable):
                 obs = obs.get_value()
             else:
-                raise TypeError(
-                    f'Unhandled observation type: {type(obs)}')
+                raise TypeError(f"Unhandled observation type: {type(obs)}")
 
         old_rv_var = node.default_output()
 
-        rv_var = theano.scan_module.scan_utils.clone(
-            old_rv_var, replace=rv_replacements)
+        rv_var = theano.scan_module.scan_utils.clone(old_rv_var, replace=rv_replacements)
 
         node = rv_var.owner
 
         # Make sure there are only PyMC3 vars in the result.
-        assert not any(isinstance(op.op, RandomVariable)
-                       for op in theano.gof.graph.ops(
-                               tt_inputs([rv_var]), [rv_var])
-                       if op != node)
+        assert not any(
+            isinstance(op.op, RandomVariable)
+            for op in theano.gof.graph.ops(tt_inputs([rv_var]), [rv_var])
+            if op != node
+        )
 
         with model:
             rv = convert_rv_to_dist(node, obs)

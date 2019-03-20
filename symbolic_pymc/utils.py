@@ -9,13 +9,12 @@ from collections import OrderedDict
 
 from unification.utils import transitive_get as walk
 
-from theano.gof import (FunctionGraph as tt_FunctionGraph, Query)
-from theano.gof.graph import (inputs as tt_inputs, clone_get_equiv,
-                              io_toposort)
+from theano.gof import FunctionGraph as tt_FunctionGraph, Query
+from theano.gof.graph import inputs as tt_inputs, clone_get_equiv, io_toposort
 from theano.compile import optdb
 
 
-canonicalize_opt = optdb.query(Query(include=['canonicalize']))
+canonicalize_opt = optdb.query(Query(include=["canonicalize"]))
 
 
 def _check_eq(a, b):
@@ -26,16 +25,14 @@ def _check_eq(a, b):
 
 
 def get_rv_observation(node):
-    """Return a `RandomVariable` node's corresponding `Observed` node,
-    or `None`.
-    """
-    if not getattr(node, 'fgraph', None):
-        raise ValueError('Node does not belong to a `FunctionGraph`')
+    """Return a `RandomVariable` node's corresponding `Observed` node, or `None`."""
+    if not getattr(node, "fgraph", None):
+        raise ValueError("Node does not belong to a `FunctionGraph`")
 
     if isinstance(node.op, sp.rv.RandomVariable):
         fgraph = node.fgraph
         for o, i in node.default_output().clients:
-            if o == 'output':
+            if o == "output":
                 o = fgraph.outputs[i].owner
 
             if isinstance(o.op, sp.Observed):
@@ -43,8 +40,7 @@ def get_rv_observation(node):
     return None
 
 
-def replace_input_nodes(inputs, outputs, replacements=None,
-                        memo=None, clone_inputs=True):
+def replace_input_nodes(inputs, outputs, replacements=None, memo=None, clone_inputs=True):
     """Recreate a graph, replacing input variables according to a given map.
 
     This is helpful if you want to replace the variable dependencies of
@@ -58,7 +54,7 @@ def replace_input_nodes(inputs, outputs, replacements=None,
     variables are already owned by another graph..."
 
     Parameters
-    ==========
+    ----------
     inputs: list
         List of input nodes.
     outputs: list
@@ -78,8 +74,9 @@ def replace_input_nodes(inputs, outputs, replacements=None,
         `replacements`.  These cloned nodes are mapped in `memo`, as well.
 
     Results
-    =======
+    -------
     out: memo
+
     """
     if memo is None:
         memo = {}
@@ -105,16 +102,14 @@ def replace_input_nodes(inputs, outputs, replacements=None,
 
 
 def meta_parts_unequal(x, y, pdb=False):
-    """Traverse meta objects and return the first pair of elements
-    that are not equal.
-    """
+    """Traverse meta objects and return the first pair of elements that are not equal."""
     res = None
     if type(x) != type(y):
-        print('unequal types')
+        print("unequal types")
         res = (x, y)
     elif isinstance(x, sp.meta.MetaSymbol):
         if x.base != y.base:
-            print('unequal bases')
+            print("unequal bases")
             res = (x.base, y.base)
         else:
             for a, b in zip(x.rands(), y.rands()):
@@ -133,17 +128,22 @@ def meta_parts_unequal(x, y, pdb=False):
 
     if res is not None:
         if pdb:
-            import pdb; pdb.set_trace()
+            import pdb
+
+            pdb.set_trace()
         return res
 
 
 def expand_meta(x, tt_print=tt.pprint):
     """Produce a dictionary representation of a meta object."""
     if isinstance(x, sp.meta.MetaSymbol):
-        return OrderedDict([('rator', x.base),
-                            ('rands', tuple(expand_meta(p)
-                                            for p in x.rands())),
-                            ('obj', expand_meta(getattr(x, 'obj', None)))])
+        return OrderedDict(
+            [
+                ("rator", x.base),
+                ("rands", tuple(expand_meta(p) for p in x.rands())),
+                ("obj", expand_meta(getattr(x, "obj", None))),
+            ]
+        )
     elif tt_print and isinstance(x, theano.gof.op.Op):
         return x.name
     elif tt_print and isinstance(x, theano.gof.graph.Variable):
@@ -153,41 +153,37 @@ def expand_meta(x, tt_print=tt.pprint):
 
 
 def graph_equal(x, y):
-    """Compare elements in a Theano graph using their object properties and not
-    just identity.
-    """
+    """Compare elements in a Theano graph using their object properties and not just identity."""
     try:
         if isinstance(x, (list, tuple)) and isinstance(y, (list, tuple)):
-            return (len(x) == len(y) and
-                    all(sp.mt(xx) == sp.mt(yy)
-                        for xx, yy in zip(x, y)))
+            return len(x) == len(y) and all(sp.mt(xx) == sp.mt(yy) for xx, yy in zip(x, y))
         return sp.mt(x) == sp.mt(y)
     except ValueError:
         return False
 
 
 def mt_type_params(x):
-    return {'ttype': x.type, 'index': x.index, 'name': x.name}
+    return {"ttype": x.type, "index": x.index, "name": x.name}
 
 
 def optimize_graph(x, optimization, return_graph=None, in_place=False):
-    """Apply an optimization to either the graph formed by a Theano variable or
-    an existing graph and return the resulting optimized graph.
+    """Easily optimize Theano graphs.
 
-    When given an existing `FunctionGraph`, the optimization is performed
-    without side-effects (i.e. won't change the given graph).
+    Apply an optimization to either the graph formed by a Theano variable or an
+    existing graph and return the resulting optimized graph.
+
+    When given an existing `FunctionGraph`, the optimization is
+    performed without side-effects (i.e. won't change the given graph).
+
     """
     if not isinstance(x, tt_FunctionGraph):
         inputs = tt_inputs([x])
         outputs = [x]
-        model_memo = clone_get_equiv(inputs, outputs,
-                                     copy_orphans=False)
-        cloned_inputs = [model_memo[i] for i in inputs
-                         if not isinstance(i, tt.Constant)]
+        model_memo = clone_get_equiv(inputs, outputs, copy_orphans=False)
+        cloned_inputs = [model_memo[i] for i in inputs if not isinstance(i, tt.Constant)]
         cloned_outputs = [model_memo[i] for i in outputs]
 
-        x_graph = sp.opt.FunctionGraph(cloned_inputs, cloned_outputs,
-                                       clone=False)
+        x_graph = sp.opt.FunctionGraph(cloned_inputs, cloned_outputs, clone=False)
         x_graph.memo = model_memo
 
         if return_graph is None:
@@ -211,6 +207,5 @@ def optimize_graph(x, optimization, return_graph=None, in_place=False):
 
 
 def canonicalize(x, **kwargs):
-    """Canonicalize a Theano variable and/or graph.
-    """
+    """Canonicalize a Theano variable and/or graph."""
     return optimize_graph(x, canonicalize_opt, **kwargs)

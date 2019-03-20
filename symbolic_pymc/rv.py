@@ -9,10 +9,11 @@ from copy import copy
 from theano.tensor.raw_random import RandomStateType
 
 
-def param_supp_shape_fn(ndim_supp, ndims_params, dist_params,
-                        rep_param_idx=0, param_shapes=None):
-    """A function for deriving a random variable's support shape/dimensions
-    from one of its parameters.
+def param_supp_shape_fn(ndim_supp, ndims_params, dist_params, rep_param_idx=0, param_shapes=None):
+    """Infer dimensions for a random variable.
+
+    This is a function that derives a random variable's support
+    shape/dimensions from one of its parameters.
 
     XXX: It's not always possible to determine a random variable's support
     shape from its parameters, so this function has fundamentally limited
@@ -25,7 +26,7 @@ def param_supp_shape_fn(ndim_supp, ndims_params, dist_params,
     TODO: Consider using `theano.compile.ops.shape_i` alongside `ShapeFeature`.
 
     Parameters
-    ==========
+    ----------
     ndim_supp: int
         Total number of dimensions in the support (assumedly > 0).
     ndims_params: list of int
@@ -44,9 +45,10 @@ def param_supp_shape_fn(ndim_supp, ndims_params, dist_params,
         The default is the first parameter (i.e. the value 0).
 
     Results
-    =======
+    -------
     out: a tuple representing the support shape for a distribution with the
     given `dist_params`.
+
     """
     # XXX: Gotta be careful slicing Theano variables, the `Subtensor` Op isn't
     # handled by `tensor.get_scalar_constant_value`!
@@ -62,8 +64,11 @@ def param_supp_shape_fn(ndim_supp, ndims_params, dist_params,
         ref_param = dist_params[rep_param_idx]
         if ref_param.ndim < ndim_supp:
             raise ValueError(
-                ('Reference parameter does not match the '
-                 f'expected dimensions; {ref_param} has less than {ndim_supp} dim(s).'))
+                (
+                    "Reference parameter does not match the "
+                    f"expected dimensions; {ref_param} has less than {ndim_supp} dim(s)."
+                )
+            )
         return (ref_param.shape[-ndim_supp],)
 
 
@@ -71,21 +76,31 @@ class RandomVariable(tt.gof.Op):
     """An `Op` that produces a sample from a random variable.
 
     This is essentially `RandomFunction`, except that it removes the
-    `outtype` dependency and handles shape dimension information more directly.
+    `outtype` dependency and handles shape dimension information more
+    directly.
+
     """
-    __props__ = ('name', 'dtype', 'ndim_supp', 'inplace', 'ndims_params')
+
+    __props__ = ("name", "dtype", "ndim_supp", "inplace", "ndims_params")
     default_output = 1
     nondeterministic = True
 
-    def __init__(self, name, dtype, ndim_supp, ndims_params, rng_fn,
-                 *args,
-                 supp_shape_fn=param_supp_shape_fn,
-                 inplace=False,
-                 **kwargs):
+    def __init__(
+        self,
+        name,
+        dtype,
+        ndim_supp,
+        ndims_params,
+        rng_fn,
+        *args,
+        supp_shape_fn=param_supp_shape_fn,
+        inplace=False,
+        **kwargs,
+    ):
         """Create a random variable `Op`.
 
         Parameters
-        ==========
+        ----------
         name: str
             The `Op`'s display name.
         dtype: Theano dtype
@@ -112,6 +127,7 @@ class RandomVariable(tt.gof.Op):
         inplace: boolean (optional)
             Determine whether or not the underlying rng state is updated
             in-place or not (i.e. copied).
+
         """
         super().__init__(*args, **kwargs)
 
@@ -122,7 +138,7 @@ class RandomVariable(tt.gof.Op):
         self.inplace = inplace
 
         if not isinstance(ndims_params, Iterable):
-            raise ValueError('Parameter ndims_params must be iterable.')
+            raise ValueError("Parameter ndims_params must be iterable.")
 
         self.ndims_params = tuple(ndims_params)
 
@@ -132,21 +148,23 @@ class RandomVariable(tt.gof.Op):
             self.rng_fn = rng_fn
 
     def __str__(self):
-        return '{}_rv'.format(self.name)
+        return "{}_rv".format(self.name)
 
     def _infer_shape(self, size, dist_params, param_shapes=None):
-        """Compute shapes and broadcasts properties.
+        """Compute shapes and broadcasts values.
 
         Inspired by `tt.add.get_output_info`.
+
         """
 
         size_len = tt.get_vector_length(size)
 
-        dummy_params = tuple(p if n == 0 else tt.ones(tuple(p.shape)[:-n])
-                             for p, n in zip(dist_params, self.ndims_params))
+        dummy_params = tuple(
+            p if n == 0 else tt.ones(tuple(p.shape)[:-n])
+            for p, n in zip(dist_params, self.ndims_params)
+        )
 
-        _, out_bcasts, bcastd_inputs = tt.add.get_output_info(
-            tt.DimShuffle, *dummy_params)
+        _, out_bcasts, bcastd_inputs = tt.add.get_output_info(tt.DimShuffle, *dummy_params)
 
         # _, out_bcasts, bcastd_inputs = tt.add.get_output_info(tt.DimShuffle, *dist_params)
 
@@ -165,10 +183,9 @@ class RandomVariable(tt.gof.Op):
             ndim_reps = max(size_len - ndim_ind, 0)
             shape_reps = tuple(size)[ndim_ind:]
         else:
-            shape_supp = self.supp_shape_fn(self.ndim_supp,
-                                            self.ndims_params,
-                                            dist_params,
-                                            param_shapes=param_shapes)
+            shape_supp = self.supp_shape_fn(
+                self.ndim_supp, self.ndims_params, dist_params, param_shapes=param_shapes
+            )
 
             ndim_reps = size_len
             shape_reps = size
@@ -176,7 +193,7 @@ class RandomVariable(tt.gof.Op):
         ndim_shape = self.ndim_supp + ndim_ind + ndim_reps
 
         if ndim_shape == 0:
-            shape = tt.constant([], dtype='int64')
+            shape = tt.constant([], dtype="int64")
         else:
             shape = tuple(shape_reps) + tuple(shape_ind) + tuple(shape_supp)
 
@@ -189,11 +206,12 @@ class RandomVariable(tt.gof.Op):
         """Compute the broadcast array for this distribution's `TensorType`.
 
         Parameters
-        ==========
+        ----------
         dist_params: list
             Distribution parameters.
         size: int or Iterable (optional)
             Numpy-like size of the output (i.e. replications).
+
         """
         shape = self._infer_shape(size, dist_params)
 
@@ -202,8 +220,7 @@ class RandomVariable(tt.gof.Op):
         bcast = []
         for s in shape:
             try:
-                if isinstance(s.owner.op, tt.Subtensor) and \
-                   s.owner.inputs[0].owner is not None:
+                if isinstance(s.owner.op, tt.Subtensor) and s.owner.inputs[0].owner is not None:
                     # Handle a special case in which
                     # `tensor.get_scalar_constant_value` doesn't really work.
                     s_x, s_idx = s.owner.inputs
@@ -226,8 +243,7 @@ class RandomVariable(tt.gof.Op):
     def infer_shape(self, node, input_shapes):
         size = node.inputs[-2]
         dist_params = tuple(node.inputs[:-2])
-        shape = self._infer_shape(size, dist_params,
-                                  param_shapes=input_shapes[:-2])
+        shape = self._infer_shape(size, dist_params, param_shapes=input_shapes[:-2])
 
         return [None, [s for s in shape]]
 
@@ -239,7 +255,7 @@ class RandomVariable(tt.gof.Op):
         keywords.
 
         Parameters
-        ==========
+        ----------
         dist_params: list
             Distribution parameters.
         size: int or Iterable (optional)
@@ -251,29 +267,29 @@ class RandomVariable(tt.gof.Op):
             Label for the resulting node.
 
         Results
-        =======
+        -------
         out: `Apply`
             A node with inputs `dist_args + (size, in_rng, name)` and outputs
             `(out_rng, sample_tensorvar)`.
+
         """
         if size is None:
-            size = tt.constant([], dtype='int64')
+            size = tt.constant([], dtype="int64")
         elif isinstance(size, int):
             size = tt.as_tensor_variable([size], ndim=1)
         elif not isinstance(size, Iterable):
-            raise ValueError('Parameter size must be None, int, or an iterable with ints.')
+            raise ValueError("Parameter size must be None, int, or an iterable with ints.")
         else:
             size = tt.as_tensor_variable(size, ndim=1)
 
         assert size.dtype in tt.int_dtypes
 
-        dist_params = tuple(tt.as_tensor_variable(p)
-                            for p in dist_params)
+        dist_params = tuple(tt.as_tensor_variable(p) for p in dist_params)
 
         if rng is None:
             rng = theano.shared(np.random.RandomState())
         elif not isinstance(rng.type, RandomStateType):
-            warn('The type of rng should be an instance of RandomStateType')
+            warn("The type of rng should be an instance of RandomStateType")
 
         bcast = self.compute_bcast(dist_params, size)
 
@@ -316,8 +332,7 @@ class RandomVariable(tt.gof.Op):
 
         smpl_val = self.rng_fn(rng, *(args + [size]))
 
-        if (not isinstance(smpl_val, np.ndarray) or
-                str(smpl_val.dtype) != out_var.type.dtype):
+        if not isinstance(smpl_val, np.ndarray) or str(smpl_val.dtype) != out_var.type.dtype:
             smpl_val = theano._asarray(smpl_val, dtype=out_var.type.dtype)
 
         # When `size` is `None`, NumPy has a tendency to unexpectedly
@@ -334,8 +349,8 @@ class RandomVariable(tt.gof.Op):
     def grad(self, inputs, outputs):
         return [
             theano.gradient.grad_undefined(
-                self, k, inp,
-                'No gradient defined through raw random numbers op')
+                self, k, inp, "No gradient defined through raw random numbers op"
+            )
             for k, inp in enumerate(inputs)
         ]
 

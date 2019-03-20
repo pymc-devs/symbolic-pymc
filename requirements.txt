@@ -1,0 +1,12 @@
+Theano>=1.0.4
+pymc3>=3.6
+tf-estimator-nightly>=1.14.0.dev2019021101
+tf-nightly>=1.14.1.dev20190320
+tfp-nightly>=0.7.0.dev20190320
+pymc4 @ git+https://github.com/pymc-devs/pymc4.git@master#egg=pymc4-0.0.1
+multipledispatch>=0.6.0
+unification>=0.2.2
+kanren @ git+https://github.com/pymc-devs/kanren.git@implement-condp#egg=kanren-0.2.3
+toolz>=0.9.0
+sympy>=1.3
+scipy>=1.2.0

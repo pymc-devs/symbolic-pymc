@@ -1,3 +1,4 @@
+import pytest
 import theano
 import theano.tensor as tt
 
@@ -15,6 +16,7 @@ from symbolic_pymc.relations.linalg import (normal_normal_regression, buildo,
 from kanren import run, eq, var
 
 
+@pytest.mark.xfail(strict=True)
 def test_normal_normal_regression():
     tt.config.compute_test_value = 'ignore'
     theano.config.cxx = ''
@@ -64,6 +66,7 @@ def test_normal_normal_regression():
                    b_args_tail_lv)
     )
 
+    assert res[0].eval_obj.obj == beta_rv
     assert res[0] == tuple_expression(beta_rv)
     assert res[1] == tuple_expression(Y_rv)[2:]
     assert res[2] == tuple_expression(beta_rv)[1:]
@@ -90,6 +93,7 @@ def test_normal_normal_regression():
     assert Y_out_mt == Y_new_mt
 
 
+@pytest.mark.xfail(strict=True)
 def test_normal_qr_transform():
     np.random.seed(9283)
 
