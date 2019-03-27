@@ -2,13 +2,15 @@ import pytest
 import theano.tensor as tt
 import numpy as np
 
-from theano.gof.opt import EquilibriumOptimizer
-from theano.gof.graph import inputs as tt_inputs
+from unification import var
+
+from kanren import run
+from kanren.core import lallgreedy
+from kanren.goals import condeseq
 
 from symbolic_pymc.theano.random_variables import MvNormalRV, observed
-from symbolic_pymc.theano.opt import KanrenRelationSub, FunctionGraph
-from symbolic_pymc.theano.utils import optimize_graph
-from symbolic_pymc.relations.theano.conjugates import conjugate_posteriors
+from symbolic_pymc.relations.graph import graph_applyo
+from symbolic_pymc.relations.theano.conjugates import conjugate, conde_clauses
 
 
 @pytest.mark.usefixtures("run_with_theano")
@@ -16,6 +18,7 @@ def test_mvnormal_mvnormal():
     """Test that we can produce the closed-form distribution for the conjugate
     multivariate normal-regression with normal-prior model.
     """
+    tt.config.cxx = ''
     tt.config.compute_test_value = 'ignore'
 
     a_tt = tt.vector('a')
@@ -37,24 +40,23 @@ def test_mvnormal_mvnormal():
     y_tt.name = 'y'
     Y_obs = observed(y_tt, Y_rv)
 
-    fgraph = FunctionGraph(tt_inputs([beta_rv, Y_obs]),
-                           [beta_rv, Y_obs],
-                           clone=True)
+    q_lv = var()
 
-    posterior_opt = EquilibriumOptimizer(
-        [KanrenRelationSub(conjugate_posteriors)],
-        max_use_ratio=10)
+    def conjugate_posterior(x, y):
+        return (lallgreedy,
+                (conjugate, x, y),
+                (condeseq, conde_clauses))
 
-    fgraph_opt = optimize_graph(fgraph, posterior_opt, return_graph=False)
+    expr_graph, = run(1, q_lv, (graph_applyo, conjugate_posterior, Y_obs, q_lv))
 
-    # Make sure that it removed the old, integrated observation distribution.
-    assert fgraph_opt[1].owner.inputs[1].equals(tt.NoneConst)
+    fgraph_opt = expr_graph.eval_obj
+    fgraph_opt_tt = fgraph_opt.reify()
 
     # Check that the SSE has decreased from prior to posterior.
     # TODO: Use a better test.
     beta_prior_mean_val = a_tt.tag.test_value
     F_val = F_t_tt.tag.test_value
-    beta_post_mean_val = fgraph_opt[0].owner.inputs[0].tag.test_value
+    beta_post_mean_val = fgraph_opt_tt.owner.inputs[0].tag.test_value
     priorp_err = np.square(
         y_tt.data - F_val.dot(beta_prior_mean_val)).sum()
     postp_err = np.square(
