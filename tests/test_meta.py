@@ -3,13 +3,13 @@ import theano.tensor as tt
 
 from unification import var
 from symbolic_pymc.meta import (MetaSymbol, MetaTensorVariable, MetaTensorType,
-                                mt)
+                                mt, metatize)
 from symbolic_pymc.utils import graph_equal
 
 
 def test_meta_classes():
     vec_tt = tt.vector('vec')
-    vec_m = MetaSymbol.from_obj(vec_tt)
+    vec_m = metatize(vec_tt)
     assert vec_m.obj == vec_tt
     assert type(vec_m) == MetaTensorVariable
 
@@ -33,8 +33,8 @@ def test_meta_classes():
     assert isinstance(meta_var.owner.inputs[0].obj, tt.TensorConstant)
 
     test_vals = [1, 2.4]
-    meta_vars = MetaSymbol.from_obj(test_vals)
-    assert meta_vars == [MetaSymbol.from_obj(x) for x in test_vals]
+    meta_vars = metatize(test_vals)
+    assert meta_vars == [metatize(x) for x in test_vals]
     # TODO: Do we really want meta variables to be equal to their
     # reified base objects?
     # assert meta_vars == [tt.as_tensor_variable(x) for x in test_vals]

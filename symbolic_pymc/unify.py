@@ -16,7 +16,7 @@ from kanren.assoccomm import commutative, associative
 from unification.more import unify
 from unification.core import reify, _unify, _reify, Var
 
-from .meta import MetaSymbol, MetaVariable, MetaOp, mt
+from .meta import MetaSymbol, MetaVariable, mt, metatize
 from .utils import _check_eq
 
 tt_class_abstractions = tuple(c.base for c in MetaSymbol.__subclasses__())
@@ -172,16 +172,14 @@ def unify_MetaSymbol(u, v, s):
 
 _unify.add((MetaSymbol, MetaSymbol, dict), unify_MetaSymbol)
 _unify.add(
-    (MetaSymbol, tt_class_abstractions, dict),
-    lambda u, v, s: unify_MetaSymbol(u, MetaSymbol.from_obj(v), s),
+    (MetaSymbol, tt_class_abstractions, dict), lambda u, v, s: unify_MetaSymbol(u, metatize(v), s)
 )
 _unify.add(
-    (tt_class_abstractions, MetaSymbol, dict),
-    lambda u, v, s: unify_MetaSymbol(MetaSymbol.from_obj(u), v, s),
+    (tt_class_abstractions, MetaSymbol, dict), lambda u, v, s: unify_MetaSymbol(metatize(u), v, s)
 )
 _unify.add(
     (tt_class_abstractions, tt_class_abstractions, dict),
-    lambda u, v, s: unify_MetaSymbol(MetaSymbol.from_obj(u), MetaSymbol.from_obj(v), s),
+    lambda u, v, s: unify_MetaSymbol(metatize(u), metatize(v), s),
 )
 
 
@@ -205,7 +203,7 @@ _reify.add((MetaSymbol, dict), _reify_MetaSymbol)
 
 
 def _reify_TheanoClasses(o, s):
-    meta_obj = MetaSymbol.from_obj(o)
+    meta_obj = metatize(o)
     return reify(meta_obj, s)
 
 
@@ -256,7 +254,7 @@ def operator_MetaVariable(x):
 
 operator.add((MetaSymbol,), operator_MetaSymbol)
 operator.add((MetaVariable,), operator_MetaVariable)
-operator.add((tt.Variable,), lambda x: operator(MetaVariable.from_obj(x)))
+operator.add((tt.Variable,), lambda x: operator(metatize(x)))
 
 
 def arguments_MetaSymbol(x):
@@ -291,7 +289,7 @@ def arguments_MetaVariable(x):
 
 arguments.add((MetaSymbol,), arguments_MetaSymbol)
 arguments.add((MetaVariable,), arguments_MetaVariable)
-arguments.add((tt.Variable,), lambda x: arguments(MetaVariable.from_obj(x)))
+arguments.add((tt.Variable,), lambda x: arguments(metatize(x)))
 
 
 def _term_ExpressionTuple(rand, rators):
@@ -300,7 +298,7 @@ def _term_ExpressionTuple(rand, rators):
 
 
 term.add((object, ExpressionTuple), _term_ExpressionTuple)
-term.add((tt.Op, ExpressionTuple), lambda op, args: term(MetaOp.from_obj(op), args))
+term.add((tt.Op, ExpressionTuple), lambda op, args: term(metatize(op), args))
 
 
 @dispatch(object)
