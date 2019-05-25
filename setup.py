@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 PROJECT_ROOT = Path(__file__).resolve().parent
 REQUIREMENTS_FILE = PROJECT_ROOT / "requirements.txt"
 README_FILE = PROJECT_ROOT / "README.md"
-VERSION_FILE = PROJECT_ROOT / "symbolic-pymc" / "__init__.py"
+VERSION_FILE = PROJECT_ROOT / "symbolic_pymc" / "__init__.py"
 
 NAME = "Symbolic PyMC"
 DESCRIPTION = "Symbolic mathematics for PyMC"
