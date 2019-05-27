@@ -211,7 +211,7 @@ class KanrenRelationSub(LocalOptimizer):
                 new_node = self.adjust_outputs(node, eval_and_reify_meta(chosen_res))
             else:
                 raise ValueError(
-                    "Unsupported FunctionGraph replacement variable" f"type: {chosen_res}"
+                    "Unsupported FunctionGraph replacement variable type: {chosen_res}"
                 )
 
             return new_node
