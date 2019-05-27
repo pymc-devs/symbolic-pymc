@@ -145,62 +145,6 @@ class MetaSymbol(metaclass=MetaSymbolType):
     def is_meta(cls, obj):
         return isinstance(obj, MetaSymbol) or isvar(obj)
 
-    # @classmethod
-    # def metatize(cls, obj):
-    #     """Create a meta object for a given base object.
-
-    #     XXX: Be careful when overriding this: `isvar` checks are necessary!
-
-    #     """
-    #     print(cls, obj)
-    #     if (
-    #         cls.is_meta(obj)
-    #         or obj is None
-    #         or isinstance(obj, (types.FunctionType, partial, str, dict))
-    #     ):
-    #         return obj
-
-    #     if isinstance(obj, (set, list, tuple, Iterator)):
-    #         # Convert elements of the iterable
-    #         return type(obj)([cls.metatize(o) for o in obj])
-
-    #     if inspect.isclass(obj) and issubclass(obj, cls.base_classes()):
-    #         # This is a class/type covered by a meta class/type.
-    #         try:
-    #             obj_cls = next(filter(lambda t: issubclass(obj, t.base), cls.__subclasses__()))
-    #         except StopIteration:
-    #             # The current class is the best fit.
-    #             if cls.base == obj:
-    #                 return cls
-
-    #             # This object is a subclass of the base type.
-    #             new_type = type(f"Meta{obj.__name__}", (cls,), {"base": obj})
-    #             return new_type(obj)
-    #         else:
-    #             return obj_cls.metatize(obj)
-
-    #     if not isinstance(obj, cls.base_classes()):
-    #         # We might've been given something convertible to a type with a
-    #         # meta type, so let's try that
-    #         try:
-    #             obj = tt.as_tensor_variable(obj)
-    #         except (ValueError, tt.AsTensorError):
-    #             pass
-
-    #         # Check for a meta type again
-    #         if not isinstance(obj, cls.base_classes()):
-    #             raise ValueError("Could not find a MetaSymbol class for {}".format(obj))
-
-    #     try:
-    #         obj_cls = next(filter(lambda t: isinstance(obj, t.base), cls.__subclasses__()))
-    #     except StopIteration:
-    #         res = cls(*[getattr(obj, s) for s in getattr(cls, "__slots__", [])], obj=obj)
-    #     else:
-    #         # Descend into this class to find a more suitable one, if any.
-    #         res = obj_cls.metatize(obj)
-
-    #     return res
-
     def __init__(self, obj=None):
         self.obj = obj
 
@@ -324,14 +268,11 @@ class MetaSymbol(metaclass=MetaSymbolType):
                     p.pretty(obj)
 
 
-# <class 'symbolic_pymc.meta.MetaVariable'>
 @dispatch(type)
 def _metatize(obj):
-
     cls = MetaSymbol
     while True:
         try:
-            # TODO: Go through each meta class and get its base (I need to be able to link it back for ref)
             obj_cls = next(filter(lambda t: issubclass(obj, t.base), cls.__subclasses__()))
         except StopIteration:
             # The current class is the best fit.
@@ -342,21 +283,6 @@ def _metatize(obj):
             return new_type(obj)
         else:
             cls = obj_cls
-
-    # if inspect.isclass(obj) and issubclass(obj, cls.base_classes()):
-    #     # This is a class/type covered by a meta class/type.
-    #     try:
-    #         obj_cls = next(filter(lambda t: issubclass(obj, t.base), cls.__subclasses__()))
-    #     except StopIteration:
-    #         # The current class is the best fit.
-    #         if cls.base == obj:
-    #             return cls
-
-    #         # This object is a subclass of the base type.
-    #         new_type = type(f"Meta{obj.__name__}", (cls,), {"base": obj})
-    #         return new_type(obj)
-    #     else:
-    #         return obj_cls.metatize(obj)
 
 
 @dispatch((MetaSymbol, type(None), types.FunctionType, partial, str, dict))
@@ -691,8 +617,6 @@ class MetaSharedVariable(MetaVariable):
 
     @classmethod
     def _metatize(cls, obj):
-        if isvar(obj):
-            return obj
         res = MetaSharedVariable(
             obj.name, obj.type, obj.container.data, obj.container.strict, obj=obj
         )

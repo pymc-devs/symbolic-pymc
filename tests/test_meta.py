@@ -1,11 +1,54 @@
+from collections.abc import Iterator
+
+import numpy as np
 import theano
 import theano.tensor as tt
+import pytest
 
-from unification import var
+from unification import var, isvar, variables
 from symbolic_pymc.meta import (MetaSymbol, MetaTensorVariable, MetaTensorType,
                                 mt, metatize)
 from symbolic_pymc.utils import graph_equal
 
+def test_metatize():
+    vec_tt = tt.vector('vec')
+    vec_m = metatize(vec_tt)
+    assert vec_m.base == type(vec_tt)
+
+    test_list = [1, 2, 3]
+    metatize_test_list = metatize(test_list)
+    assert isinstance(metatize_test_list, list)
+    assert all(isinstance(m, MetaSymbol) for m in metatize_test_list)
+
+    test_iter = iter([1, 2, 3])
+    metatize_test_iter = metatize(test_iter)
+    assert isinstance(metatize_test_iter, Iterator)
+    assert all(isinstance(m, MetaSymbol) for m in metatize_test_iter)
+
+    test_out = metatize(var())
+    assert isvar(test_out)
+
+    with variables(vec_tt):
+        test_out = metatize(vec_tt)
+        assert test_out == vec_tt
+        assert isvar(test_out)
+
+    test_out = metatize(np.r_[1, 2, 3])
+    assert isinstance(test_out, MetaSymbol)
+
+    class TestClass(object):
+        pass
+
+    with pytest.raises(Exception):
+        metatize(TestClass())
+
+    class TestOp(tt.gof.Op):
+        pass
+    test_out = metatize(TestOp)
+
+    assert isinstance(test_out, MetaSymbol)
+    assert test_out.obj == TestOp
+    assert test_out.base == TestOp
 
 def test_meta_classes():
     vec_tt = tt.vector('vec')
