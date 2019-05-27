@@ -5,6 +5,7 @@ from kanren.facts import fact
 
 from . import constant_neq, concat
 from ..meta import mt
+from ..unify import etuple
 
 from kanren.facts import Relation
 
@@ -52,61 +53,71 @@ fact(
 def scale_loc_transform(in_expr, out_expr):
     """Create relations for lifting and sinking scale and location parameters of distributions.
 
+    I.e. f(a + b*x) -> a + b * f(x)
+
     For example, `in_expr`: f(a + b*x) == `out_expr`: a + b * f(x).
 
     TODO: Match larger distribution families and perform transforms from there.
 
     """
+    # Scale and location transform expression "pattern" for a Normal term.
     n_name_lv = normal_mt.name
     n_mean_lv, n_sd_lv, n_size_lv, n_rng_lv = normal_mt.owner.inputs
-
-    c_name_lv = cauchy_mt.name
-    c_mean_lv, c_beta_lv, c_size_lv, c_rng_lv = cauchy_mt.owner.inputs
-
-    u_name_lv = uniform_mt.name
-    u_a_lv, u_b_lv, u_size_lv, u_rng_lv = uniform_mt.owner.inputs
-
     offset_name_mt = var()
-    rct_norm_offset_mt = (
+    rct_norm_offset_mt = etuple(
         mt.add,
         n_mean_lv,
-        (mt.mul, n_sd_lv, mt.NormalRV(0.0, 1.0, size=n_size_lv, rng=n_rng_lv, name=offset_name_mt)),
+        etuple(
+            mt.mul,
+            n_sd_lv,
+            mt.NormalRV(0.0, 1.0, size=n_size_lv, rng=n_rng_lv, name=offset_name_mt),
+        ),
     )
-    rct_cauchy_offset_mt = (
+
+    # Scale and location transform expression "pattern" for a Cauchy term.
+    c_name_lv = cauchy_mt.name
+    c_mean_lv, c_beta_lv, c_size_lv, c_rng_lv = cauchy_mt.owner.inputs
+    rct_cauchy_offset_mt = etuple(
         mt.add,
         c_mean_lv,
-        (
+        etuple(
             mt.mul,
             c_beta_lv,
             mt.CauchyRV(0.0, 1.0, size=c_size_lv, rng=c_rng_lv, name=offset_name_mt),
         ),
     )
-    rct_uniform_scale_mt = (
-        mt.mul,
-        u_b_lv,
-        mt.UniformRV(0.0, 1.0, size=u_size_lv, rng=u_rng_lv, name=offset_name_mt),
-    )
-    # rct_uniform_loc_mt = (mt.add, u_c_lv,
-    #                       mt.UniformRV(u_a_lv, u_b_lv,
-    #                                    size=u_size_lv,
-    #                                    rng=u_rng_lv,
-    #                                    name=offset_name_mt))
 
-    # XXX: PyMC3 rescaling issue doesn't allow us to take the more
-    # general approach.
+    # u_name_lv = uniform_mt.name
+    # u_a_lv, u_b_lv, u_size_lv, u_rng_lv = uniform_mt.owner.inputs
+    # rct_uniform_scale_mt = etuple(
+    #     mt.mul,
+    #     u_b_lv,
+    #     mt.UniformRV(0.0, 1.0, size=u_size_lv, rng=u_rng_lv, name=offset_name_mt),
+    # )
+    # rct_uniform_loc_mt = etuple(mt.add, u_c_lv,
+    #                             mt.UniformRV(u_a_lv, u_b_lv,
+    #                                          size=u_size_lv,
+    #                                          rng=u_rng_lv,
+    #                                          name=offset_name_mt))
+
+    # XXX: PyMC3 rescaling issue doesn't allow us to take the more general
+    # approach, which involves separate scale and location rewrites.
+
+    # f(a + X) -> a + f(X)
     # norm_mean_name_mt = var()
-    # rct_norm_mean_mt = (mt.add, mean_lv,
-    #                     mt.NormalRV(0., sd_lv,
-    #                                 size=norm_size_lv,
-    #                                 rng=norm_rng_lv,
-    #                                 name=norm_mean_name_mt))
+    # rct_norm_mean_mt = etuple(mt.add, mean_lv,
+    #                           mt.NormalRV(0., sd_lv,
+    #                                       size=norm_size_lv,
+    #                                       rng=norm_rng_lv,
+    #                                       name=norm_mean_name_mt))
     #
+    # f(a * X) -> a * f(X)
     # norm_sd_name_mt = var()
-    # rct_norm_sd_mt = (mt.mul, sd_lv,
-    #                   mt.NormalRV(mean_lv, 1.,
-    #                               size=norm_size_lv,
-    #                               rng=norm_rng_lv,
-    #                               name=norm_sd_name_mt))
+    # rct_norm_sd_mt = etuple(mt.mul, n_sd_lv,
+    #                         mt.NormalRV(n_mean_lv, 1.,
+    #                                     size=n_size_lv,
+    #                                     rng=n_rng_lv,
+    #                                     name=n_name_lv))
 
     rels = (
         conde,
