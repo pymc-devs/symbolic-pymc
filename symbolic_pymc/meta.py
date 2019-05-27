@@ -270,6 +270,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
 
 @dispatch(type)
 def _metatize(obj):
+    """Return an existing meta type/class, or create a new one."""
     cls = MetaSymbol
     while True:
         try:
