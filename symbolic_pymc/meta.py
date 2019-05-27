@@ -17,13 +17,39 @@ from unification import var, isvar, Var
 from .rv import RandomVariable
 from .utils import _check_eq
 
-
-# TODO: Replace `from_obj` with a dispatched function?
-# from multipledispatch import dispatch
+from multipledispatch import dispatch
 
 meta_repr = reprlib.Repr()
 meta_repr.maxstring = 100
 meta_repr.maxother = 100
+
+
+def metatize(obj):
+    """Convert object to base type then meta object."""
+    if isvar(obj):
+        return obj
+    return _metatize(obj)
+
+
+@dispatch(object)
+def _metatize(obj):
+    try:
+        obj = tt.as_tensor_variable(obj)
+    except (ValueError, tt.AsTensorError):
+        raise ValueError("Could not find a MetaSymbol class for {}".format(obj))
+    return _metatize(obj)
+
+
+@dispatch((set, list, tuple))
+def _metatize(obj):
+    """Convert elements of an iterable to meta objects."""
+    return type(obj)([metatize(o) for o in obj])
+
+
+@dispatch(Iterator)
+def _metatize(obj):
+    """Convert elements of an iterator to meta objects."""
+    return iter([metatize(o) for o in obj])
 
 
 def _meta_reify_iter(rands):
@@ -78,11 +104,24 @@ class MetaSymbolType(abc.ABCMeta):
 
         clsdict["__setattr__"] = __setattr__
 
-        res = super().__new__(cls, name, bases, clsdict)
+        new_cls = super().__new__(cls, name, bases, clsdict)
+
+        # making sure namespaces are consistent
+        if isinstance(new_cls.base, type):
+            if hasattr(new_cls, "_metatize"):
+                __metatize = new_cls._metatize
+            else:
+
+                def __metatize(obj):
+                    return new_cls(
+                        *[getattr(obj, s) for s in getattr(new_cls, "__slots__", [])], obj=obj
+                    )
+
+            _metatize.add((new_cls.base,), __metatize)
 
         # TODO: Could register base classes.
         # E.g. cls.register(bases)
-        return res
+        return new_cls
 
 
 class MetaSymbol(metaclass=MetaSymbolType):
@@ -91,7 +130,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
     @property
     @abc.abstractmethod
     def base(self):
-        """Return the base type/rator for this meta object."""
+        """Return the underlying (e.g. a theano/tensorflow) base type/rator for this meta object."""
         raise NotImplementedError()
 
     @classmethod
@@ -105,61 +144,6 @@ class MetaSymbol(metaclass=MetaSymbolType):
     @classmethod
     def is_meta(cls, obj):
         return isinstance(obj, MetaSymbol) or isvar(obj)
-
-    @classmethod
-    def from_obj(cls, obj):
-        """Create a meta object for a given base object.
-
-        XXX: Be careful when overriding this: `isvar` checks are necessary!
-
-        """
-        if (
-            cls.is_meta(obj)
-            or obj is None
-            or isinstance(obj, (types.FunctionType, partial, str, dict))
-        ):
-            return obj
-
-        if isinstance(obj, (set, list, tuple, Iterator)):
-            # Convert elements of the iterable
-            return type(obj)([cls.from_obj(o) for o in obj])
-
-        if inspect.isclass(obj) and issubclass(obj, cls.base_classes()):
-            # This is a class/type covered by a meta class/type.
-            try:
-                obj_cls = next(filter(lambda t: issubclass(obj, t.base), cls.__subclasses__()))
-            except StopIteration:
-                # The current class is the best fit.
-                if cls.base == obj:
-                    return cls
-
-                # This object is a subclass of the base type.
-                new_type = type(f"Meta{obj.__name__}", (cls,), {"base": obj})
-                return new_type(obj)
-            else:
-                return obj_cls.from_obj(obj)
-
-        if not isinstance(obj, cls.base_classes()):
-            # We might've been given something convertible to a type with a
-            # meta type, so let's try that
-            try:
-                obj = tt.as_tensor_variable(obj)
-            except (ValueError, tt.AsTensorError):
-                pass
-
-            # Check for a meta type again
-            if not isinstance(obj, cls.base_classes()):
-                raise ValueError("Could not find a MetaSymbol class for {}".format(obj))
-
-        try:
-            obj_cls = next(filter(lambda t: isinstance(obj, t.base), cls.__subclasses__()))
-        except StopIteration:
-            res = cls(*[getattr(obj, s) for s in getattr(cls, "__slots__", [])], obj=obj)
-        else:
-            # Descend into this class to find a more suitable one, if any.
-            res = obj_cls.from_obj(obj)
-
-        return res
 
     def __init__(self, obj=None):
         self.obj = obj
@@ -284,13 +268,36 @@ class MetaSymbol(metaclass=MetaSymbolType):
                     p.pretty(obj)
 
 
+@dispatch(type)
+def _metatize(obj):
+    """Return an existing meta type/class, or create a new one."""
+    cls = MetaSymbol
+    while True:
+        try:
+            obj_cls = next(filter(lambda t: issubclass(obj, t.base), cls.__subclasses__()))
+        except StopIteration:
+            # The current class is the best fit.
+            if cls.base == obj:
+                return cls
+            # This object is a subclass of the base type.
+            new_type = type(f"Meta{obj.__name__}", (obj_cls,), {"base": obj})
+            return new_type(obj)
+        else:
+            cls = obj_cls
+
+
+@dispatch((MetaSymbol, type(None), types.FunctionType, partial, str, dict))
+def _metatize(obj):
+    return obj
+
+
 class MetaType(MetaSymbol):
     base = theano.Type
 
     def __call__(self, name=None):
         if self.obj:
-            return MetaSymbol.from_obj(self.obj(name=name))
-        return MetaSymbol.from_obj(self.base.Variable)(self, name)
+            return metatize(self.obj(name=name))
+        return metatize(self.base.Variable)(self, name)
 
 
 class MetaRandomStateType(MetaType):
@@ -377,7 +384,7 @@ class MetaOp(MetaSymbol):
 
         if not op_args_unreified:
             tt_out = self.obj(*op_args)
-            res_var = MetaVariable.from_obj(tt_out)
+            res_var = metatize(tt_out)
 
             if not isinstance(tt_out, (list, tuple)):
                 # If the name is indeterminate, we still want all the reified info,
@@ -481,8 +488,8 @@ class MetaApply(MetaSymbol):
 
     def __init__(self, op, inputs, outputs=None, obj=None):
         super().__init__(obj=obj)
-        self.op = MetaOp.from_obj(op)
-        self.inputs = tuple(MetaSymbol.from_obj(i) for i in inputs)
+        self.op = metatize(op)
+        self.inputs = tuple(metatize(i) for i in inputs)
         self.outputs = outputs
 
     def reify(self):
@@ -518,8 +525,8 @@ class MetaVariable(MetaSymbol):
 
     def __init__(self, type, owner, index, name, obj=None):
         super().__init__(obj=obj)
-        self.type = MetaType.from_obj(type)
-        self.owner = MetaApply.from_obj(owner)
+        self.type = metatize(type)
+        self.owner = metatize(owner)
         self.index = index
         self.name = name
 
@@ -604,17 +611,17 @@ class MetaSharedVariable(MetaVariable):
     base = tt.sharedvar.SharedVariable
     __slots__ = ["name", "type", "data", "strict"]
 
-    @classmethod
-    def from_obj(cls, obj):
-        if isvar(obj):
-            return obj
-        res = cls(obj.name, obj.type, obj.container.data, obj.container.strict, obj=obj)
-        return res
-
     def __init__(self, name, type, data, strict, obj=None):
         super().__init__(type, None, None, name, obj=obj)
         self.data = data
         self.strict = strict
+
+    @classmethod
+    def _metatize(cls, obj):
+        res = MetaSharedVariable(
+            obj.name, obj.type, obj.container.data, obj.container.strict, obj=obj
+        )
+        return res
 
 
 class MetaTensorSharedVariable(MetaSharedVariable):
@@ -657,7 +664,7 @@ class MetaAccessor(object):
             self.namespaces = [namespace]
 
     def __call__(self, x):
-        return MetaSymbol.from_obj(x)
+        return metatize(x)
 
     def __getattr__(self, obj):
 
@@ -679,7 +686,7 @@ class MetaAccessor(object):
             def meta_obj(*args, **kwargs):
                 args = [o.reify() if hasattr(o, "reify") else o for o in args]
                 res = ns_obj(*args, **kwargs)
-                return MetaSymbol.from_obj(res)
+                return metatize(res)
 
         elif isinstance(ns_obj, types.ModuleType):
             # It's a sub-module, so let's create another
@@ -687,7 +694,7 @@ class MetaAccessor(object):
             meta_obj = MetaAccessor(namespace=ns_obj)
         else:
             # Hopefully, it's convertible to a meta object...
-            meta_obj = MetaSymbol.from_obj(ns_obj)
+            meta_obj = metatize(ns_obj)
 
         if isinstance(meta_obj, (MetaSymbol, MetaSymbolType, types.FunctionType)):
             setattr(self, obj, meta_obj)
@@ -700,8 +707,7 @@ class MetaAccessor(object):
 
 
 mt = MetaAccessor()
-
-mt.dot = MetaSymbol.from_obj(tt.basic._dot)
+mt.dot = metatize(tt.basic._dot)
 
 
 #

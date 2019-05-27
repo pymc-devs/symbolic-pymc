@@ -1,15 +1,58 @@
+from collections.abc import Iterator
+
+import numpy as np
 import theano
 import theano.tensor as tt
+import pytest
 
-from unification import var
+from unification import var, isvar, variables
 from symbolic_pymc.meta import (MetaSymbol, MetaTensorVariable, MetaTensorType,
-                                mt)
+                                mt, metatize)
 from symbolic_pymc.utils import graph_equal
 
+def test_metatize():
+    vec_tt = tt.vector('vec')
+    vec_m = metatize(vec_tt)
+    assert vec_m.base == type(vec_tt)
+
+    test_list = [1, 2, 3]
+    metatize_test_list = metatize(test_list)
+    assert isinstance(metatize_test_list, list)
+    assert all(isinstance(m, MetaSymbol) for m in metatize_test_list)
+
+    test_iter = iter([1, 2, 3])
+    metatize_test_iter = metatize(test_iter)
+    assert isinstance(metatize_test_iter, Iterator)
+    assert all(isinstance(m, MetaSymbol) for m in metatize_test_iter)
+
+    test_out = metatize(var())
+    assert isvar(test_out)
+
+    with variables(vec_tt):
+        test_out = metatize(vec_tt)
+        assert test_out == vec_tt
+        assert isvar(test_out)
+
+    test_out = metatize(np.r_[1, 2, 3])
+    assert isinstance(test_out, MetaSymbol)
+
+    class TestClass(object):
+        pass
+
+    with pytest.raises(Exception):
+        metatize(TestClass())
+
+    class TestOp(tt.gof.Op):
+        pass
+    test_out = metatize(TestOp)
+
+    assert isinstance(test_out, MetaSymbol)
+    assert test_out.obj == TestOp
+    assert test_out.base == TestOp
 
 def test_meta_classes():
     vec_tt = tt.vector('vec')
-    vec_m = MetaSymbol.from_obj(vec_tt)
+    vec_m = metatize(vec_tt)
     assert vec_m.obj == vec_tt
     assert type(vec_m) == MetaTensorVariable
 
@@ -33,8 +76,8 @@ def test_meta_classes():
     assert isinstance(meta_var.owner.inputs[0].obj, tt.TensorConstant)
 
     test_vals = [1, 2.4]
-    meta_vars = MetaSymbol.from_obj(test_vals)
-    assert meta_vars == [MetaSymbol.from_obj(x) for x in test_vals]
+    meta_vars = metatize(test_vals)
+    assert meta_vars == [metatize(x) for x in test_vals]
     # TODO: Do we really want meta variables to be equal to their
     # reified base objects?
     # assert meta_vars == [tt.as_tensor_variable(x) for x in test_vals]
