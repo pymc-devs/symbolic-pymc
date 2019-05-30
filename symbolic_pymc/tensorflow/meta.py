@@ -12,8 +12,7 @@ from functools import partial, wraps
 
 from unification import Var, var
 
-from tensorflow.python.framework import (tensor_util, op_def_registry,
-                                         op_def_library, tensor_shape)
+from tensorflow.python.framework import tensor_util, op_def_registry, op_def_library, tensor_shape
 from tensorflow.core.framework.op_def_pb2 import OpDef
 
 from tensorflow.core.framework.node_def_pb2 import NodeDef
@@ -22,8 +21,15 @@ from tensorflow.core.framework.tensor_shape_pb2 import TensorShapeProto
 from tensorflow_probability import distributions as tfd
 
 
-from ..meta import (MetaSymbol, MetaSymbolType, MetaOp, MetaVariable,
-                    _meta_reify_iter, _metatize, metatize)
+from ..meta import (
+    MetaSymbol,
+    MetaSymbolType,
+    MetaOp,
+    MetaVariable,
+    _meta_reify_iter,
+    _metatize,
+    metatize,
+)
 
 
 class MetaOpDefLibrary(op_def_library.OpDefLibrary):
@@ -440,10 +446,11 @@ class TFlowMetaOpFactory(MetaSymbolType):
 
     >>> TFlowMetaTensor('float64', 'Placeholder')
     """
+
     _op_types = {}
 
     def __new__(cls, name, bases, clsdict):
-        op_type = clsdict.get('op_type', None)
+        op_type = clsdict.get("op_type", None)
         new_cls = super().__new__(cls, name, bases, clsdict)
         if op_type is not None:
             cls._op_types[op_type] = new_cls
@@ -473,10 +480,7 @@ class TFlowMetaTensor(MetaVariable, TFlowMetaSymbol, metaclass=TFlowMetaOpFactor
     def _metatize(cls, obj):
         """Specialize the meta type based on a `tf.Tensor`'s op."""
         cls = TFlowMetaTensor._op_types.get(obj.op.type, cls)
-        return cls(
-            *[getattr(obj, s) for s in getattr(cls, "__slots__", [])],
-            obj=obj
-        )
+        return cls(*[getattr(obj, s) for s in getattr(cls, "__slots__", [])], obj=obj)
 
     def __init__(self, dtype, op=None, value_index=None, shape=None, name=None, obj=None):
         self.dtype = dtype
@@ -566,13 +570,14 @@ class TFlowConstantType(type):
 
 class _TFlowConstant(tf.Tensor, metaclass=TFlowConstantType):
     """A helper for `isinstance` functionality."""
+
     pass
 
 
 class TFlowMetaConstant(TFlowMetaTensor):
     base = _TFlowConstant
     __slots__ = ()
-    op_type = 'Const'
+    op_type = "Const"
 
     def __init__(self, dtype=None, op=None, value_index=None, shape=None, name=None, obj=None):
 

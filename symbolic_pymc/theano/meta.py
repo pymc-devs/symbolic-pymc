@@ -8,7 +8,6 @@ import theano.tensor as tt
 from functools import partial, wraps
 
 from unification import var, isvar, Var
-from multipledispatch import dispatch
 
 from kanren.facts import fact
 from kanren.assoccomm import commutative, associative

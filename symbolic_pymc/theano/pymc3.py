@@ -96,8 +96,7 @@ def _convert_rv_to_dist(op, rv):
 @dispatch(pm.HalfNormal, object)
 def convert_dist_to_rv(dist, rng):
     size = dist.shape.astype(int)[HalfNormalRV.ndim_supp :]
-    res = HalfNormalRV(np.array(0.0, dtype=dist.dtype),
-                       dist.sd, size=size, rng=rng)
+    res = HalfNormalRV(np.array(0.0, dtype=dist.dtype), dist.sd, size=size, rng=rng)
     return res
 
 
@@ -176,8 +175,7 @@ def _convert_rv_to_dist(op, rv):
 @dispatch(pm.HalfCauchy, object)
 def convert_dist_to_rv(dist, rng):
     size = dist.shape.astype(int)[HalfCauchyRV.ndim_supp :]
-    res = HalfCauchyRV(np.array(0.0, dtype=dist.dtype),
-                       dist.beta, size=size, rng=rng)
+    res = HalfCauchyRV(np.array(0.0, dtype=dist.dtype), dist.beta, size=size, rng=rng)
     return res
 
 

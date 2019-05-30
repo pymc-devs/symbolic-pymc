@@ -1,11 +1,16 @@
 """Relations pertaining to probability distributions."""
+import numpy as np
+import theano.tensor as tt
+
 from unification import var
 from kanren import conde, eq
 from kanren.facts import fact
 
-from . import constant_neq, concat
-from ..unify import etuple
-from ..theano.meta import mt
+from unification.utils import transitive_get as walk
+
+from .. import concat
+from ...unify import etuple
+from ...theano.meta import mt, TheanoMetaConstant
 
 from kanren.facts import Relation
 
@@ -48,6 +53,26 @@ fact(
 # fact(generalized_gamma_dist,
 #      None,
 #      None)
+
+
+def constant_neq(lvar, val):
+    """Assert that a constant graph variable is not equal to a specific value.
+
+    Scalar values are broadcast across arrays.
+    """
+
+    def _goal(s):
+        lvar_val = walk(lvar, s)
+        if isinstance(lvar_val, (tt.Constant, TheanoMetaConstant)):
+            data = lvar_val.data
+            if (isinstance(val, np.ndarray) and not np.array_equal(data, val)) or not all(
+                np.atleast_1d(data) == val
+            ):
+                yield s
+        else:
+            yield s
+
+    return _goal
 
 
 def scale_loc_transform(in_expr, out_expr):

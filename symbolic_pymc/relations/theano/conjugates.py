@@ -4,9 +4,9 @@ from unification import var
 from kanren import conde, eq
 from kanren.facts import fact
 
-from . import conjugate
-from ..unify import etuple
-from ..theano.meta import mt
+from .. import conjugate
+from ...unify import etuple
+from ...theano.meta import mt
 
 
 mt.namespaces += [theano.tensor.nlinalg]

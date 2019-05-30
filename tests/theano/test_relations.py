@@ -11,7 +11,7 @@ from symbolic_pymc.theano.random_variables import (observed, NormalRV,
 from symbolic_pymc.theano.opt import KanrenRelationSub, FunctionGraph
 from symbolic_pymc.theano.utils import (optimize_graph, canonicalize,
                                         get_rv_observation)
-from symbolic_pymc.relations.distributions import scale_loc_transform
+from symbolic_pymc.relations.theano.distributions import scale_loc_transform
 
 
 @pytest.mark.usefixtures("run_with_theano")

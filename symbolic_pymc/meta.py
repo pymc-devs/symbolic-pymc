@@ -107,10 +107,7 @@ class MetaSymbolType(abc.ABCMeta):
 
         @classmethod
         def __metatize(cls, obj):
-            return cls(
-                *[getattr(obj, s) for s in getattr(cls, "__slots__", [])],
-                obj=obj
-            )
+            return cls(*[getattr(obj, s) for s in getattr(cls, "__slots__", [])], obj=obj)
 
         clsdict.setdefault("_metatize", __metatize)
 
