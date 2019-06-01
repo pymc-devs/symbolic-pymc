@@ -1,16 +1,20 @@
+import pytest
+
 import numpy as np
 import theano
 import theano.tensor as tt
 
 from theano.gof.opt import EquilibriumOptimizer
 
-from symbolic_pymc import (observed, NormalRV, HalfCauchyRV)
-from symbolic_pymc.opt import KanrenRelationSub, FunctionGraph
-from symbolic_pymc.utils import (optimize_graph, canonicalize,
-                                 get_rv_observation)
-from symbolic_pymc.relations.distributions import scale_loc_transform
+from symbolic_pymc.theano.random_variables import (observed, NormalRV,
+                                                   HalfCauchyRV)
+from symbolic_pymc.theano.opt import KanrenRelationSub, FunctionGraph
+from symbolic_pymc.theano.utils import (optimize_graph, canonicalize,
+                                        get_rv_observation)
+from symbolic_pymc.relations.theano.distributions import scale_loc_transform
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_pymc_normals():
     tt.config.compute_test_value = 'ignore'
 

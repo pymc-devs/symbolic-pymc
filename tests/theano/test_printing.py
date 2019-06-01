@@ -1,7 +1,7 @@
 import theano.tensor as tt
 
-from symbolic_pymc import NormalRV
-from symbolic_pymc.printing import tt_pprint
+from symbolic_pymc.theano.random_variables import NormalRV
+from symbolic_pymc.theano.printing import tt_pprint
 
 
 def test_notex_print():

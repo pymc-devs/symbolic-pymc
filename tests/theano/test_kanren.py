@@ -1,3 +1,4 @@
+import pytest
 import theano.tensor as tt
 
 from kanren import run, eq, variables
@@ -5,12 +6,13 @@ from kanren.term import term, operator, arguments
 from kanren.assoccomm import eq_assoc, eq_comm
 from unification import var
 
-from symbolic_pymc import MvNormalRV
-from symbolic_pymc.meta import mt
+from symbolic_pymc.theano.random_variables import MvNormalRV
+from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.unify import etuple
-from symbolic_pymc.utils import graph_equal
+from symbolic_pymc.theano.utils import graph_equal
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_terms():
     x, a, b = tt.dvectors('xab')
     test_expr = x + a * b
@@ -34,6 +36,7 @@ def test_terms():
                              arguments(test_expr)).reify()
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_kanren():
     # x, a, b = tt.dvectors('xab')
     #
@@ -78,6 +81,7 @@ def test_kanren():
     assert res.reify() == Y_rv
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_assoccomm():
     from kanren.assoccomm import buildo
 

@@ -17,7 +17,7 @@ from unification.utils import transitive_get as walk
 
 from theano.gof.graph import Apply, inputs as tt_inputs
 
-from . import (
+from .random_variables import (
     observed,
     UniformRV,
     UniformRVType,
@@ -39,7 +39,7 @@ from . import (
     HalfCauchyRVType,
 )
 from .opt import FunctionGraph
-from .rv import RandomVariable
+from .ops import RandomVariable
 from .utils import replace_input_nodes, get_rv_observation
 
 logger = logging.getLogger("symbolic_pymc")
@@ -96,7 +96,7 @@ def _convert_rv_to_dist(op, rv):
 @dispatch(pm.HalfNormal, object)
 def convert_dist_to_rv(dist, rng):
     size = dist.shape.astype(int)[HalfNormalRV.ndim_supp :]
-    res = HalfNormalRV(0.0, dist.sd, size=size, rng=rng)
+    res = HalfNormalRV(np.array(0.0, dtype=dist.dtype), dist.sd, size=size, rng=rng)
     return res
 
 
@@ -175,7 +175,7 @@ def _convert_rv_to_dist(op, rv):
 @dispatch(pm.HalfCauchy, object)
 def convert_dist_to_rv(dist, rng):
     size = dist.shape.astype(int)[HalfCauchyRV.ndim_supp :]
-    res = HalfCauchyRV(0.0, dist.beta, size=size, rng=rng)
+    res = HalfCauchyRV(np.array(0.0, dtype=dist.dtype), dist.beta, size=size, rng=rng)
     return res
 
 

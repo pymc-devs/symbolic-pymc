@@ -13,20 +13,22 @@ from unification.utils import transitive_get as walk
 # from theano.configparser import change_flags
 from theano.gof.graph import inputs as tt_inputs
 
-from symbolic_pymc import (MvNormalRV, Observed, observed)
-from symbolic_pymc.rv import RandomVariable
-from symbolic_pymc.opt import FunctionGraph
-from symbolic_pymc.pymc3 import model_graph, graph_model
-from symbolic_pymc.utils import canonicalize
-from symbolic_pymc.meta import mt
+from symbolic_pymc.theano.random_variables import (MvNormalRV, Observed,
+                                                   observed)
+from symbolic_pymc.theano.ops import RandomVariable
+from symbolic_pymc.theano.opt import FunctionGraph
+from symbolic_pymc.theano.pymc3 import model_graph, graph_model
+from symbolic_pymc.theano.utils import canonicalize
+from symbolic_pymc.theano.meta import mt
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_pymc_normals():
     tt.config.compute_test_value = 'ignore'
 
-    mu_X = tt.scalar('mu_X')
-    sd_X = tt.scalar('sd_X')
-    mu_Y = tt.scalar('mu_Y')
+    mu_X = tt.dscalar('mu_X')
+    sd_X = tt.dscalar('sd_X')
+    mu_Y = tt.dscalar('mu_Y')
     mu_X.tag.test_value = np.array(0., dtype=tt.config.floatX)
     sd_X.tag.test_value = np.array(1., dtype=tt.config.floatX)
     mu_Y.tag.test_value = np.array(1., dtype=tt.config.floatX)
@@ -34,7 +36,8 @@ def test_pymc_normals():
     # We need something that uses transforms...
     with pm.Model() as model:
         X_rv = pm.Normal('X_rv', mu_X, sd=sd_X)
-        S_rv = pm.HalfCauchy('S_rv', beta=0.5)
+        S_rv = pm.HalfCauchy('S_rv',
+                             beta=np.array(0.5, dtype=tt.config.floatX))
         Y_rv = pm.Normal('Y_rv', X_rv * S_rv, sd=S_rv)
         Z_rv = pm.Normal('Z_rv',
                          X_rv + Y_rv,
@@ -48,11 +51,13 @@ def test_pymc_normals():
     # This will break comparison if we don't reuse it
     rng = Z_rv_tt.owner.inputs[1].owner.inputs[-1]
 
-    mu_X_ = mt.scalar('mu_X')
-    sd_X_ = mt.scalar('sd_X')
+    mu_X_ = mt.dscalar('mu_X')
+    sd_X_ = mt.dscalar('sd_X')
     tt.config.compute_test_value = 'ignore'
     X_rv_ = mt.NormalRV(mu_X_, sd_X_, None, rng, name='X_rv')
-    S_rv_ = mt.HalfCauchyRV(0., 0.5, None, rng, name='S_rv')
+    S_rv_ = mt.HalfCauchyRV(np.array(0., dtype=tt.config.floatX),
+                            np.array(0.5, dtype=tt.config.floatX),
+                            None, rng, name='S_rv')
     Y_rv_ = mt.NormalRV(mt.mul(X_rv_, S_rv_), S_rv_, None, rng, name='Y_rv')
     Z_rv_ = mt.NormalRV(mt.add(X_rv_, Y_rv_),
                         sd_X,
@@ -60,9 +65,9 @@ def test_pymc_normals():
     obs_ = mt(Z_rv.observations)
     Z_rv_obs_ = mt.observed(obs_, Z_rv_)
 
-    Z_rv_meta = canonicalize(Z_rv_obs_.reify(), return_graph=False)
+    Z_rv_meta = mt(canonicalize(Z_rv_obs_.reify(), return_graph=False))
 
-    assert mt(Z_rv_tt) == mt(Z_rv_meta)
+    assert mt(Z_rv_tt) == Z_rv_meta
 
     # Now, let's try that with multiple outputs.
     fgraph.disown()
@@ -100,6 +105,7 @@ def test_pymc_normals():
     assert all(v == 1 for v in Z_vars_count.values())
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_normals_to_model():
     tt.config.compute_test_value = 'ignore'
 
@@ -143,6 +149,7 @@ def test_normals_to_model():
     assert isinstance(beta_pm, pm.MvNormal)
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_pymc_broadcastable():
     tt.config.compute_test_value = 'ignore'
 

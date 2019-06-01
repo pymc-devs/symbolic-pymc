@@ -1,14 +1,15 @@
-from theano.tensor.nlinalg import matrix_inverse  # pylint: disable=unused-import
+import theano
 
 from unification import var
 from kanren import conde, eq
 from kanren.facts import fact
 
-from . import conjugate
-from .. import MvNormalRV, observed  # pylint: disable=unused-import
-from ..unify import etuple
-from ..meta import mt
+from .. import conjugate
+from ...unify import etuple
+from ...theano.meta import mt
 
+
+mt.namespaces += [theano.tensor.nlinalg]
 
 # The prior distribution
 prior_dist_mt = var("prior_dist")
@@ -135,7 +136,6 @@ def create_normal_wishart_goals():
 
     # fact(conjugates,
     #      Y_obs_mt, wishart_posterior_exprs)
-    pass
 
 
 def conjugate_posteriors(x, y):

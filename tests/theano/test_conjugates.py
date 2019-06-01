@@ -1,15 +1,17 @@
+import pytest
 import theano.tensor as tt
 import numpy as np
 
 from theano.gof.opt import EquilibriumOptimizer
 from theano.gof.graph import inputs as tt_inputs
 
-from symbolic_pymc import MvNormalRV, observed
-from symbolic_pymc.opt import KanrenRelationSub, FunctionGraph
-from symbolic_pymc.utils import optimize_graph
-from symbolic_pymc.relations.conjugates import conjugate_posteriors
+from symbolic_pymc.theano.random_variables import MvNormalRV, observed
+from symbolic_pymc.theano.opt import KanrenRelationSub, FunctionGraph
+from symbolic_pymc.theano.utils import optimize_graph
+from symbolic_pymc.relations.theano.conjugates import conjugate_posteriors
 
 
+@pytest.mark.usefixtures("run_with_theano")
 def test_mvnormal_mvnormal():
     """Test that we can produce the closed-form distribution for the conjugate
     multivariate normal-regression with normal-prior model.

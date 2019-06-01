@@ -1,4 +1,5 @@
 import pytest
+
 import theano
 import theano.tensor as tt
 
@@ -6,16 +7,17 @@ import numpy as np
 
 from theano.gof.graph import inputs as tt_inputs
 
-from symbolic_pymc import NormalRV, observed
-from symbolic_pymc.meta import mt
-from symbolic_pymc.opt import eval_and_reify_meta, FunctionGraph
+from symbolic_pymc.theano.random_variables import NormalRV, observed
+from symbolic_pymc.theano.meta import mt
+from symbolic_pymc.theano.opt import eval_and_reify_meta, FunctionGraph
 from symbolic_pymc.unify import (etuple, tuple_expression)
-from symbolic_pymc.relations.linalg import (normal_normal_regression, buildo,
-                                            normal_qr_transform)
+from symbolic_pymc.relations.theano.linalg import (normal_normal_regression, buildo,
+                                                   normal_qr_transform)
 
 from kanren import run, eq, var
 
 
+@pytest.mark.usefixtures("run_with_theano")
 @pytest.mark.xfail(strict=True)
 def test_normal_normal_regression():
     tt.config.compute_test_value = 'ignore'
@@ -93,6 +95,7 @@ def test_normal_normal_regression():
     assert Y_out_mt == Y_new_mt
 
 
+@pytest.mark.usefixtures("run_with_theano")
 @pytest.mark.xfail(strict=True)
 def test_normal_qr_transform():
     np.random.seed(9283)
