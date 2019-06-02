@@ -86,3 +86,4 @@ benchmarks/results/
 .vscode/
 .dmypy.json
 dmypy.json
+/testing-report.html
