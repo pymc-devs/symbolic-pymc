@@ -9,9 +9,39 @@ from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaTensorShape,
                                            TFlowMetaConstant,
                                            TFlowMetaOpDef,
+                                           TFlowOpName,
                                            mt)
 
 from tests.utils import assert_ops_equal
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+def test_op_names():
+    """Make sure equality is flexible for `Operation`/`OpDef` names."""
+    # Against a string, only the distinct operator-name part matters
+    assert TFlowOpName('add_1') == 'add'
+    assert TFlowOpName('blah/add_1:0') == 'add'
+    assert TFlowOpName('blah/add_1:0') != 'add_1'
+    assert TFlowOpName('blah/add_1:0') != 'add:0'
+    # Unless it's the whole thing
+    assert TFlowOpName('blah/add_1:0') == 'blah/add_1:0'
+
+    # Ignore namespaces
+    assert TFlowOpName('blah/add_1:0') == TFlowOpName('add:0')
+    assert TFlowOpName('blah/add_1:0') == TFlowOpName('agh/add_1:0')
+    # and "unique" operator names (for the same operator "type")
+    assert TFlowOpName('blah/add_1:0') == TFlowOpName('add_2:0')
+    # but not output numbers
+    assert TFlowOpName('blah/add_1:0') != TFlowOpName('blah/add:1')
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+def test_meta_helper():
+    """Make sure the helper/namespace emulator can find `OpDef`s and create their meta objects."""
+    assert isinstance(mt.add, TFlowMetaOpDef)
+    assert mt.add.obj.name == 'Add'
+    assert isinstance(mt.matmul, TFlowMetaOpDef)
+    assert mt.matmul.obj.name == 'MatMul'
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
