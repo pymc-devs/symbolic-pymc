@@ -33,6 +33,16 @@ from ..meta import (
 
 
 class MetaOpDefLibrary(op_def_library.OpDefLibrary):
+    def __init__(self, *args, **kwargs):
+        # This is a lame way to fix the numerous naming inconsistencies between
+        # TF `Operation`s, `OpDef`s, and the corresponding user-level functions.
+        self.lower_op_name_to_raw = {
+            op_name.lower(): op_name
+            for op_name in dir(tf.raw_ops)
+            if callable(getattr(tf.raw_ops, op_name))
+        }
+        super().__init__(*args, **kwargs)
+
     @classmethod
     def make_opdef_sig(cls, opdef):
         """Create a `Signature` object for an `OpDef`.
@@ -117,7 +127,7 @@ class MetaOpDefLibrary(op_def_library.OpDefLibrary):
 op_def_lib = MetaOpDefLibrary()
 
 
-class TFlowName(UserString):
+class TFlowOpName(UserString):
     """A wrapper for Tensor names.
 
     TF `Operation` names, and the variables that result from them, cannot be
@@ -129,17 +139,18 @@ class TFlowName(UserString):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._scope_op, _, self._in_idx = self.data.partition(":")
-        self._scope, _, self._op_name = self._scope_op.partition("/")
+        self._scope, _, self._op_name = self._scope_op.rpartition("/")
         self._unique_name = self._op_name.split("_", 1)[0]
 
     def __eq__(self, other):
         if self is other:
             return True
 
+        if isinstance(other, str):
+            return self.data == other or self._unique_name == other
+
         if type(self) != type(other):
             return False
-        elif isinstance(other, str):
-            return self.data == other
 
         return self._unique_name == other._unique_name and self._in_idx == other._in_idx
 
@@ -329,15 +340,16 @@ class TFlowMetaOp(TFlowMetaSymbol):
 
         self.op_def = metatize(op_def)
 
-        if isinstance(name, (str, TFlowName)) or name is None:
+        if isinstance(name, (str, TFlowOpName)) or name is None:
             if name is None:
-                name = op_def.obj.name
+                name = op_def.obj.name.lower()
+            # from tensorflow.python.framework import ops
             # if name and name[-1] == "/":
             #     name = ops._name_from_scope_name(str(name))
             # else:
             #     g_tf = ops.get_default_graph()
             #     name = g_tf.unique_name(str(name))
-            self.name = TFlowName(name)
+            self.name = TFlowOpName(name)
         else:
             self.name = name
 
@@ -383,8 +395,8 @@ class TFlowMetaOp(TFlowMetaSymbol):
                 value_index=i,
                 shape=var(),
                 name=(
-                    TFlowName(f"{self.name}:{i}")
-                    if isinstance(self.name, (str, TFlowName))
+                    TFlowOpName(f"{self.name.lower()}:{i}")
+                    if isinstance(self.name, (str, TFlowOpName))
                     else var()
                 ),
             )
@@ -487,7 +499,7 @@ class TFlowMetaTensor(MetaVariable, TFlowMetaSymbol, metaclass=TFlowMetaOpFactor
         self.op = metatize(op)
         self.shape = metatize(shape)
         self.value_index = value_index
-        self.name = TFlowName(name) if isinstance(name, str) else name
+        self.name = TFlowOpName(name) if isinstance(name, str) else name
         super().__init__(obj=obj)
 
     @property
@@ -654,9 +666,11 @@ class TFlowMetaAccessor(object):
         return metatize(x)
 
     @classmethod
-    def find_opdef(cls, obj):
-        if hasattr(tf.raw_ops, obj.capitalize()):
-            meta_obj = TFlowMetaOpDef(obj=op_def_registry.get_registered_ops()[obj.capitalize()])
+    def find_opdef(cls, name):
+        """Attempt to create a meta `OpDef` for a given TF function/`Operation` name."""
+        raw_op_name = op_def_lib.lower_op_name_to_raw.get(name, None)
+        if raw_op_name is not None:
+            meta_obj = TFlowMetaOpDef(obj=op_def_registry.get_registered_ops()[raw_op_name])
             return meta_obj
         return None
 

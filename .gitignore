@@ -6,6 +6,8 @@ nb_tutorials/
 build/*
 dist/*
 *$py.class
+/testing-report.html
+/pip-wheel-metadata/
 
 # C extensions
 *.so
@@ -86,4 +88,3 @@ benchmarks/results/
 .vscode/
 .dmypy.json
 dmypy.json
-/testing-report.html
