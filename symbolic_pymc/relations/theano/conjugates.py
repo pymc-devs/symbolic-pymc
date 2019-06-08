@@ -1,7 +1,9 @@
 import theano
 
 from unification import var
-from kanren import conde, eq
+from kanren import eq
+from kanren.core import lallgreedy
+from kanren.goals import condeseq
 from kanren.facts import fact
 
 from .. import conjugate
@@ -105,10 +107,10 @@ def create_normal_normal_goals():
     ]
 
 
-conde_clauses += create_normal_normal_goals()
+conde_clauses += [create_normal_normal_goals()]
 
 
-def create_normal_wishart_goals():
+def create_normal_wishart_goals():  # pragma: no cover
     """TODO."""
     # Create the pattern/form of the prior normal distribution
     Sigma_name_lv = var("Sigma_name")
@@ -151,33 +153,30 @@ def conjugate_posteriors(x, y):
     z = var()
 
     # First, find a basic conjugate structure match.
-    goals = [(conjugate, x, z)]
+    goals = (lallgreedy, (conjugate, x, z))
 
     # Second, each conjugate case might have its own special conditions.
-    goals += [(conde, conde_clauses)]
+    goals += ((condeseq, conde_clauses),)
 
     # Third, connect the discovered pieces and produce the necessary output.
     # TODO: We could have a "reifiable" goal that makes sure the output is a
     # valid base/non-meta object.
-    goals += [
-        (
-            eq,
-            y,
-            etuple(
-                dict,
-                [
-                    # Replace observation with one that doesn't link to
-                    # the integrated one
-                    (x, etuple(mt.observed, obs_sample_mt, None)),
-                    # (Y_mt, None),
-                    # Replace the prior with the posterior
-                    (prior_dist_mt, z),
-                ],
-            ),
-        )
-    ]
+    goals += (
+        eq,
+        y,
+        etuple(
+            dict,
+            [
+                # Replace observation with one that doesn't link to
+                # the integrated one
+                (x, etuple(mt.observed, obs_sample_mt, None)),
+                # (Y_mt, None),
+                # Replace the prior with the posterior
+                (prior_dist_mt, z),
+            ],
+        ),
+    )
 
     # This conde is just a lame way to form the conjunction
     # TODO: Use one of the *all* functions.
-    res = (conde, goals)
-    return res
+    return goals
