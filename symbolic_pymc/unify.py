@@ -71,7 +71,7 @@ class ExpressionTuple(tuple):
         return res
 
     def __str__(self):
-        return f"e{etuple_repr.repr(tuple(self))}"
+        return f"e({', '.join(tuple(str(i) for i in self))})"
 
     def __repr__(self):
         return f"ExpressionTuple({etuple_repr.repr(tuple(self))})"

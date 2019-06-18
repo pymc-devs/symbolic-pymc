@@ -179,6 +179,12 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
 
         return res_var
 
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.obj})"
+
+    def _repr_pretty_(self, p, cycle):
+        return p.text(f"{self.__class__.__name__}({self.obj})")
+
 
 class TheanoMetaElemwise(TheanoMetaOp):
     base = tt.Elemwise

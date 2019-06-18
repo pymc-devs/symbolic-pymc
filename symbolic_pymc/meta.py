@@ -17,6 +17,7 @@ from multipledispatch import dispatch
 meta_repr = reprlib.Repr()
 meta_repr.maxstring = 100
 meta_repr.maxother = 100
+meta_repr.print_obj = False
 
 
 def metatize(obj):
@@ -212,7 +213,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
         if obj is None:
             res = self.__repr__()
         else:
-            res = str(obj)
+            res = f"{self.__class__.__name__}({str(obj)})"
         return res
 
     def __repr__(self):
@@ -241,7 +242,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
 
                 obj = getattr(self, "obj", None)
 
-                if obj is not None:
+                if obj is not None and meta_repr.print_obj:
                     if idx is not None:
                         p.text(",")
                         p.breakable()
