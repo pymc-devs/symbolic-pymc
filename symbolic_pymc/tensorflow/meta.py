@@ -278,6 +278,9 @@ class TFlowMetaOpDef(MetaOp, TFlowMetaSymbol):
 
         return res_var
 
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.obj.name})"
+
     def _repr_pretty_(self, p, cycle):
         return p.text(f"{self.__class__.__name__}({self.obj.name})")
 
