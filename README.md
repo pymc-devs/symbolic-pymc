@@ -44,12 +44,26 @@ or after cloning the repo (and then installing with `pip`).
 ### Compute Symbolic Closed-form Posteriors
 
 ```python
-from theano.gof.opt import EquilibriumOptimizer
+import numpy as np
 
-from symbolic_pymc.utils import optimize_graph
-from symbolic_pymc.printing import tt_pprint
-from symbolic_pymc.opt import KanrenRelationSub
-from symbolic_pymc.relations.conjugates import conjugate_posteriors
+import theano
+import theano.tensor as tt
+
+import pymc3 as pm
+
+from unification import var
+
+from kanren import run
+from kanren.core import lallgreedy
+from kanren.goals import condeseq
+
+from symbolic_pymc.theano.printing import tt_pprint
+from symbolic_pymc.theano.pymc3 import model_graph
+from symbolic_pymc.theano.utils import optimize_graph, canonicalize
+from symbolic_pymc.theano.opt import KanrenRelationSub
+
+from symbolic_pymc.relations.graph import graph_applyo
+from symbolic_pymc.relations.theano.conjugates import conjugate, conde_clauses
 
 theano.config.cxx = ''
 theano.config.compute_test_value = 'ignore'
@@ -79,22 +93,37 @@ with pm.Model() as model:
 # Create a graph for the model
 fgraph = model_graph(model, output_vars=[beta_rv, Y_rv])
 
-# Create and apply the conjugate posterior optimizer
-posterior_opt = EquilibriumOptimizer(
-    [KanrenRelationSub(conjugate_posteriors)],
-    max_use_ratio=10)
 
-fgraph_opt = optimize_graph(fgraph, posterior_opt)
-fgraph_opt = canonicalize(fgraph_opt)
+# Create and apply the conjugate posterior relation
+def conjugateo(x, y):
+    """State a conjugate relationship between terms (with some conditions)."""
+    return (lallgreedy,
+            (conjugate, x, y),
+            (condeseq, conde_clauses))
+
+
+def conjugate_dists(graph):
+    """Automatically apply closed-form conjugates in a graph."""
+    expr_graph, = run(1, var('q'),
+                      (graph_applyo, conjugateo,
+                       graph, var('q')))
+
+    fgraph_opt = expr_graph.eval_obj
+    fgraph_opt_tt = fgraph_opt.reify()
+    return fgraph_opt_tt
+
+
+fgraph_opt = conjugate_dists(fgraph.outputs[1])
 ```
 
 ```
 >>> print(tt_pprint(fgraph_opt))
 a in R**(N^a_0), R in R**(N^R_0 x N^R_1), F in R**(N^F_0 x N^F_1)
 c in R**(N^c_0 x N^c_1), V in R**(N^V_0 x N^V_1)
-b ~ N((a + (((R * F.T) * c) * ([-3.] - (F * a)))), (R - ((((R * F.T) * c) * (V + (F * (R * F.T)))) * (c.T * (F * R.T))))) in R**(N^b_0)
+d in R**(N^d_0 x N^d_1), e in R**(N^e_0 x N^e_1)
+\beta ~ N(a, R) in R**(N^\beta_0), Y ~ N((F * \beta), V) in R**(N^Y_0)
+b ~ N((a + (((R * F.T) * c) * (Y = [-3.] - (F * a)))), (R - ((((R * F.T) * d) * (V + (F * (R * F.T)))) * ((R * F.T) * e).T))) in R**(N^b_0)
 b
-[-3.]
 ```
 
 ### Automatic Re-centering and Re-scaling
@@ -103,8 +132,8 @@ We can automate the PyMC3 model recentering and rescaling in ["Why hierarchical 
 
 ```python
 import pandas as pd
-from symbolic_pymc.utils import get_rv_observation
-from symbolic_pymc.relations.distributions import scale_loc_transform
+from symbolic_pymc.theano.utils import get_rv_observation
+from symbolic_pymc.relations.theano.distributions import scale_loc_transform
 
 # Skip compilation temporarily
 _cxx_config = theano.config.cxx
@@ -157,16 +186,6 @@ with model_recentered:
 ### Convert a PyMC3 model to a Theano graph
 
 ```python
-import numpy as np
-import theano
-import theano.tensor as tt
-import pymc3 as pm
-
-from symbolic_pymc.pymc3 import model_graph
-from symbolic_pymc.utils import canonicalize
-
-theano.config.cxx = ''
-
 mu_X = tt.scalar('\\mu_X')
 sd_X = tt.scalar('\\sigma_X')
 mu_Y = tt.scalar('\\mu_Y')
@@ -215,7 +234,7 @@ fgraph = canonicalize(fgraph)
 ### Mathematical Notation Pretty Printing
 
 ```
->>> from symbolic_pymc.printing import tt_pprint
+>>> from symbolic_pymc.theano.printing import tt_pprint
 >>> print(tt_pprint(fgraph))
 \\mu_X in R, \\sigma_X in R, \\mu_Y in R, \\sigma_Y in R
 X ~ N(\\mu_X, \\sigma_X**2) in R, Y ~ N(\\mu_Y, \\sigma_Y**2) in R
@@ -224,7 +243,7 @@ Z = 10.0
 ```
 
 ```
->>> from symbolic_pymc.printing import tt_tprint
+>>> from symbolic_pymc.theano.printing import tt_tprint
 >>> print(tt_tprint(fgraph))
 ```
 produces
