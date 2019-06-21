@@ -1,9 +1,6 @@
 import theano
 
 from unification import var
-from kanren import eq
-from kanren.core import lallgreedy
-from kanren.goals import condeseq
 from kanren.facts import fact
 
 from .. import conjugate
@@ -13,42 +10,16 @@ from ...theano.meta import mt
 
 mt.namespaces += [theano.tensor.nlinalg]
 
-# The prior distribution
-prior_dist_mt = var("prior_dist")
 
-# The observation distribution
-obs_dist_mt = var("obs_dist")
+def _create_normal_normal_goals():
+    """Produce a relation representing Bayes theorem for a multivariate normal prior mean with a normal observation model.
 
-# The variable specifying the fixed sample value of the random variable
-# given by `Y_mt`
-obs_sample_mt = var("obs_sample")
-
-# Make the observation relationship explicit in the graph.
-obs_mt = mt.observed(obs_sample_mt, obs_dist_mt)
-
-conde_clauses = []
-
-
-def create_normal_normal_goals():
-    """Produce a relation representing Bayes theorem for a normal prior mean with a normal observation model.
+    NOTE: This unifies with meta graph objects directly and not their etuple
+    forms, so use it on a meta graphs if you want it to work.
 
     TODO: This implementation is a little too restrictive in that it limits the
     conjugate update to only random variables attached to explicitly defined
     observations (i.e. via the `observed` `Op`).
-
-    Right now it serves as a way to pull in a distinct tensor carrying
-    observation values, since the tensor corresponding to a sample from the
-    observation distribution (i.e. `Y_mt`) cannot be a shared or constant
-    tensor with a user-set value.
-
-    We can simply add the non-observation pattern, let it do the Bayes update,
-    then follow that up with an relation/optimization that exchanges the
-    `RandomVariable` with its associated observed tensor (e.g. swap `Y_mt` with
-    `y_mt` once all the conjugate updates are done).
-
-    This would have to be guided in some way (e.g. to only update
-    `RandomVariables` that are also `FunctionGraph` outputs--i.e. the ones we
-    might want to sample).
 
     TODO: Lift univariate normals to multivariates so that this update can be
     applied to them, as well?  Seems lame to remake this just for the
@@ -56,7 +27,9 @@ def create_normal_normal_goals():
     embedded in multivariate spaces.
 
     """
+    #
     # Create the pattern/form of the prior normal distribution
+    #
     beta_name_lv = var("beta_name")
     beta_size_lv = var("beta_size")
     beta_rng_lv = var("beta_rng")
@@ -72,10 +45,16 @@ def create_normal_normal_goals():
     E_y_mt = mt.dot(F_t_lv, beta_prior_mt)
     Y_mt = mt.MvNormalRV(E_y_mt, V_lv, size=y_size_lv, rng=y_rng_lv, name=y_name_lv)
 
+    # The variable specifying the fixed sample value of the random variable
+    # given by `Y_mt`
+    obs_sample_mt = var("obs_sample")
+
     Y_obs_mt = mt.observed(obs_sample_mt, Y_mt)
 
-    # Create tuple-form expressions for the posterior
-    e_expr = mt.sub(Y_obs_mt, mt.dot(F_t_lv, a_lv))
+    #
+    # Create tuple-form expressions that construct the posterior
+    #
+    e_expr = mt.sub(obs_sample_mt, mt.dot(F_t_lv, a_lv))
     F_expr = etuple(mt.transpose, F_t_lv)
     R_F_expr = etuple(mt.dot, R_lv, F_expr)
     Q_expr = etuple(mt.add, V_lv, etuple(mt.dot, F_t_lv, R_F_expr))
@@ -93,24 +72,10 @@ def create_normal_normal_goals():
 
     norm_posterior_exprs = etuple(mt.MvNormalRV, m_expr, C_expr, y_size_lv, y_rng_lv)
 
-    fact(
-        conjugate,
-        # MvNormal likelihood, MvNormal prior mean
-        Y_obs_mt,
-        norm_posterior_exprs,
-    )
-
-    return [
-        (eq, prior_dist_mt, beta_prior_mt),
-        # This should unify `Y_mt` and `obs_dist_mt`.
-        (eq, obs_mt, Y_obs_mt),
-    ]
+    return (Y_obs_mt, norm_posterior_exprs)
 
 
-conde_clauses += [create_normal_normal_goals()]
-
-
-def create_normal_wishart_goals():  # pragma: no cover
+def _create_normal_wishart_goals():  # pragma: no cover
     """TODO."""
     # Create the pattern/form of the prior normal distribution
     Sigma_name_lv = var("Sigma_name")
@@ -136,47 +101,14 @@ def create_normal_wishart_goals():  # pragma: no cover
     #                                  m_expr, C_expr,
     #                                  y_size_lv, y_rng_lv)
 
-    # fact(conjugates,
-    #      Y_obs_mt, wishart_posterior_exprs)
+    # return (Sigma_prior_mt, wishart_posterior_exprs)
 
 
-def conjugate_posteriors(x, y):
-    """Create a relation between conjugate priors and their posterior forms.
-
-    This goal unifies `y` with a tuple-form expression for a dictionary
-    specifying the graph's node replacements. Those replacements map
-    prior random variable terms to their posteriors forms.  All other
-    terms depending on those terms essentially become posterior
-    predictives.
-
-    """
-    z = var()
-
-    # First, find a basic conjugate structure match.
-    goals = (lallgreedy, (conjugate, x, z))
-
-    # Second, each conjugate case might have its own special conditions.
-    goals += ((condeseq, conde_clauses),)
-
-    # Third, connect the discovered pieces and produce the necessary output.
-    # TODO: We could have a "reifiable" goal that makes sure the output is a
-    # valid base/non-meta object.
-    goals += (
-        eq,
-        y,
-        etuple(
-            dict,
-            [
-                # Replace observation with one that doesn't link to
-                # the integrated one
-                (x, etuple(mt.observed, obs_sample_mt, None)),
-                # (Y_mt, None),
-                # Replace the prior with the posterior
-                (prior_dist_mt, z),
-            ],
-        ),
-    )
-
-    # This conde is just a lame way to form the conjunction
-    # TODO: Use one of the *all* functions.
-    return goals
+norm_norm_prior_post = _create_normal_normal_goals()
+fact(
+    conjugate,
+    # An unconjugated observation backed by an MvNormal likelihood with MvNormal prior mean
+    norm_norm_prior_post[0],
+    # The corresponding conjugated distribution
+    norm_norm_prior_post[1],
+)

@@ -54,16 +54,12 @@ import pymc3 as pm
 from unification import var
 
 from kanren import run
-from kanren.core import lallgreedy
-from kanren.goals import condeseq
 
 from symbolic_pymc.theano.printing import tt_pprint
 from symbolic_pymc.theano.pymc3 import model_graph
-from symbolic_pymc.theano.utils import optimize_graph, canonicalize
-from symbolic_pymc.theano.opt import KanrenRelationSub
 
 from symbolic_pymc.relations.graph import graph_applyo
-from symbolic_pymc.relations.theano.conjugates import conjugate, conde_clauses
+from symbolic_pymc.relations.theano.conjugates import conjugate
 
 theano.config.cxx = ''
 theano.config.compute_test_value = 'ignore'
@@ -94,24 +90,17 @@ with pm.Model() as model:
 fgraph = model_graph(model, output_vars=[Y_rv])
 
 
-def conjugateo(x, y):
-    """State a conjugate relationship between terms (with some conditions)."""
-    return (lallgreedy,
-            (conjugate, x, y),
-            (condeseq, conde_clauses))
-
-
 def conjugate_graph(graph):
     """Apply conjugate relations throughout a graph."""
     expr_graph, = run(1, var('q'),
-                      (graph_applyo, conjugateo, graph, var('q')))
+                      (graph_applyo, conjugate, graph, var('q')))
 
     fgraph_opt = expr_graph.eval_obj
     fgraph_opt_tt = fgraph_opt.reify()
     return fgraph_opt_tt
 
 
-fgraph_opt = conjugate_graph(fgraph.outputs[0])
+fgraph_conj = conjugate_graph(fgraph.outputs[0])
 ```
 
 Before:
@@ -125,12 +114,11 @@ Y = [-3.]
 
 After:
 ```python
->>> print(tt_pprint(fgraph_opt))
+>>> print(tt_pprint(fgraph_conj))
 a in R**(N^a_0), R in R**(N^R_0 x N^R_1), F in R**(N^F_0 x N^F_1)
-c in R**(N^c_0 x N^c_1), V in R**(N^V_0 x N^V_1)
-d in R**(N^d_0 x N^d_1), e in R**(N^e_0 x N^e_1)
-beta ~ N(a, R) in R**(N^beta_0), Y ~ N((F * beta), V) in R**(N^Y_0)
-b ~ N((a + (((R * F.T) * c) * (Y = [-3.] - (F * a)))), (R - ((((R * F.T) * d) * (V + (F * (R * F.T)))) * ((R * F.T) * e).T))) in R**(N^b_0)
+c in R**(N^c_0 x N^c_1), d in R**(N^d_0 x N^d_1)
+V in R**(N^V_0 x N^V_1), e in R**(N^e_0 x N^e_1)
+b ~ N((a + (((R * F.T) * c) * ([-3.] - (F * a)))), (R - ((((R * F.T) * d) * (V + (F * (R * F.T)))) * ((R * F.T) * e).T))) in R**(N^b_0)
 b
 ```
 
