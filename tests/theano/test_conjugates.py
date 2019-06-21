@@ -5,12 +5,10 @@ import numpy as np
 from unification import var
 
 from kanren import run
-from kanren.core import lallgreedy
-from kanren.goals import condeseq
 
 from symbolic_pymc.theano.random_variables import MvNormalRV, observed
 from symbolic_pymc.relations.graph import graph_applyo
-from symbolic_pymc.relations.theano.conjugates import conjugate, conde_clauses
+from symbolic_pymc.relations.theano.conjugates import conjugate
 
 
 @pytest.mark.usefixtures("run_with_theano")
@@ -42,12 +40,7 @@ def test_mvnormal_mvnormal():
 
     q_lv = var()
 
-    def conjugate_posterior(x, y):
-        return (lallgreedy,
-                (conjugate, x, y),
-                (condeseq, conde_clauses))
-
-    expr_graph, = run(1, q_lv, (graph_applyo, conjugate_posterior, Y_obs, q_lv))
+    expr_graph, = run(1, q_lv, (graph_applyo, conjugate, Y_obs, q_lv))
 
     fgraph_opt = expr_graph.eval_obj
     fgraph_opt_tt = fgraph_opt.reify()
