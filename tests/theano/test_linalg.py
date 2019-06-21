@@ -5,12 +5,10 @@ import theano.tensor as tt
 
 import numpy as np
 
-from theano.gof.graph import inputs as tt_inputs
-
 from symbolic_pymc.theano.random_variables import NormalRV, observed
 from symbolic_pymc.theano.meta import mt
-from symbolic_pymc.theano.opt import eval_and_reify_meta, FunctionGraph
-from symbolic_pymc.unify import (etuple, tuple_expression)
+from symbolic_pymc.theano.opt import eval_and_reify_meta
+from symbolic_pymc.unify import (etuple, etuplize)
 from symbolic_pymc.relations.theano.linalg import (normal_normal_regression, buildo,
                                                    normal_qr_transform)
 
@@ -49,9 +47,6 @@ def test_normal_normal_regression():
     y_obs_rv = observed(y_tt, Y_rv)
     y_obs_rv.name = 'y_obs'
 
-    fgraph = FunctionGraph(tt_inputs([beta_rv, y_obs_rv]),
-                           [y_obs_rv])
-
     #
     # Use the relation with identify/match `Y`, `X` and `beta`.
     #
@@ -69,16 +64,16 @@ def test_normal_normal_regression():
     )
 
     assert res[0].eval_obj.obj == beta_rv
-    assert res[0] == tuple_expression(beta_rv)
-    assert res[1] == tuple_expression(Y_rv)[2:]
-    assert res[2] == tuple_expression(beta_rv)[1:]
+    assert res[0] == etuplize(beta_rv)
+    assert res[1] == etuplize(Y_rv)[2:]
+    assert res[2] == etuplize(beta_rv)[1:]
 
     #
     # Use the relation with to produce `Y` from given `X` and `beta`.
     #
     X_new_mt = mt(tt.eye(N, M))
     beta_new_mt = mt(NormalRV(0, 1, size=M))
-    Y_args_cdr_mt = tuple_expression(Y_rv)[2:]
+    Y_args_cdr_mt = etuplize(Y_rv)[2:]
     Y_lv = var()
     res, = run(1, Y_lv,
                normal_normal_regression(
@@ -125,9 +120,6 @@ def test_normal_qr_transform():
     y_tt.name = 'y'
     y_obs_rv = observed(y_tt, Y_rv)
     y_obs_rv.name = 'y_obs'
-
-    fgraph = FunctionGraph(tt_inputs([beta_rv, y_obs_rv]),
-                           [y_obs_rv])
 
     res, = run(1, var('q'), normal_qr_transform(y_obs_rv, var('q')))
 

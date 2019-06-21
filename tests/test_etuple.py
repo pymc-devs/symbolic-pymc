@@ -59,7 +59,7 @@ def test_etuple():
 
 
 def test_etuple_term():
-    """Test `tuple_expression` and `etuple` interaction with `term`
+    """Test `etuplize` and `etuple` interaction with `term`
     """
     # Make sure that we don't lose underlying `eval_obj`s
     # when taking apart and re-creating expression tuples

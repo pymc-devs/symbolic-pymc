@@ -12,7 +12,7 @@ from kanren.goals import not_equalo, conso
 from kanren.term import term, operator, arguments
 
 from ...theano.meta import mt
-from ...unify import etuple, tuple_expression, ExpressionTuple
+from ...unify import etuple, etuplize, ExpressionTuple
 
 
 mt.nlinalg.qr_full = mt(QRFull("reduced"))
@@ -30,8 +30,8 @@ def update_name_suffix(x, old_x, suffix):
 def buildo(op, args, obj):
     if not isvar(obj):
         if not (isinstance(obj, ExpressionTuple) and isinstance(args, ExpressionTuple)):
-            obj = tuple_expression(obj)
-            args = tuple_expression(args)
+            obj = etuplize(obj)
+            args = etuplize(args)
         oop, oargs = operator(obj), arguments(obj)
         return lallgreedy((eq, op, oop), (eq, args, oargs))
     elif isvar(args) or isvar(op):
@@ -81,7 +81,7 @@ def normal_qr_transform(in_expr, out_expr):
     Y_new_lv = var()
     X_op_lv = var()
 
-    in_expr = tuple_expression(in_expr)
+    in_expr = etuplize(in_expr)
 
     res = (
         lall,
