@@ -37,6 +37,7 @@ arguments.add((tf.Tensor,), lambda x: arguments(metatize(x)))
 
 term.add((tf.Operation, ExpressionTuple), lambda op, args: term(metatize(op), args))
 
-tuple_expression.add(tf_class_abstractions, lambda x: tuple_expression(metatize(x)))
+tuple_expression.add(tf_class_abstractions,
+                     lambda x, shallow=False: tuple_expression(metatize(x), shallow))
 
 __all__ = []

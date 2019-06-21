@@ -282,18 +282,25 @@ term.add((object, ExpressionTuple), _term_ExpressionTuple)
 
 
 @dispatch(object)
-def tuple_expression(x):
+def tuple_expression(x, shallow=False):
     """Return an expression-tuple for an object (i.e. a tuple of rand and rators).
 
     When evaluated, the rand and rators should [re-]construct the object.  When the
     object cannot be given such a form, the object itself is returned.
 
     NOTE: `tuple_expression(...)[2:]` and `arguments(...)` will *not* return
-    the same thing, because the former is recursive and the latter is not.
-    In other words, this S-expression-like "decomposition" is recursive, and,
-    as such, it requires an inside-out evaluation to re-construct a
-    "decomposed" object.  In contrast, `operator` and `arguments` is a shallow
-    "decomposition".
+    the same thing by default, because the former is recursive and the latter
+    is not.  In other words, this S-expression-like "decomposition" is
+    recursive, and, as such, it requires an inside-out evaluation to
+    re-construct a "decomposed" object.  In contrast, `operator` and
+    `arguments` is necessarily a shallow "decomposition".
+
+    Parameters
+    ----------
+    x: object
+      Object to convert to expression-tuple form.
+    shallow: bool
+      Whether or not to do a shallow conversion.
 
     """
     if isinstance(x, ExpressionTuple):
@@ -313,7 +320,12 @@ def tuple_expression(x):
     if not callable(op):
         return x
 
-    res = etuple(op, *tuple(tuple_expression(a) for a in args), eval_obj=x)
+    if shallow:
+        et_args = args
+    else:
+        et_args = tuple(tuple_expression(a) for a in args)
+
+    res = etuple(op, *et_args, eval_obj=x)
     return res
 
 

@@ -38,6 +38,7 @@ arguments.add((tt.Variable,), lambda x: arguments(metatize(x)))
 
 term.add((tt.Op, ExpressionTuple), lambda op, args: term(metatize(op), args))
 
-tuple_expression.add(tt_class_abstractions, lambda x: tuple_expression(metatize(x)))
+tuple_expression.add(tt_class_abstractions,
+                     lambda x, shallow=False: tuple_expression(metatize(x), shallow))
 
 __all__ = []
