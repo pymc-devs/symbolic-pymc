@@ -8,8 +8,7 @@ from symbolic_pymc.unify import (ExpressionTuple, etuple)
 
 
 def test_etuple():
-    """Test basic `etuple` functionality.
-    """
+    """Test basic `etuple` functionality."""
     def test_op(*args):
         return tuple(object() for i in range(sum(args)))
 

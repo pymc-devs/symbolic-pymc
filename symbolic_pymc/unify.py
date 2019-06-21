@@ -2,13 +2,14 @@ import reprlib
 
 from functools import wraps
 
+import numpy as np
+
 from multipledispatch import dispatch
 
-from kanren import isvar
 from kanren.term import term, operator, arguments
 
 from unification.more import unify
-from unification.core import reify, _unify, _reify, Var
+from unification.core import reify, _unify, _reify, Var, walk, assoc, isvar
 
 from .meta import MetaSymbol, MetaVariable
 from .utils import _check_eq
@@ -136,6 +137,25 @@ def debug_unify(enable=True):
     else:
         _unify.funcs = {sig: getattr(f, "__wrapped__", f) for sig, f in _unify.funcs.items()}
         _unify._cache.clear()
+
+
+def unify_numpy(u, v, s):
+    """Handle NumPy arrays in a special way to avoid warnings/exceptions."""
+    v = walk(v, s)
+    if isvar(u):
+        return assoc(s, u, v)
+    if isvar(v):
+        return assoc(s, v, u)
+    # Switch the order of comparison so that `v.__eq__` is tried (in case it's
+    # not also a NumPy array, but has logic for such comparisons)
+    if np.array_equal(v, u):
+        return s
+    return _unify(u, v, s)
+
+
+unify.add((np.ndarray, object, dict), unify_numpy)
+unify.add((object, np.ndarray, dict), unify_numpy)
+unify.add((np.ndarray, np.ndarray, dict), unify_numpy)
 
 
 def unify_MetaSymbol(u, v, s):
