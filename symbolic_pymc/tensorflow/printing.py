@@ -46,7 +46,10 @@ def tf_dprint(obj, printer=IndentPrinter(str)):
 
 @tf_dprint.register(tf.Tensor)
 def _(obj, printer=IndentPrinter(str)):
-    shape_str = str(obj.shape.as_list())
+    try:
+        shape_str = str(obj.shape.as_list())
+    except ValueError:
+        shape_str = "Unknown"
     prefix = f'Tensor({obj.op.type}):{obj.value_index},\tshape={shape_str}\t"{obj.name}"'
     tf_dprint(prefix, printer)
     if len(obj.op.inputs) > 0:
