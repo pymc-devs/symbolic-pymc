@@ -38,3 +38,18 @@ def test_ascii_printing():
     ''')
 
     assert std_out.getvalue() == expected_out.lstrip()
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+def test_unknown_shape():
+    """Make sure we can ascii/text print a TF graph with unknown shapes."""
+
+    A = tf.compat.v1.placeholder(tf.float64, name='A')
+
+    std_out = io.StringIO()
+    with redirect_stdout(std_out):
+        tf_dprint(A)
+
+    expected_out = 'Tensor(Placeholder):0,\tshape=Unknown\t"A:0"\n'
+
+    assert std_out.getvalue() == expected_out.lstrip()
