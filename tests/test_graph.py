@@ -117,8 +117,8 @@ def test_graph_applyo(test_input, test_output):
 
     q_lv = var()
     test_res = run(len(test_output), q_lv,
-                   (graph_applyo, math_reduceo,
-                    test_input, q_lv))
+                   graph_applyo(math_reduceo, test_input, q_lv,
+                                preprocess_graph=None))
 
     assert len(test_res) == len(test_output)
 
