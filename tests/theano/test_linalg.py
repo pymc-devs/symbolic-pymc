@@ -9,8 +9,8 @@ from symbolic_pymc.theano.random_variables import NormalRV, observed
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.opt import eval_and_reify_meta
 from symbolic_pymc.unify import (etuple, etuplize)
-from symbolic_pymc.relations.theano.linalg import (normal_normal_regression, buildo,
-                                                   normal_qr_transform)
+from symbolic_pymc.relations import buildo
+from symbolic_pymc.relations.theano.linalg import (normal_normal_regression, normal_qr_transform)
 
 from kanren import run, eq, var
 
