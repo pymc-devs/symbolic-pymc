@@ -7,9 +7,8 @@ from unification import var
 from kanren import run
 
 from symbolic_pymc.theano.random_variables import MvNormalRV, observed
-from symbolic_pymc.relations.graph import graph_applyo
+from symbolic_pymc.relations.theano import tt_graph_applyo
 from symbolic_pymc.relations.theano.conjugates import conjugate
-from symbolic_pymc.unify import etuplize
 
 
 @pytest.mark.usefixtures("run_with_theano")
@@ -41,14 +40,8 @@ def test_mvnormal_mvnormal():
 
     q_lv = var()
 
-    def expand_some_nodes(node):
-        if isinstance(node, (tt.Apply, tt.TensorVariable)):
-            return etuplize(node, shallow=True)
-        else:
-            return node
-
     expr_graph, = run(1, q_lv,
-                      (graph_applyo, conjugate, Y_obs, q_lv, expand_some_nodes))
+                      (tt_graph_applyo, conjugate, Y_obs, q_lv))
 
     fgraph_opt = expr_graph.eval_obj
     fgraph_opt_tt = fgraph_opt.reify()
