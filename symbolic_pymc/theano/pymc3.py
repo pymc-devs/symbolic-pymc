@@ -45,6 +45,16 @@ from .utils import replace_input_nodes, get_rv_observation
 logger = logging.getLogger("symbolic_pymc")
 
 
+def tt_get_values(obj):
+    """Get the value of a Theano constant or shared variable."""
+    if isinstance(obj, tt.Constant):
+        return obj.data
+    elif isinstance(obj, theano.compile.sharedvalue.SharedVariable):
+        return obj.get_value()
+    else:
+        raise TypeError(f"Unhandled observation type: {type(obj)}")
+
+
 @dispatch(Apply, object)
 def convert_rv_to_dist(node, obs):
     if not isinstance(node.op, RandomVariable):
@@ -102,7 +112,7 @@ def convert_dist_to_rv(dist, rng):
 
 @dispatch(HalfNormalRVType, Apply)
 def _convert_rv_to_dist(op, rv):
-    # TODO: Assert that `rv.inputs[0]` must be all zeros!
+    assert not np.any(tt_get_values(rv.inputs[0]))
     params = {"sd": rv.inputs[1]}
     return pm.HalfNormal, params
 
@@ -136,13 +146,14 @@ def _convert_rv_to_dist(op, rv):
 @dispatch(pm.InverseGamma, object)
 def convert_dist_to_rv(dist, rng):
     size = dist.shape.astype(int)[InvGammaRV.ndim_supp :]
-    res = InvGammaRV(dist.alpha, dist.beta, size=size, rng=rng)
+    res = InvGammaRV(dist.alpha, scale=dist.beta, size=size, rng=rng)
     return res
 
 
 @dispatch(InvGammaRVType, Apply)
 def _convert_rv_to_dist(op, rv):
-    params = {"alpha": rv.inputs[0], "beta": rv.inputs[1]}
+    assert not np.any(tt_get_values(rv.inputs[1]))
+    params = {"alpha": rv.inputs[0], "beta": rv.inputs[2]}
     return pm.InverseGamma, params
 
 
@@ -309,9 +320,14 @@ def model_graph(pymc_model, output_vars=None, rand_state=None, attach_memo=True)
     return model_fg
 
 
-def graph_model(fgraph, *model_args, **model_kwargs):
+def graph_model(graph, *model_args, **model_kwargs):
     """Create a PyMC3 model from a Theano graph with `RandomVariable` nodes."""
     model = pm.Model(*model_args, **model_kwargs)
+
+    fgraph = graph
+    if not isinstance(fgraph, FunctionGraph):
+        fgraph = FunctionGraph(tt.gof.graph.inputs([fgraph]), [fgraph])
+
     nodes = [n for n in fgraph.toposort() if isinstance(n.op, RandomVariable)]
     rv_replacements = {}
 
@@ -322,12 +338,7 @@ def graph_model(fgraph, *model_args, **model_kwargs):
         if obs is not None:
             obs = obs.inputs[0]
 
-            if isinstance(obs, tt.Constant):
-                obs = obs.data
-            elif isinstance(obs, theano.compile.sharedvalue.SharedVariable):
-                obs = obs.get_value()
-            else:
-                raise TypeError(f"Unhandled observation type: {type(obs)}")
+            obs = tt_get_values(obs)
 
         old_rv_var = node.default_output()
 

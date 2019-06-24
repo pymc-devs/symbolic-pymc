@@ -177,13 +177,13 @@ class InvGammaRVType(RandomVariable):
             "invgamma",
             theano.config.floatX,
             0,
-            [0, 0],
+            [0, 0, 0],
             lambda rng, *args: scipy.stats.invgamma.rvs(*args, random_state=rng),
             inplace=True,
         )
 
-    def make_node(self, loc, scale, size=None, rng=None, name=None):
-        return super().make_node(loc, scale, size=size, rng=rng, name=name)
+    def make_node(self, a, loc=0.0, scale=1.0, size=None, rng=None, name=None):
+        return super().make_node(a, loc, scale, size=size, rng=rng, name=name)
 
 
 InvGammaRV = InvGammaRVType()
@@ -202,7 +202,7 @@ class TruncExponentialRVType(RandomVariable):
             inplace=True,
         )
 
-    def make_node(self, b, loc, scale, size=None, rng=None, name=None):
+    def make_node(self, b, loc=0.0, scale=1.0, size=None, rng=None, name=None):
         return super().make_node(b, loc, scale, size=size, rng=rng, name=name)
 
 
