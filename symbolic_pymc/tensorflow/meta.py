@@ -419,10 +419,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
 
         if len(mt_outs) == 1:
             out_var = mt_outs[0]
-        elif self.value_index is not None and not MetaSymbol.is_meta(self.value_index):
-            out_var = mt_outs[self.value_index]
         else:
-            # TODO: Should we raise a `ValueError` instead?
             out_var = mt_outs
 
         return out_var

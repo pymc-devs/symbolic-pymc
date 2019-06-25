@@ -5,6 +5,8 @@ import tensorflow as tf
 
 from tensorflow_probability import distributions as tfd
 
+from unification import var
+
 from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaTensorShape,
                                            TFlowMetaConstant,
@@ -126,8 +128,16 @@ def test_meta_create():
     with pytest.raises(TypeError):
         TFlowMetaTensor('float64', 'Add', name='q__')
 
-    # TODO: Test multi-output results
-    assert True
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+def test_meta_multi_output():
+    """Make sure we can handle TF `Operation`s that output more than on tensor."""
+    d, U, V = mt.linalg.svd(var())
+
+    assert d.op == U.op == V.op
+    assert d.value_index == 0
+    assert U.value_index == 1
+    assert V.value_index == 2
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
