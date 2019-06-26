@@ -6,7 +6,7 @@ from kanren.cons import is_cons, is_null
 from kanren.core import condeseq
 from kanren.goals import conso, fail
 
-from ..unify import etuplize
+from ..etuple import etuplize
 
 
 def lapply_anyo(relation, l_in, l_out, i_any=False):

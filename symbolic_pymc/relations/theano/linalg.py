@@ -11,7 +11,7 @@ from kanren.core import lall
 from kanren.goals import not_equalo, conso
 
 from ...theano.meta import mt
-from ...unify import etuple, etuplize
+from ...etuple import etuple, etuplize
 from .. import buildo
 
 

@@ -4,7 +4,7 @@ from operator import add
 
 from kanren.term import term, operator, arguments
 
-from symbolic_pymc.unify import (ExpressionTuple, etuple)
+from symbolic_pymc.etuple import (ExpressionTuple, etuple)
 
 
 def test_etuple():

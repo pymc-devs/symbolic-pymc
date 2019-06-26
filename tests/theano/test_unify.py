@@ -6,7 +6,7 @@ from unification import unify, reify, var, variables
 
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.utils import graph_equal
-from symbolic_pymc.unify import (ExpressionTuple, etuple, etuplize)
+from symbolic_pymc.etuple import (ExpressionTuple, etuple, etuplize)
 
 
 @pytest.mark.usefixtures("run_with_theano")

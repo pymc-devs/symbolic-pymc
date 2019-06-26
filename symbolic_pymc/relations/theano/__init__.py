@@ -7,7 +7,7 @@ from kanren.core import lallgreedy
 
 from .linalg import buildo
 from ..graph import graph_applyo
-from ...unify import etuplize, etuple
+from ...etuple import etuplize, etuple
 from ...theano.meta import mt
 
 

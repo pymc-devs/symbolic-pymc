@@ -11,7 +11,7 @@ from kanren import run
 from theano.gof.opt import LocalOptimizer
 
 from .meta import MetaSymbol
-from .unify import ExpressionTuple
+from ..etuple import ExpressionTuple
 
 
 def eval_and_reify_meta(x):

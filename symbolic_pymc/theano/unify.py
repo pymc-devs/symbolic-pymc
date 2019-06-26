@@ -5,7 +5,8 @@ from kanren.term import term, operator, arguments
 from unification.core import _reify, _unify, reify
 
 from ..meta import metatize
-from ..unify import ExpressionTuple, unify_MetaSymbol, etuplize
+from ..unify import unify_MetaSymbol
+from ..etuple import ExpressionTuple, etuplize
 from .meta import TheanoMetaSymbol
 
 

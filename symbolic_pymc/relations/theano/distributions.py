@@ -9,7 +9,7 @@ from kanren.facts import fact
 from unification.utils import transitive_get as walk
 
 from .. import concat
-from ...unify import etuple
+from ...etuple import etuple
 from ...theano.meta import TheanoMetaConstant, mt
 
 from kanren.facts import Relation

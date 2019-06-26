@@ -4,7 +4,7 @@ from unification import var
 from kanren.facts import fact
 
 from .. import conjugate
-from ...unify import etuple
+from ...etuple import etuple
 from ...theano.meta import mt
 
 
