@@ -5,7 +5,7 @@ from kanren.term import term, operator, arguments
 from unification.core import _reify, _unify, reify
 
 from ..meta import metatize
-from ..unify import ExpressionTuple, unify_MetaSymbol, tuple_expression
+from ..unify import ExpressionTuple, unify_MetaSymbol, etuplize
 from .meta import TheanoMetaSymbol
 
 
@@ -38,6 +38,6 @@ arguments.add((tt.Variable,), lambda x: arguments(metatize(x)))
 
 term.add((tt.Op, ExpressionTuple), lambda op, args: term(metatize(op), args))
 
-tuple_expression.add(tt_class_abstractions, lambda x: tuple_expression(metatize(x)))
+etuplize.add(tt_class_abstractions, lambda x, shallow=False: etuplize(metatize(x), shallow))
 
 __all__ = []

@@ -9,7 +9,7 @@ from kanren.core import lallgreedy
 from theano.gof.opt import EquilibriumOptimizer
 from theano.gof.graph import inputs as tt_inputs
 
-from symbolic_pymc.unify import etuple, tuple_expression
+from symbolic_pymc.unify import etuple, etuplize
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.opt import KanrenRelationSub, FunctionGraph
 from symbolic_pymc.theano.utils import optimize_graph
@@ -41,7 +41,7 @@ def test_kanren_opt():
                 # lhs == A * (x + b)
                 (eq, etuple(mt.dot, var('A'),
                             etuple(mt.add, var('x'), var('b'))),
-                 tuple_expression(in_lv)),
+                 etuplize(in_lv)),
                 # rhs == A * x + A * b
                 (eq, etuple(mt.add,
                             etuple(mt.dot, var('A'), var('x')),

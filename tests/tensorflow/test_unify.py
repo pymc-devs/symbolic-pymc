@@ -1,15 +1,11 @@
 import pytest
 
-import numpy as np
-
 import tensorflow as tf
 
-from unification import unify, reify, var, variables
+from unification import unify, reify, var
 
-from kanren.term import term, operator, arguments
-
-from symbolic_pymc.tensorflow.meta import (TFlowOpName, mt)
-from symbolic_pymc.unify import (ExpressionTuple, etuple, tuple_expression)
+from symbolic_pymc.tensorflow.meta import (TFlowOpName, mt, TFlowMetaTensorShape)
+from symbolic_pymc.unify import (ExpressionTuple, etuple, etuplize)
 
 from tests.utils import assert_ops_equal
 
@@ -25,11 +21,18 @@ def test_etuple_term():
     assert isinstance(a_reified, tf.Tensor)
     assert a_reified.shape.dims is None
 
-    test_e = tuple_expression(a_mt)
+    test_e = etuplize(a_mt, shallow=False)
     assert test_e[0] == mt.placeholder
     assert test_e[1] == tf.float64
+    assert isinstance(test_e[2], ExpressionTuple)
     assert test_e[2][0].base == tf.TensorShape
     assert test_e[2][1] is None
+
+    test_e = etuplize(a_mt, shallow=True)
+    assert test_e[0] == mt.placeholder
+    assert test_e[1] == tf.float64
+    assert isinstance(test_e[2], TFlowMetaTensorShape)
+    assert test_e[2] is a_mt.op.node_def['shape']
 
     del test_e._eval_obj
     a_evaled = test_e.eval_obj
@@ -41,7 +44,7 @@ def test_etuple_term():
     assert TFlowOpName(a_reified.name) == TFlowOpName(a.name)
 
     e2 = mt.add(a, b)
-    e2_et = tuple_expression(e2)
+    e2_et = etuplize(e2)
     assert isinstance(e2_et, ExpressionTuple)
     assert e2_et[0] == mt.add
 
@@ -89,7 +92,7 @@ def test_sexp_unify_reify():
 
     z = tf.matmul(A, x + y)
 
-    z_sexp = tuple_expression(z)
+    z_sexp = etuplize(z)
 
     # Let's just be sure that the original TF objects are preserved
     assert z_sexp[1].eval_obj.reify() == A

@@ -6,6 +6,8 @@ from kanren.cons import is_cons, is_null
 from kanren.core import condeseq
 from kanren.goals import conso, fail
 
+from ..unify import etuplize
+
 
 def lapply_anyo(relation, l_in, l_out, i_any=False):
     """Apply a relation to at least one pair of corresponding elements in two sequences."""
@@ -71,27 +73,41 @@ def reduceo(relation, in_expr, out_expr):
     )
 
 
-def graph_applyo(relation, in_graph, out_graph):
-    """Relate the fixed-points of two term-graphs under a given relation."""
+def graph_applyo(relation, in_graph, out_graph, preprocess_graph=partial(etuplize, shallow=True)):
+    """Relate the fixed-points of two term-graphs under a given relation.
+
+    Parameters
+    ----------
+    relation: callable
+      A relation to apply on a graph and its subgraphs.
+    in_graph: object
+      The graph for which the left-hand side of a binary relation holds.
+    out_graph: object
+      The graph for which the right-hand side of a binary relation holds.
+    preprocess_graph: callable
+      A unary function that produces an iterable upon which `lapply_anyo`
+      can be applied in order to traverse a graph's subgraphs.  The default
+      function converts the graph to expression-tuple form.
+    """
     in_rdc = var()
-    _gapplyo = partial(graph_applyo, relation)
+
+    if preprocess_graph in (False, None):
+
+        def preprocess_graph(x):
+            return x
+
+    _gapplyo = partial(graph_applyo, relation, preprocess_graph=preprocess_graph)
 
     return (
         condeseq,
         [
             [
                 (relation, in_graph, in_rdc),
-                (
-                    condeseq,
-                    [[(graph_applyo, relation, in_rdc, out_graph)], [(eq, in_rdc, out_graph)]],
-                ),
+                (condeseq, [[(_gapplyo, in_rdc, out_graph)], [(eq, in_rdc, out_graph)]]),
             ],
             [
-                (lapply_anyo, _gapplyo, in_graph, in_rdc),
-                (
-                    condeseq,
-                    [[(graph_applyo, relation, in_rdc, out_graph)], [(eq, in_rdc, out_graph)]],
-                ),
+                (lapply_anyo, _gapplyo, preprocess_graph(in_graph), in_rdc),
+                (condeseq, [[(_gapplyo, in_rdc, out_graph)], [(eq, in_rdc, out_graph)]]),
             ],
         ],
     )

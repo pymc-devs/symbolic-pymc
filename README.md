@@ -58,7 +58,7 @@ from kanren import run
 from symbolic_pymc.theano.printing import tt_pprint
 from symbolic_pymc.theano.pymc3 import model_graph
 
-from symbolic_pymc.relations.graph import graph_applyo
+from symbolic_pymc.relations.theano import tt_graph_applyo
 from symbolic_pymc.relations.theano.conjugates import conjugate
 
 theano.config.cxx = ''
@@ -93,7 +93,7 @@ fgraph = model_graph(model, output_vars=[Y_rv])
 def conjugate_graph(graph):
     """Apply conjugate relations throughout a graph."""
     expr_graph, = run(1, var('q'),
-                      (graph_applyo, conjugate, graph, var('q')))
+                      (tt_graph_applyo, conjugate, graph, var('q')))
 
     fgraph_opt = expr_graph.eval_obj
     fgraph_opt_tt = fgraph_opt.reify()
@@ -135,13 +135,17 @@ import pymc3 as pm
 import theano
 import theano.tensor as tt
 
-from theano.gof.opt import EquilibriumOptimizer
+from unification import var
 
+from kanren import run
+
+from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.pymc3 import model_graph, graph_model
-from symbolic_pymc.theano.utils import optimize_graph, canonicalize
-from symbolic_pymc.theano.utils import get_rv_observation
+from symbolic_pymc.theano.utils import canonicalize
+
+from symbolic_pymc.relations.theano import tt_graph_applyo, non_obs_graph_applyo
 from symbolic_pymc.relations.theano.distributions import scale_loc_transform
-from symbolic_pymc.theano.opt import KanrenRelationSub
+
 
 tt.config.compute_test_value = 'ignore'
 
@@ -169,20 +173,33 @@ fgraph = model_graph(model_centered)
 # Perform a set of standard algebraic simplifications
 fgraph = canonicalize(fgraph, in_place=False)
 
-# Create a Theano optimizer that runs our pre-built scale-location transforms
-posterior_opt = EquilibriumOptimizer(
-    [KanrenRelationSub(scale_loc_transform,
-                       node_filter=get_rv_observation)],
-    max_use_ratio=10)
 
-# Apply the optimization to our graph
-fgraph_opt = optimize_graph(fgraph, posterior_opt, return_graph=True)
-fgraph_opt = canonicalize(fgraph_opt, in_place=False)
+def reparam_graph(graph):
+    """Apply re-parameterization relations throughout a graph."""
+
+    graph_mt = mt(graph)
+
+    expr_graph = run(0, var('q'),
+                     # Apply our transforms to unobserved RVs only
+                     non_obs_graph_applyo(
+                         lambda x, y: tt_graph_applyo(scale_loc_transform, x, y),
+                         graph_mt, var('q')))
+
+    expr_graph = expr_graph[0]
+    opt_graph_tt = expr_graph.reify()
+
+    # PyMC3 needs names for each RV
+    opt_graph_tt.owner.inputs[1].name = 'Y_new'
+
+    return opt_graph_tt
+
+
+fgraph_reparam = reparam_graph(fgraph.outputs[0])
 
 # Convert the symbolic-pymc graph into a PyMC3 graph so that we can sample it
-model_recentered = graph_model(fgraph_opt)
+model_recentered = graph_model(fgraph_reparam)
 
-np.random.seed(19238)
+np.random.seed(123)
 
 with model_centered:
     centered_trace = pm.sample(draws=5000, tune=1000, cores=4)[1000:]

@@ -2,15 +2,11 @@ import pytest
 
 import theano.tensor as tt
 
-from operator import add
-
 from unification import unify, reify, var, variables
-
-from kanren.term import term, operator, arguments
 
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.utils import graph_equal
-from symbolic_pymc.unify import (ExpressionTuple, etuple, tuple_expression)
+from symbolic_pymc.unify import (ExpressionTuple, etuple, etuplize)
 
 
 @pytest.mark.usefixtures("run_with_theano")
@@ -79,13 +75,13 @@ def test_unification():
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_etuple_term():
-    """Test `tuple_expression` and `etuple` interaction with `term`
+    """Test `etuplize` and `etuple` interaction with `term`
     """
     # Take apart an already constructed/evaluated meta
     # object.
     e2 = mt.add(mt.vector(), mt.vector())
 
-    e2_et = tuple_expression(e2)
+    e2_et = etuplize(e2)
 
     assert isinstance(e2_et, ExpressionTuple)
 
@@ -110,13 +106,13 @@ def test_etuple_term():
     mt_expr = mt(tt_expr)
     assert mt_expr.obj is tt_expr
     assert mt_expr.reify() is tt_expr
-    e3 = tuple_expression(mt_expr)
+    e3 = etuplize(mt_expr)
     assert e3 == e2_et
     assert e3.eval_obj is mt_expr
     assert e3.eval_obj.reify() is tt_expr
 
-    # Now, through `tuple_expression`
-    e2_et_2 = tuple_expression(tt_expr)
+    # Now, through `etuplize`
+    e2_et_2 = etuplize(tt_expr)
     assert e2_et_2 == e3 == e2_et
     assert isinstance(e2_et_2, ExpressionTuple)
     assert e2_et_2.eval_obj == tt_expr

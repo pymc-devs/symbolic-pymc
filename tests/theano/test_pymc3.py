@@ -23,7 +23,42 @@ from symbolic_pymc.theano.meta import mt
 
 
 @pytest.mark.usefixtures("run_with_theano")
-def test_pymc_normals():
+def test_pymc_convert_dists():
+    """Just a basic check that all PyMC3 RVs will convert to and from Theano RVs."""
+    tt.config.compute_test_value = 'ignore'
+    theano.config.cxx = ''
+
+    with pm.Model() as model:
+        norm_rv = pm.Normal('norm_rv', 0.0, 1.0, observed=1.0)
+        mvnorm_rv = pm.MvNormal('mvnorm_rv', np.r_[0.0], np.c_[1.0],
+                                shape=1, observed=np.r_[1.0])
+        cauchy_rv = pm.Cauchy('cauchy_rv', 0.0, 1.0, observed=1.0)
+        halfcauchy_rv = pm.HalfCauchy('halfcauchy_rv', 1.0, observed=1.0)
+        uniform_rv = pm.Uniform('uniform_rv', observed=1.0)
+        gamma_rv = pm.Gamma('gamma_rv', 1.0, 1.0, observed=1.0)
+        invgamma_rv = pm.InverseGamma('invgamma_rv', 1.0, 1.0, observed=1.0)
+        exp_rv = pm.Exponential('exp_rv', 1.0, observed=1.0)
+
+    # Convert to a Theano `FunctionGraph`
+    fgraph = model_graph(model)
+
+    rvs_by_name = {n.owner.inputs[1].name: n.owner.inputs[1]
+                   for n in fgraph.outputs}
+
+    pymc_rv_names = {n.name for n in model.observed_RVs}
+    assert all(isinstance(rvs_by_name[n].owner.op, RandomVariable)
+               for n in pymc_rv_names)
+
+    # Now, convert back to a PyMC3 model
+    pymc_model = graph_model(fgraph)
+
+    new_pymc_rv_names = {n.name for n in pymc_model.observed_RVs}
+    pymc_rv_names == new_pymc_rv_names
+
+
+@pytest.mark.usefixtures("run_with_theano")
+def test_pymc_normal_model():
+    """Conduct a more in-depth test of PyMC3/Theano conversions for a specific model."""
     tt.config.compute_test_value = 'ignore'
 
     mu_X = tt.dscalar('mu_X')
@@ -107,6 +142,7 @@ def test_pymc_normals():
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_normals_to_model():
+    """Test conversion to a PyMC3 model."""
     tt.config.compute_test_value = 'ignore'
 
     a_tt = tt.vector('a')
@@ -124,8 +160,25 @@ def test_normals_to_model():
     E_y_rv = F_t_tt.dot(beta_rv)
     Y_rv = MvNormalRV(E_y_rv, V_tt, name='Y')
 
-    y_tt = tt.as_tensor_variable(np.r_[-3.])
-    y_tt.name = 'y'
+    y_val = np.r_[-3.]
+
+    def _check_model(model):
+        assert len(model.observed_RVs) == 1
+        assert model.observed_RVs[0].name == 'Y'
+        Y_pm = model.observed_RVs[0].distribution
+        assert isinstance(Y_pm, pm.MvNormal)
+        np.testing.assert_array_equal(
+            model.observed_RVs[0].observations.data,
+
+            y_val)
+        assert Y_pm.mu.owner.op == tt.basic._dot
+        assert Y_pm.cov.name == 'V'
+        assert len(model.unobserved_RVs) == 1
+        assert model.unobserved_RVs[0].name == '\\beta'
+        beta_pm = model.unobserved_RVs[0].distribution
+        assert isinstance(beta_pm, pm.MvNormal)
+
+    y_tt = theano.shared(y_val, name='y')
     Y_obs = observed(y_tt, Y_rv)
 
     fgraph = FunctionGraph(tt_inputs([beta_rv, Y_obs]),
@@ -134,23 +187,33 @@ def test_normals_to_model():
 
     model = graph_model(fgraph)
 
-    assert len(model.observed_RVs) == 1
-    assert model.observed_RVs[0].name == 'Y'
-    Y_pm = model.observed_RVs[0].distribution
-    assert isinstance(Y_pm, pm.MvNormal)
-    np.testing.assert_array_equal(
-        model.observed_RVs[0].observations.data,
-        y_tt.data)
-    assert Y_pm.mu.owner.op == tt.basic._dot
-    assert Y_pm.cov.name == 'V'
-    assert len(model.unobserved_RVs) == 1
-    assert model.unobserved_RVs[0].name == '\\beta'
-    beta_pm = model.unobserved_RVs[0].distribution
-    assert isinstance(beta_pm, pm.MvNormal)
+    _check_model(model)
+
+    # Now, let `graph_model` create the `FunctionGraph`
+    model = graph_model(Y_obs)
+
+    _check_model(model)
+
+    # Use a different type of observation value
+    y_tt = tt.as_tensor_variable(y_val, name='y')
+    Y_obs = observed(y_tt, Y_rv)
+
+    model = graph_model(Y_obs)
+
+    _check_model(model)
+
+    # Use an invalid type of observation value
+    tt.config.compute_test_value = 'ignore'
+    y_tt = tt.vector('y')
+    Y_obs = observed(y_tt, Y_rv)
+
+    with pytest.raises(TypeError):
+        model = graph_model(Y_obs)
 
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_pymc_broadcastable():
+    """Test PyMC3 to Theano conversion amid array broadcasting."""
     tt.config.compute_test_value = 'ignore'
 
     mu_X = tt.vector('mu_X')

@@ -4,13 +4,14 @@ import numpy as np
 import theano
 import theano.tensor as tt
 
-from theano.gof.opt import EquilibriumOptimizer
+from unification import var
 
+from kanren import run
+
+from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.random_variables import (observed, NormalRV,
                                                    HalfCauchyRV)
-from symbolic_pymc.theano.opt import KanrenRelationSub, FunctionGraph
-from symbolic_pymc.theano.utils import (optimize_graph, canonicalize,
-                                        get_rv_observation)
+from symbolic_pymc.relations.theano import tt_graph_applyo, non_obs_graph_applyo
 from symbolic_pymc.relations.theano.distributions import scale_loc_transform
 
 
@@ -33,29 +34,22 @@ def test_pymc_normals():
     radon_like = NormalRV(radon_est, eps, name='radon_like', rng=rand_state)
     radon_like_rv = observed(tt.as_tensor_variable(np.r_[1., 2., 3., 4.]), radon_like)
 
-    inputs = [mu_a, mu_b, eps, rand_state]
-    fgraph = FunctionGraph(
-        inputs,
-        [radon_like_rv],
-        clone=True)
-    fgraph = canonicalize(fgraph, return_graph=True, in_place=False)
+    graph_mt = mt(radon_like_rv)
+    expr_graph, = run(1, var('q'),
+                      non_obs_graph_applyo(
+                          lambda x, y: tt_graph_applyo(scale_loc_transform, x, y),
+                          graph_mt, var('q')))
 
-    posterior_opt = EquilibriumOptimizer(
-        [KanrenRelationSub(scale_loc_transform,
-                           node_filter=get_rv_observation)],
-        max_use_ratio=10)
+    radon_like_rv_opt = expr_graph.reify()
 
-    fgraph_opt = optimize_graph(fgraph, posterior_opt, return_graph=True)
-    fgraph_opt = canonicalize(fgraph_opt, return_graph=True, in_place=False)
+    assert radon_like_rv_opt.owner.op == observed
 
-    radon_like_rv_opt = fgraph_opt.outputs[0]
     radon_like_opt = radon_like_rv_opt.owner.inputs[1]
     radon_est_opt = radon_like_opt.owner.inputs[0]
 
     # These should now be `tt.add(mu_*, ...)` outputs.
     a_opt = radon_est_opt.owner.inputs[0].owner.inputs[0]
-    b_opt = radon_est_opt.owner.inputs[1].owner.inputs[1].owner.inputs[0]
-
+    b_opt = radon_est_opt.owner.inputs[1].owner.inputs[0].owner.inputs[0]
     # Make sure NormalRV gets replaced with an addition
     assert a_opt.owner.op == tt.add
     assert b_opt.owner.op == tt.add

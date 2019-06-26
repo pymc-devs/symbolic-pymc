@@ -2,13 +2,14 @@ import reprlib
 
 from functools import wraps
 
+import numpy as np
+
 from multipledispatch import dispatch
 
-from kanren import isvar
 from kanren.term import term, operator, arguments
 
 from unification.more import unify
-from unification.core import reify, _unify, _reify, Var
+from unification.core import reify, _unify, _reify, Var, walk, assoc, isvar
 
 from .meta import MetaSymbol, MetaVariable
 from .utils import _check_eq
@@ -136,6 +137,25 @@ def debug_unify(enable=True):
     else:
         _unify.funcs = {sig: getattr(f, "__wrapped__", f) for sig, f in _unify.funcs.items()}
         _unify._cache.clear()
+
+
+def unify_numpy(u, v, s):
+    """Handle NumPy arrays in a special way to avoid warnings/exceptions."""
+    v = walk(v, s)
+    if isvar(u):
+        return assoc(s, u, v)
+    if isvar(v):
+        return assoc(s, v, u)
+    # Switch the order of comparison so that `v.__eq__` is tried (in case it's
+    # not also a NumPy array, but has logic for such comparisons)
+    if np.array_equal(v, u):
+        return s
+    return _unify(u, v, s)
+
+
+unify.add((np.ndarray, object, dict), unify_numpy)
+unify.add((object, np.ndarray, dict), unify_numpy)
+unify.add((np.ndarray, np.ndarray, dict), unify_numpy)
 
 
 def unify_MetaSymbol(u, v, s):
@@ -282,18 +302,25 @@ term.add((object, ExpressionTuple), _term_ExpressionTuple)
 
 
 @dispatch(object)
-def tuple_expression(x):
+def etuplize(x, shallow=False):
     """Return an expression-tuple for an object (i.e. a tuple of rand and rators).
 
     When evaluated, the rand and rators should [re-]construct the object.  When the
     object cannot be given such a form, the object itself is returned.
 
-    NOTE: `tuple_expression(...)[2:]` and `arguments(...)` will *not* return
-    the same thing, because the former is recursive and the latter is not.
-    In other words, this S-expression-like "decomposition" is recursive, and,
-    as such, it requires an inside-out evaluation to re-construct a
-    "decomposed" object.  In contrast, `operator` and `arguments` is a shallow
-    "decomposition".
+    NOTE: `etuplize(...)[2:]` and `arguments(...)` will *not* return
+    the same thing by default, because the former is recursive and the latter
+    is not.  In other words, this S-expression-like "decomposition" is
+    recursive, and, as such, it requires an inside-out evaluation to
+    re-construct a "decomposed" object.  In contrast, `operator` and
+    `arguments` is necessarily a shallow "decomposition".
+
+    Parameters
+    ----------
+    x: object
+      Object to convert to expression-tuple form.
+    shallow: bool
+      Whether or not to do a shallow conversion.
 
     """
     if isinstance(x, ExpressionTuple):
@@ -313,7 +340,12 @@ def tuple_expression(x):
     if not callable(op):
         return x
 
-    res = etuple(op, *tuple(tuple_expression(a) for a in args), eval_obj=x)
+    if shallow:
+        et_args = args
+    else:
+        et_args = tuple(etuplize(a) for a in args)
+
+    res = etuple(op, *et_args, eval_obj=x)
     return res
 
 
@@ -345,4 +377,4 @@ def _reify_ExpressionTuple(t, s):
     return res
 
 
-__all__ = ["debug_unify", "etuple", "tuple_expression"]
+__all__ = ["debug_unify", "etuple", "etuplize"]
