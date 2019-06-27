@@ -8,7 +8,7 @@ from unification import var
 from kanren import run, eq
 from kanren.core import condeseq
 
-from symbolic_pymc.unify import etuple
+from symbolic_pymc.etuple import etuple
 from symbolic_pymc.relations.graph import reduceo, lapply_anyo, graph_applyo
 
 

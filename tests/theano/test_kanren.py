@@ -8,7 +8,7 @@ from unification import var
 
 from symbolic_pymc.theano.random_variables import MvNormalRV
 from symbolic_pymc.theano.meta import mt
-from symbolic_pymc.unify import etuple
+from symbolic_pymc.etuple import etuple
 from symbolic_pymc.theano.utils import graph_equal
 
 

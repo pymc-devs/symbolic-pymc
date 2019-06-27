@@ -9,7 +9,7 @@ from kanren.core import lallgreedy
 from theano.gof.opt import EquilibriumOptimizer
 from theano.gof.graph import inputs as tt_inputs
 
-from symbolic_pymc.unify import etuple, etuplize
+from symbolic_pymc.etuple import etuple, etuplize
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.opt import KanrenRelationSub, FunctionGraph
 from symbolic_pymc.theano.utils import optimize_graph
