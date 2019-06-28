@@ -34,7 +34,7 @@ def test_etuple_term():
     assert isinstance(test_e[2], TFlowMetaTensorShape)
     assert test_e[2] is a_mt.op.node_def['shape']
 
-    del test_e._eval_obj
+    test_e._eval_obj = ExpressionTuple.null
     a_evaled = test_e.eval_obj
     assert all([a == b for a, b in zip(a_evaled.rands(), a_mt.rands())])
 

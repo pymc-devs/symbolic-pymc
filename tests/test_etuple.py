@@ -14,7 +14,7 @@ def test_etuple():
 
     e1 = etuple(test_op, 1, 2)
 
-    assert not hasattr(e1, '_eval_obj')
+    assert e1._eval_obj is ExpressionTuple.null
 
     with pytest.raises(ValueError):
         e1.eval_obj = 1
@@ -74,3 +74,46 @@ def test_etuple_term():
 
     e1_dup_2 = term(operator(e1), arguments(e1))
     assert e1_dup_2 == e1_obj
+
+
+def test_etuple_kwargs():
+    """Test keyword arguments and default argument values."""
+    def test_func(a, b, c=None, d='d-arg', **kwargs):
+        assert isinstance(c, (type(None), int))
+        return [a, b, c, d]
+
+    e1 = etuple(test_func, 1, 2)
+    assert e1.eval_obj == [1, 2, None, 'd-arg']
+
+    # Make sure we handle variadic args properly
+    def test_func2(*args, c=None, d='d-arg', **kwargs):
+        assert isinstance(c, (type(None), int))
+        return list(args) + [c, d]
+
+    e11 = etuple(test_func2, 1, 2)
+    assert e11.eval_obj == [1, 2, None, 'd-arg']
+
+    e2 = etuple(test_func, 1, 2, 3)
+    assert e2.eval_obj == [1, 2, 3, 'd-arg']
+
+    e3 = etuple(test_func, 1, 2, 3, 4)
+    assert e3.eval_obj == [1, 2, 3, 4]
+
+    e4 = etuple(test_func, 1, 2, c=3)
+    assert e4.eval_obj == [1, 2, 3, 'd-arg']
+
+    e5 = etuple(test_func, 1, 2, d=3)
+    assert e5.eval_obj == [1, 2, None, 3]
+
+    e6 = etuple(test_func, 1, 2, 3, d=4)
+    assert e6.eval_obj == [1, 2, 3, 4]
+
+    # Try evaluating nested etuples
+    e7 = etuple(test_func, etuple(add, 1, 0), 2,
+                c=etuple(add, 1, etuple(add, 1, 1)))
+    assert e7.eval_obj == [1, 2, 3, 'd-arg']
+
+    # Try a function without an obtainable signature object
+    e8 = etuple(enumerate, etuple(list, ['a', 'b', 'c', 'd']),
+                start=etuple(add, 1, etuple(add, 1, 1)))
+    assert list(e8.eval_obj) == [(3, 'a'), (4, 'b'), (5, 'c'), (6, 'd')]

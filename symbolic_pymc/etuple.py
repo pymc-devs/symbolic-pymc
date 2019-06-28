@@ -1,4 +1,7 @@
+import inspect
 import reprlib
+
+import toolz
 
 from multipledispatch import dispatch
 
@@ -10,6 +13,26 @@ etuple_repr.maxstring = 100
 etuple_repr.maxother = 100
 
 
+class KwdPair(tuple):
+    """A class used to indicate a keyword + value mapping.
+
+    TODO: Could subclass `ast.keyword`.
+
+    """
+
+    def __new__(cls, arg, value):
+        assert isinstance(arg, str)
+        obj = super().__new__(cls, (arg, value))
+        return obj
+
+    @property
+    def eval_obj(self):
+        return KwdPair(self[0], getattr(self[1], "eval_obj", self[1]))
+
+    def __repr__(self):
+        return f"{str(self[0])}={repr(self[1])}"
+
+
 class ExpressionTuple(tuple):
     """A tuple object that represents an expression.
 
@@ -18,6 +41,14 @@ class ExpressionTuple(tuple):
 
     """
 
+    null = object()
+
+    def __new__(cls, *args, **kwargs):
+        obj = super().__new__(cls, *args, **kwargs)
+        # TODO: Consider making this a weakref.
+        obj._eval_obj = cls.null
+        return obj
+
     @property
     def eval_obj(self):
         """Return the evaluation of this expression tuple.
@@ -25,13 +56,26 @@ class ExpressionTuple(tuple):
         XXX: If the object isn't cached, it will be evaluated recursively.
 
         """
-        if hasattr(self, "_eval_obj"):
+        if self._eval_obj is not ExpressionTuple.null:
             return self._eval_obj
         else:
             evaled_args = [getattr(i, "eval_obj", i) for i in self[1:]]
-            _eval_obj = self[0](*evaled_args)
+            arg_grps = toolz.groupby(lambda x: isinstance(x, KwdPair), evaled_args)
+            evaled_args = arg_grps.get(False, [])
+            evaled_kwargs = arg_grps.get(True, [])
 
-            assert not isinstance(_eval_obj, ExpressionTuple)
+            op = self[0]
+            try:
+                op_sig = inspect.signature(op)
+            except ValueError:
+                _eval_obj = op(*(evaled_args + [kw[1] for kw in evaled_kwargs]))
+            else:
+                op_args = op_sig.bind(*evaled_args, **dict(evaled_kwargs))
+                op_args.apply_defaults()
+
+                _eval_obj = op(*op_args.args, **op_args.kwargs)
+
+            # assert not isinstance(_eval_obj, ExpressionTuple)
 
             self._eval_obj = _eval_obj
             return self._eval_obj
@@ -86,16 +130,17 @@ def etuple(*args, **kwargs):
 
     If the keyword 'eval_obj' is given, the `ExpressionTuple`'s
     evaluated object is set to the corresponding value.
+    XXX: There is no verification/check that the arguments evaluate to the
+    user-specified 'eval_obj', so be careful.
 
     """
-    res = ExpressionTuple(args)
+    _eval_obj = kwargs.pop("eval_obj", ExpressionTuple.null)
 
-    if "eval_obj" in kwargs:
-        _eval_obj = kwargs.pop("eval_obj")
+    etuple_kwargs = tuple(KwdPair(k, v) for k, v in kwargs.items())
 
-        assert not isinstance(_eval_obj, ExpressionTuple)
+    res = ExpressionTuple(args + etuple_kwargs)
 
-        res._eval_obj = _eval_obj
+    res._eval_obj = _eval_obj
 
     return res
 
