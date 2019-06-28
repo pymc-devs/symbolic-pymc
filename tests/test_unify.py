@@ -1,11 +1,12 @@
 import numpy as np
 
+# Needed to set up unify dispatch functions
 import symbolic_pymc.unify
 
 from unification import unify, var
 
 
-def test_etuple():
+def test_numpy():
     """Make sure we can unify against NumPy arrays without errors."""
 
     np_array = np.r_[1, 2]
