@@ -284,6 +284,21 @@ class TFlowMetaOpDef(MetaOp, TFlowMetaSymbol):
     def _repr_pretty_(self, p, cycle):
         return p.text(f"{self.__class__.__name__}({self.obj.name})")
 
+    def __eq__(self, other):
+        if self is other:
+            return True
+
+        if not (type(self) == type(other)):
+            return False
+
+        if not (self.base == other.base):
+            return False
+
+        return self.obj.name == other.obj.name
+
+    def __hash__(self):
+        return hash((self.base, self.obj.name))
+
 
 class TFlowMetaOp(TFlowMetaSymbol):
     """A meta `Operation`.
