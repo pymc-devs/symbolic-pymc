@@ -136,11 +136,19 @@ class TFlowOpName(UserString):
     This wrapper class ignores those TF distinctions during string comparison.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._scope_op, _, self._in_idx = self.data.partition(":")
-        self._scope, _, self._op_name = self._scope_op.rpartition("/")
-        self._unique_name = self._op_name.split("_", 1)[0]
+    def __init__(self, s):
+        super().__init__(s)
+
+        if isinstance(s, type(self)):
+            self._scope_op = s._scope_op
+            self._in_idx = s._in_idx
+            self._scope = s._scope
+            self._op_name = s._op_name
+            self._unique_name = s._unique_name
+        else:
+            self._scope_op, _, self._in_idx = self.data.partition(":")
+            self._scope, _, self._op_name = self._scope_op.rpartition("/")
+            self._unique_name = self._op_name.split("_", 1)[0]
 
     def __eq__(self, other):
         if self is other:
@@ -268,11 +276,21 @@ class TFlowMetaOpDef(MetaOp, TFlowMetaSymbol):
         )
 
         # Get the `OpDef`-instantiating parameters and call them a "node_def".
-        node_def = {
-            a.name: apply_arguments[a.name] for a in self.obj.attr if a.name in apply_arguments
-        }
+        node_attr = {a.name: apply_arguments.get(a.name, a) for a in self.obj.attr}
 
-        op_mt = TFlowMetaOp(self, node_def, op_input_args, name=op_kwargs.get("name", None))
+        op_name = op_kwargs.get("name", self.obj.name.lower())
+
+        # input_arg_names = [(getattr(a, 'name', None), i.name)
+        #                    for a, i in zip(args, self.obj.input_arg)]
+        # if isvar(op_name) or any(isvar(a) or isvar(i) for a, i in input_arg_names):
+        #     node_input = [var() for i in self.obj.input_arg]
+        # else:
+        #     node_input = [getattr(a, 'name', None) or f"{op_name}/{i.name}"
+        #                   for a, i in input_arg_names]
+
+        node_def = TFlowMetaNodeDef(self.obj.name, op_name, node_attr)
+
+        op_mt = TFlowMetaOp(self, node_def, op_input_args, name=op_name)
 
         res_var = op_mt.default_output
 
@@ -300,6 +318,39 @@ class TFlowMetaOpDef(MetaOp, TFlowMetaSymbol):
         return hash((self.base, self.obj.name))
 
 
+class TFlowMetaNodeDef(TFlowMetaSymbol):
+    """A meta `NodeDef`.
+
+    NOTE: We're ignoring `node_def.input`; it's just an unnecessary hassle.
+    """
+
+    base = NodeDef
+    __slots__ = ["op", "name", "attr"]
+
+    def __init__(self, op, name, attr, obj=None):
+        self.op = metatize(op)
+        assert name is not None
+        self.name = TFlowOpName(name)
+        # self.input = [TFlowOpName(i) for i in input]
+
+        self.attr = {}
+        for k, v in dict(attr).items():
+            if k == "shape":
+                if isinstance(getattr(v, "shape", v), TensorShapeProto):
+                    v = tensor_shape.as_shape(v.shape)
+                v = metatize(v)
+            elif k == "dtype":
+                v = tf.as_dtype(v.type)
+            elif k == "value":
+                v = tensor_util.MakeNdarray(v.tensor)
+            else:
+                continue
+
+            self.attr[k] = v
+
+        super().__init__(obj=obj)
+
+
 class TFlowMetaOp(TFlowMetaSymbol):
     """A meta `Operation`.
 
@@ -310,47 +361,6 @@ class TFlowMetaOp(TFlowMetaSymbol):
 
     base = tf.Operation
     __slots__ = ["op_def", "node_def", "inputs", "name"]
-
-    @classmethod
-    def process_node_def(cls, node_def, op_def, obj=None):
-        """Minimally convert -Proto objects in a `NodeDef` to their corresponding meta classes.
-
-        The result is a dict that somewhat mirrors a NodeDef, but with meta objects.
-
-        FYI: We're using `node_def` as a hackish way to include user-specified
-        `OpDef` parameters that aren't standard inputs (e.g. imagine that
-        `OpDef`s are parameterized and an `OpDef` instance is only possible
-        with a concrete type parameter).
-        """
-        if isinstance(node_def, NodeDef):
-            assert node_def.op == op_def.obj.name
-            assert obj is not None
-            node_def = dict(node_def.attr)
-        elif not isinstance(node_def, dict):
-            raise TypeError("Invalid node_def type")
-
-        op_def_attr_names = tuple(
-            a.name
-            for a in op_def.obj.attr
-            # This is a quick way to filter out the useful
-            # `attr`s (i.e. the ones that are required `OpDef`
-            # parameters).
-            if a.name in op_def.apply_func_sig.parameters
-        )
-        meta_node_def = {}
-        for k, v in node_def.items():
-            if k not in op_def_attr_names:
-                continue
-            v = obj.get_attr(k) if obj else v
-            if k == "shape":
-                if isinstance(v, TensorShapeProto):
-                    v = tensor_shape.as_shape(v)
-                v = metatize(v)
-            elif k == "dtype":
-                v = tf.as_dtype(v)
-            meta_node_def[k] = v
-
-        return meta_node_def
 
     @classmethod
     def _metatize(cls, obj):
@@ -383,7 +393,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
         if self.type is None:
             self.type = self.op_def.obj.name
 
-        self.node_def = self.process_node_def(node_def, self.op_def, obj)
+        self.node_def = metatize(node_def)
         self.inputs = tuple(metatize(i) for i in inputs)
 
         if outputs is not None:
@@ -412,7 +422,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
         if self._outputs is not None:
             return self.outputs
 
-        apply_arguments = self.op_def.input_args(*self.inputs, **self.node_def)
+        apply_arguments = self.op_def.input_args(*self.inputs, **self.node_def.attr)
         out_types_mt = self.op_def.out_meta_types(inputs=apply_arguments)
 
         mt_outs = tuple(
@@ -455,7 +465,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
         # tt_op = self.op.reify()
         # if not self.is_meta(tt_op):
         op_inputs, op_inputs_unreified = _meta_reify_iter(self.inputs)
-        op_attrs, op_attrs_unreified = _meta_reify_iter(self.node_def)
+        op_attrs, op_attrs_unreified = _meta_reify_iter(self.node_def.attr)
         if not op_inputs_unreified and not op_attrs_unreified and not MetaSymbol.is_meta(self.name):
 
             # We have to use a primitive string or TF will complain.
@@ -542,7 +552,7 @@ class TFlowMetaTensor(MetaVariable, TFlowMetaSymbol, metaclass=TFlowMetaOpFactor
         """
         if self.op is not None:
             input_args = self.op.op_def.input_args(
-                *self.op.inputs, name=self.op.name, **self.op.node_def
+                *self.op.inputs, name=self.op.name, **self.op.node_def.attr
             )
             return tuple(input_args.values())
 
@@ -623,7 +633,8 @@ class TFlowMetaConstant(TFlowMetaTensor):
             tf_obj = tf.constant(obj, dtype=dtype, shape=shape, name=name)
         else:
             tf_obj = obj
-            obj = tensor_util.MakeNdarray(tf_obj.op.get_attr("value"))
+            obj = tf_obj.op.node_def.attr["value"]
+            # obj = tensor_util.MakeNdarray(obj)
 
         assert tf_obj.op.type == "Const"
         self._data = obj

@@ -99,16 +99,21 @@ def test_meta_create():
     assert isinstance(add_mt_2.op.obj, tf.Operation)
     assert add_mt_2.op.obj.type == 'Add'
 
-    # These aren't technically equal because of the TF auto-generated names,
-    # but, since we're using special string wrappers for the names, it should
-    # work.
-    assert add_mt == add_mt_2
-
     assert add_mt.obj is not None
     add_mt.name = None
     assert add_mt.obj is None
     add_mt_2.name = None
 
+    # These aren't technically equal because of the TF auto-generated names,
+    # but, since we're using special string wrappers for the names, it should
+    # work in most cases.
+    # However, the node_def input names will break equality, since even the TF
+    # names aren't the same between these two different constructions:
+    # tf.add(1, 2).op.node_def
+    # tf.add(tf.convert_to_tensor(1), tf.convert_to_tensor(2)).op.node_def
+
+    add_mt.op.node_def.input = [None, None]
+    add_mt_2.op.node_def.input = [None, None]
     assert add_mt == add_mt_2
 
     a_mt = mt(tf.compat.v1.placeholder('float64', name='a', shape=[1, 2]))
