@@ -5,12 +5,14 @@ import tensorflow as tf
 
 from tensorflow_probability import distributions as tfd
 
-from unification import var
+from unification import var, isvar
 
 from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaTensorShape,
                                            TFlowMetaConstant,
+                                           TFlowMetaOp,
                                            TFlowMetaOpDef,
+                                           TFlowMetaNodeDef,
                                            TFlowOpName,
                                            mt)
 
@@ -132,6 +134,23 @@ def test_meta_create():
 
     with pytest.raises(TypeError):
         TFlowMetaTensor('float64', 'Add', name='q__')
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+def test_meta_lvars():
+    """Make sure we can use lvars as values."""
+
+    nd_mt = TFlowMetaNodeDef(var(), var(), var())
+    assert all(isvar(getattr(nd_mt, s)) for s in nd_mt.__slots__)
+
+    mo_mt = TFlowMetaOp(var(), var(), var(), var())
+    assert all(isvar(getattr(mo_mt, s)) for s in mo_mt.__slots__)
+
+    ts_mt = TFlowMetaTensorShape(var())
+    assert all(isvar(getattr(ts_mt, s)) for s in ts_mt.__slots__)
+
+    tn_mt = TFlowMetaTensor(var(), var(), var(), var(), var())
+    assert all(isvar(getattr(tn_mt, s)) for s in tn_mt.__slots__)
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
