@@ -14,7 +14,7 @@ from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowOpName,
                                            mt)
 
-from tests.utils import assert_ops_equal
+from tests.tensorflow.utils import assert_ops_equal
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
@@ -195,3 +195,16 @@ def test_meta_distributions():
     Y_mt_tf = Y_mt.reify()
 
     assert_ops_equal(Y_mt, Y_mt_tf)
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+def test_inputs_remapping():
+    t1 = [[1, 2, 3], [4, 5, 6]]
+    t2 = [[7, 8, 9], [10, 11, 12]]
+    z = tf.concat([t1, t2], 0)
+
+    z_mt = mt(z)
+
+    assert isinstance(z_mt.inputs[0], list)
+    assert z_mt.inputs[0][0].obj == z.op.inputs[0]
+    assert z_mt.inputs[0][1].obj == z.op.inputs[1]    
+    assert z_mt.inputs[1].obj == z.op.inputs[2]
