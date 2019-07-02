@@ -167,6 +167,17 @@ def test_meta_hashing():
 
     assert isinstance(hash(add_mt), int)
 
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+def test_meta_compare():
+    """Make objects compare correctly."""
+
+    a_tf = tf.compat.v1.placeholder('float', name='a', shape=[None, 1])
+    z_tf = tf.multiply(2.0, a_tf)
+
+    assert mt(z_tf) == mt(z_tf)
+
+
 @pytest.mark.usefixtures("run_with_tensorflow")
 def test_meta_multi_output():
     """Make sure we can handle TF `Operation`s that output more than on tensor."""
@@ -233,6 +244,7 @@ def test_meta_distributions():
     Y_mt_tf = Y_mt.reify()
 
     assert_ops_equal(Y_mt, Y_mt_tf)
+
 
 @pytest.mark.usefixtures("run_with_tensorflow")
 def test_inputs_remapping():
