@@ -32,7 +32,7 @@ def test_etuple_term():
     assert test_e[0] == mt.placeholder
     assert test_e[1] == tf.float64
     assert isinstance(test_e[2], TFlowMetaTensorShape)
-    assert test_e[2] is a_mt.op.node_def['shape']
+    assert test_e[2] is a_mt.op.node_def.attr['shape']
 
     test_e._eval_obj = ExpressionTuple.null
     a_evaled = test_e.eval_obj

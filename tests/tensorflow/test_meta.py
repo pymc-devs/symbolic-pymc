@@ -5,12 +5,14 @@ import tensorflow as tf
 
 from tensorflow_probability import distributions as tfd
 
-from unification import var
+from unification import var, isvar
 
 from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaTensorShape,
                                            TFlowMetaConstant,
+                                           TFlowMetaOp,
                                            TFlowMetaOpDef,
+                                           TFlowMetaNodeDef,
                                            TFlowOpName,
                                            mt)
 
@@ -68,7 +70,7 @@ def test_meta_create():
     # Create a (constant) tensor meta object manually.
     X_raw_mt = TFlowMetaConstant(obj=X)
 
-    assert X_raw_mt._data is X
+    assert X_raw_mt.data is X
 
     # These are *not* equivalent, since they're constants without matching
     # constant values (well, our manually-created meta constant has no constant
@@ -99,16 +101,21 @@ def test_meta_create():
     assert isinstance(add_mt_2.op.obj, tf.Operation)
     assert add_mt_2.op.obj.type == 'Add'
 
-    # These aren't technically equal because of the TF auto-generated names,
-    # but, since we're using special string wrappers for the names, it should
-    # work.
-    assert add_mt == add_mt_2
-
     assert add_mt.obj is not None
     add_mt.name = None
     assert add_mt.obj is None
     add_mt_2.name = None
 
+    # These aren't technically equal because of the TF auto-generated names,
+    # but, since we're using special string wrappers for the names, it should
+    # work in most cases.
+    # However, the node_def input names will break equality, since even the TF
+    # names aren't the same between these two different constructions:
+    # tf.add(1, 2).op.node_def
+    # tf.add(tf.convert_to_tensor(1), tf.convert_to_tensor(2)).op.node_def
+
+    add_mt.op.node_def.input = [None, None]
+    add_mt_2.op.node_def.input = [None, None]
     assert add_mt == add_mt_2
 
     a_mt = mt(tf.compat.v1.placeholder('float64', name='a', shape=[1, 2]))
@@ -128,6 +135,37 @@ def test_meta_create():
     with pytest.raises(TypeError):
         TFlowMetaTensor('float64', 'Add', name='q__')
 
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+def test_meta_lvars():
+    """Make sure we can use lvars as values."""
+
+    nd_mt = TFlowMetaNodeDef(var(), var(), var())
+    assert all(isvar(getattr(nd_mt, s)) for s in nd_mt.__slots__)
+
+    mo_mt = TFlowMetaOp(var(), var(), var(), var())
+    assert all(isvar(getattr(mo_mt, s)) for s in mo_mt.__slots__)
+
+    ts_mt = TFlowMetaTensorShape(var())
+    assert all(isvar(getattr(ts_mt, s)) for s in ts_mt.__slots__)
+
+    tn_mt = TFlowMetaTensor(var(), var(), var(), var(), var())
+    assert all(isvar(getattr(tn_mt, s)) for s in tn_mt.__slots__)
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+def test_meta_hashing():
+    """Make sure we can hash meta graphs."""
+    N = 100
+    X = np.vstack([np.random.randn(N), np.ones(N)]).T
+    X_mt = mt(X)
+
+    assert isinstance(hash(X_mt), int)
+
+    a_mt = mt(tf.compat.v1.placeholder('float32', name='a', shape=[1, 2]))
+    add_mt = mt.add(tf.convert_to_tensor([1.0, 2.0]), mt.add(a_mt, a_mt))
+
+    assert isinstance(hash(add_mt), int)
 
 @pytest.mark.usefixtures("run_with_tensorflow")
 def test_meta_multi_output():
