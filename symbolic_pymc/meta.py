@@ -42,8 +42,10 @@ def _metatize(obj):
 def _make_hashable(x):
     if isinstance(x, list):
         return tuple(x)
+    elif isinstance(x, Mapping):
+        return frozenset(x.items())
     elif isinstance(x, np.ndarray):
-        return x.data.tobytes()
+        return x.tostring()
     else:
         return x
 

@@ -70,7 +70,7 @@ def test_meta_create():
     # Create a (constant) tensor meta object manually.
     X_raw_mt = TFlowMetaConstant(obj=X)
 
-    assert X_raw_mt._data is X
+    assert X_raw_mt.data is X
 
     # These are *not* equivalent, since they're constants without matching
     # constant values (well, our manually-created meta constant has no constant
@@ -152,6 +152,20 @@ def test_meta_lvars():
     tn_mt = TFlowMetaTensor(var(), var(), var(), var(), var())
     assert all(isvar(getattr(tn_mt, s)) for s in tn_mt.__slots__)
 
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+def test_meta_hashing():
+    """Make sure we can hash meta graphs."""
+    N = 100
+    X = np.vstack([np.random.randn(N), np.ones(N)]).T
+    X_mt = mt(X)
+
+    assert isinstance(hash(X_mt), int)
+
+    a_mt = mt(tf.compat.v1.placeholder('float32', name='a', shape=[1, 2]))
+    add_mt = mt.add(tf.convert_to_tensor([1.0, 2.0]), mt.add(a_mt, a_mt))
+
+    assert isinstance(hash(add_mt), int)
 
 @pytest.mark.usefixtures("run_with_tensorflow")
 def test_meta_multi_output():

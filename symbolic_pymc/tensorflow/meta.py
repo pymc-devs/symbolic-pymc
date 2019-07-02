@@ -1,6 +1,8 @@
 import types
 import inspect
 
+import numpy as np
+
 import tensorflow as tf
 import tensorflow_probability as tfp
 
@@ -165,6 +167,9 @@ class TFlowOpName(UserString):
             return False
 
         return self._unique_name == other._unique_name and self._in_idx == other._in_idx
+
+    def __hash__(self):
+        return hash((self._unique_name, self._in_idx))
 
 
 def _metatize_tf_object(obj):
@@ -336,7 +341,7 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
         if k == "shape":
             return tensor_shape.as_shape(v.shape)
         elif k == "dtype":
-            return tf.as_dtype(v.type)
+            return tf.as_dtype(v.type).name
         elif k == "value":
             return tensor_util.MakeNdarray(v.tensor)
         # NOTE: We would need to get names for `k` from
@@ -359,12 +364,14 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
         self.name = name if isvar(name) else TFlowOpName(name)
         # self.input = [TFlowOpName(i) for i in input]
 
-        # from google.protobuf.json_format import MessageToDict
-        # MessageToDict(obj, use_integers_for_enums=True)
-
         if not isvar(attr):
-            self.attr = {}
-            for k, v in dict(attr).items():
+            # This would cover a lot at once (but not any meta object
+            # conversions):
+            #   from google.protobuf.json_format import MessageToDict
+            #   MessageToDict(obj, use_integers_for_enums=True)
+
+            self.attr = OrderedDict()
+            for k, v in sorted(dict(attr).items()):
                 if isinstance(v, Message):
                     try:
                         v = self._protobuf_convert(k, v)
@@ -643,7 +650,7 @@ class TFlowMetaTensorShape(TFlowMetaSymbol):
     def __init__(self, dims, **kwargs):
         self.dims = dims
         if self.dims is not None and not isvar(self.dims):
-            self.dims = [tensor_shape.as_dimension(d) for d in self.dims]
+            self.dims = tuple(tensor_shape.as_dimension(d) for d in self.dims)
         super().__init__(**kwargs)
 
     @property
@@ -660,6 +667,9 @@ class TFlowMetaTensorShape(TFlowMetaSymbol):
             return [d.value for d in self.dims]
         else:
             return self.dims
+
+    def __hash__(self):
+        return hash((self.base, tuple(self.as_list())))
 
 
 class TFlowConstantType(type):
@@ -686,15 +696,17 @@ class TFlowMetaConstant(TFlowMetaTensor):
 
         assert obj is not None
 
+        # If `obj` is a NumPy array, create the corresponding TF object, and,
+        # if it's a TF object, create the corresponding NumPy array.
         if not isinstance(obj, tf.Tensor):
             tf_obj = tf.constant(obj, dtype=dtype, shape=shape, name=name)
         else:
             tf_obj = obj
             obj = tf_obj.op.node_def.attr["value"]
-            # obj = tensor_util.MakeNdarray(obj)
+            obj = tensor_util.MakeNdarray(obj.tensor)
 
         assert tf_obj.op.type == "Const"
-        self._data = obj
+        self.data = obj
 
         super().__init__(
             tf_obj.dtype.name,
@@ -703,20 +715,6 @@ class TFlowMetaConstant(TFlowMetaTensor):
             name=tf_obj.name,
             obj=tf_obj,
         )
-
-    @property
-    def data(self):
-        """Return the data for a tensor constant as a Python object.
-
-        TF tensors can also be constants, but there's no separate
-        class/type for them, so, for access to the underlying constant value,
-        we provide this property.
-        """
-        if hasattr(self, "_data"):
-            return self._data
-        else:
-            self._data = tensor_util.MakeNdarray(self.op.obj.get_attr("value"))
-            return self._data
 
     def __eq__(self, other):
         if self is other:
@@ -728,13 +726,10 @@ class TFlowMetaConstant(TFlowMetaTensor):
         if not (self.base == other.base):
             return False
 
-        our_data = self.op.obj.get_attr("value")
-        other_data = other.op.obj.get_attr("value")
-        return our_data == other_data
+        return np.array_equal(self.data, other.data)
 
     def __hash__(self):
-        data = self.op.obj.get_attr("value")
-        return hash((self.base, data))
+        return hash((self.base, self.data.tostring()))
 
 
 class TFlowMetaAccessor(object):
