@@ -650,7 +650,7 @@ class TFlowMetaTensorShape(TFlowMetaSymbol):
     def __init__(self, dims, **kwargs):
         self.dims = dims
         if self.dims is not None and not isvar(self.dims):
-            self.dims = tuple(tensor_shape.as_dimension(d) for d in self.dims)
+            self.dims = tuple(tensor_shape.as_dimension(d).value for d in self.dims)
         super().__init__(**kwargs)
 
     @property
@@ -664,12 +664,12 @@ class TFlowMetaTensorShape(TFlowMetaSymbol):
 
     def as_list(self):
         if self.dims is not None and not isvar(self.dims):
-            return [d.value for d in self.dims]
+            return list(self.dims)
         else:
             return self.dims
 
     def __hash__(self):
-        return hash((self.base, tuple(self.as_list())))
+        return hash((self.base, self.dims))
 
 
 class TFlowConstantType(type):
