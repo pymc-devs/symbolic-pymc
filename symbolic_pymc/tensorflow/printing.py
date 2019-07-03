@@ -5,11 +5,18 @@ from contextlib import contextmanager
 
 import tensorflow as tf
 
+from symbolic_pymc.tensorflow.meta import TFlowMetaTensor
+from symbolic_pymc.tensorflow.meta import TFlowMetaOp
 
-class IndentPrinter(object):
-    def __init__(self, formatter):
+
+class TFlowPrinter(object):
+    """A printer that indents and keeps track of already printed subgraphs."""
+
+    def __init__(self, formatter, buffer):
+        self.buffer = buffer
         self.formatter = formatter
         self.indentation = ""
+        self.printed_subgraphs = set()
 
     @contextmanager
     def indented(self, indent):
@@ -27,40 +34,55 @@ class IndentPrinter(object):
         return self.indentation + self.formatter(obj)
 
     def print(self, obj):
-        sys.stdout.write(self.format(obj))
-        sys.stdout.flush()
+        self.buffer.write(self.format(obj))
+        self.buffer.flush()
 
     def println(self, obj):
-        sys.stdout.write(self.format(obj) + "\n")
-        sys.stdout.flush()
+        self.buffer.write(self.format(obj) + "\n")
+        self.buffer.flush()
 
 
-@singledispatch
-def tf_dprint(obj, printer=IndentPrinter(str)):
+def tf_dprint(obj, printer=None):
     """Print a textual representation of a TF graph.
 
     The output roughly follows the format of `theano.printing.debugprint`.
     """
+    if printer is None:
+        printer = TFlowPrinter(str, sys.stdout)
+
+    _tf_dprint(obj, printer)
+
+
+@singledispatch
+def _tf_dprint(obj, printer):
     printer.println(obj)
 
 
-@tf_dprint.register(tf.Tensor)
-def _(obj, printer=IndentPrinter(str)):
+@_tf_dprint.register(tf.Tensor)
+@_tf_dprint.register(TFlowMetaTensor)
+def _(obj, printer):
+
     try:
         shape_str = str(obj.shape.as_list())
-    except ValueError:
+    except (ValueError, AttributeError):
         shape_str = "Unknown"
+
     prefix = f'Tensor({obj.op.type}):{obj.value_index},\tshape={shape_str}\t"{obj.name}"'
-    tf_dprint(prefix, printer)
+    _tf_dprint(prefix, printer)
     if len(obj.op.inputs) > 0:
         with printer.indented("|  "):
-            tf_dprint(obj.op, printer)
+            if obj not in printer.printed_subgraphs:
+                printer.printed_subgraphs.add(obj)
+                _tf_dprint(obj.op, printer)
+            else:
+                _tf_dprint("...", printer)
 
 
-@tf_dprint.register(tf.Operation)
-def _(obj, printer=IndentPrinter(str)):
+@_tf_dprint.register(tf.Operation)
+@_tf_dprint.register(TFlowMetaOp)
+def _(obj, printer):
     prefix = f'Op({obj.type})\t"{obj.name}"'
-    tf_dprint(prefix, printer)
+    _tf_dprint(prefix, printer)
     with printer.indented("|  "):
         for op_input in obj.inputs:
-            tf_dprint(op_input, printer)
+            _tf_dprint(op_input, printer)
