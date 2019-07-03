@@ -10,6 +10,7 @@ from unification import var, isvar
 from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaTensorShape,
                                            TFlowMetaConstant,
+                                           _TFlowConstant,
                                            TFlowMetaOp,
                                            TFlowMetaOpDef,
                                            TFlowMetaNodeDef,
@@ -149,6 +150,8 @@ def test_meta_lvars():
     ts_mt = TFlowMetaTensorShape(var())
     assert all(isvar(getattr(ts_mt, s)) for s in ts_mt.__slots__)
 
+    assert isvar(ts_mt.as_list())
+
     tn_mt = TFlowMetaTensor(var(), var(), var(), var(), var())
     assert all(isvar(getattr(tn_mt, s)) for s in tn_mt.__slots__)
 
@@ -169,6 +172,15 @@ def test_meta_hashing():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+def test_meta_types():
+    """Make sure our custom types/classes check out."""
+
+    const_tf = tf.convert_to_tensor([1.0, 2.0])
+
+    assert isinstance(const_tf, _TFlowConstant)
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
 def test_meta_compare():
     """Make objects compare correctly."""
 
@@ -176,6 +188,14 @@ def test_meta_compare():
     z_tf = tf.multiply(2.0, a_tf)
 
     assert mt(z_tf) == mt(z_tf)
+
+    const_tf = tf.convert_to_tensor([1.0, 2.0])
+    const_mt = mt(const_tf)
+
+    assert const_mt == const_mt
+    assert const_mt == mt(const_tf)
+    assert const_mt != const_tf
+    assert const_mt != a_tf
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
@@ -187,6 +207,9 @@ def test_meta_multi_output():
     assert d.value_index == 0
     assert U.value_index == 1
     assert V.value_index == 2
+
+    assert d.op.outputs == (d, U, V)
+    assert d.op.default_output is d.op.outputs
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
@@ -256,5 +279,5 @@ def test_inputs_remapping():
 
     assert isinstance(z_mt.inputs[0], list)
     assert z_mt.inputs[0][0].obj == z.op.inputs[0]
-    assert z_mt.inputs[0][1].obj == z.op.inputs[1]    
+    assert z_mt.inputs[0][1].obj == z.op.inputs[1]
     assert z_mt.inputs[1].obj == z.op.inputs[2]
