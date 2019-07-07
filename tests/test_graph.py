@@ -70,13 +70,13 @@ def test_lapply_anyo_types():
     assert res[0] == [1]
     res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), (1,), q_lv))
     assert res[0] == (1,)
-    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), etuple(1,), q_lv))
+    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), etuple(1,), q_lv, skip_op=False))
     assert res[0] == etuple(1,)
     res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), q_lv, (1,)))
     assert res[0] == (1,)
     res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), q_lv, [1]))
     assert res[0] == [1]
-    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), q_lv, etuple(1)))
+    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), q_lv, etuple(1), skip_op=False))
     assert res[0] == etuple(1)
     res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), [1, 2], [1, 2]))
     assert len(res) == 1
@@ -84,6 +84,10 @@ def test_lapply_anyo_types():
     assert len(res) == 0
     res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), [1, 2], (1, 2)))
     assert len(res) == 0
+    res = run(0, q_lv, lapply_anyo(lambda x, y: eq(y, etuple(mul, 2, x)),
+                                   etuple(add, 1, 2), q_lv, skip_op=True))
+    assert len(res) == 3
+    assert all(r[0] == add for r in res)
 
 
 @pytest.mark.parametrize(

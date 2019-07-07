@@ -9,10 +9,10 @@ from kanren.cons import is_cons, is_null
 from kanren.core import conde, lall
 from kanren.goals import conso, fail
 
-from ..etuple import etuplize, etuple
+from ..etuple import etuplize, etuple, ExpressionTuple
 
 
-def lapply_anyo(relation, l_in, l_out, null_type=False):
+def lapply_anyo(relation, l_in, l_out, null_type=False, skip_op=True):
     """Apply a relation to at least one pair of corresponding elements in two sequences.
 
     Parameters
@@ -21,9 +21,12 @@ def lapply_anyo(relation, l_in, l_out, null_type=False):
        An object that's a valid cdr for the collection type desired.  If
        `False` (i.e. the default value), the cdr will be inferred from the
        inputs, or defaults to an empty list.
+    skip_op: boolean (optional)
+       When both inputs are `etuple`s and this value is `True`, the relation
+       will not be applied to the operators (i.e. the cars) of the inputs.
     """
 
-    def _lapply_anyo(relation, l_in, l_out, i_any, null_type):
+    def _lapply_anyo(relation, l_in, l_out, i_any, null_type, skip_cars=False):
         def _goal(s):
 
             nonlocal i_any, null_type
@@ -48,9 +51,10 @@ def lapply_anyo(relation, l_in, l_out, null_type=False):
                 [eq(i_car, o_car), _lapply_anyo(relation, i_cdr, o_cdr, i_any, null_type)]
             ]
 
-            conde_2_branches.append(
-                [relation(i_car, o_car), _lapply_anyo(relation, i_cdr, o_cdr, True, null_type)]
-            )
+            if not skip_cars:
+                conde_2_branches.append(
+                    [relation(i_car, o_car), _lapply_anyo(relation, i_cdr, o_cdr, True, null_type)]
+                )
 
             descend_branch.append(conde(*conde_2_branches))
 
@@ -61,7 +65,9 @@ def lapply_anyo(relation, l_in, l_out, null_type=False):
 
         return _goal
 
-    def goal(s, null_type=null_type):
+    def goal(s):
+
+        nonlocal null_type, skip_op
 
         # We need the `cons` types to match in the end, which involves
         # using the same `cons`-null (i.e. terminating `cdr`).
@@ -88,7 +94,14 @@ def lapply_anyo(relation, l_in, l_out, null_type=False):
                 else []
             )
 
-        g = _lapply_anyo(relation, l_in, l_out, False, null_type)
+        g = _lapply_anyo(
+            relation,
+            l_in,
+            l_out,
+            False,
+            null_type,
+            skip_cars=isinstance(null_type, ExpressionTuple) and skip_op,
+        )
         g = goaleval(g)
 
         yield from g(s)
