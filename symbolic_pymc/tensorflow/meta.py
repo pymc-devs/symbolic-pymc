@@ -548,7 +548,6 @@ class TFlowMetaOpFactory(MetaSymbolType):
 
     Example
     -------
-
     >>> TFlowMetaTensor('float64', 'Placeholder')
     TFlowMetaTensor(tf.float64, TFlowMetaOp(TFlowMetaOpDef(obj=name: "Placeholde...bj=<tf.Operation 'Placeholder' type=Placeholder>), 0, TFlowMetaTensorShape(None,, obj=TensorShape(None)), 'Placeholder:0', obj=<tf.Tensor 'Placeholder:0' shape=<unknown> dtype=float64>)
 
