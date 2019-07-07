@@ -360,8 +360,7 @@ class PreamblePPrinter(theano.printing.PPrinter):
     newline is appended and process repeats.
 
     Example
-    =======
-
+    -------
     >>> import theano.tensor as tt
     >>> from symbolic_pymc import NormalRV
     >>> from symbolic_pymc.printing import tt_pprint
