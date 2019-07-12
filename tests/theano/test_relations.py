@@ -36,9 +36,7 @@ def test_pymc_normals():
 
     graph_mt = mt(radon_like_rv)
     expr_graph, = run(1, var('q'),
-                      non_obs_graph_applyo(
-                          lambda x, y: tt_graph_applyo(scale_loc_transform, x, y),
-                          graph_mt, var('q')))
+                      non_obs_graph_applyo(scale_loc_transform, graph_mt, var('q')))
 
     radon_like_rv_opt = expr_graph.reify()
 

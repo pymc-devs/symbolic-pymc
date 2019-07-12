@@ -3,10 +3,10 @@ from functools import partial
 from unification import var
 
 from kanren import eq
-from kanren.core import lallgreedy
+from kanren.core import lall
 
 from .linalg import buildo
-from ..graph import graph_applyo
+from ..graph import graph_applyo, lapply_anyo
 from ...etuple import etuplize, etuple
 from ...theano.meta import mt
 
@@ -63,13 +63,15 @@ def non_obs_graph_applyo(relation, a, b):
     obs_lv, obs_rv_lv = var(), var()
     rv_op_lv, rv_args_lv, obs_rv_lv = var(), var(), var()
     new_rv_args_lv, new_obs_rv_lv = var(), var()
-    return lallgreedy(
+    return lall(
         # Indicate the observed term (i.e. observation and RV)
         eq(a, mt.observed(obs_lv, obs_rv_lv)),
         # Deconstruct the observed random variable
         (buildo, rv_op_lv, rv_args_lv, obs_rv_lv),
         # Apply relation to the RV's inputs
-        (relation, rv_args_lv, new_rv_args_lv),
+        lapply_anyo(
+            lambda x, y: tt_graph_applyo(relation, x, y), rv_args_lv, new_rv_args_lv, skip_op=False
+        ),
         # Reconstruct the random variable
         (buildo, rv_op_lv, new_rv_args_lv, new_obs_rv_lv),
         # Reconstruct the observation
