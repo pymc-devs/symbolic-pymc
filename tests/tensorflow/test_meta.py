@@ -3,6 +3,7 @@ import numpy as np
 
 import tensorflow as tf
 
+from tensorflow.python.eager.context import graph_mode
 from tensorflow_probability import distributions as tfd
 
 from unification import var, isvar
@@ -17,6 +18,7 @@ from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowOpName,
                                            mt)
 
+from tests.tensorflow import run_in_graph_mode
 from tests.tensorflow.utils import assert_ops_equal
 
 
@@ -50,6 +52,29 @@ def test_meta_helper():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+def test_meta_eager():
+
+    assert tf.executing_eagerly()
+
+    N = 100
+    X = np.vstack([np.random.randn(N), np.ones(N)]).T
+    X_tf = tf.convert_to_tensor(X)
+
+    with pytest.raises(ValueError):
+        _ = mt(X_tf)
+
+    with pytest.raises(ValueError):
+        _ = mt(X)
+
+    with graph_mode():
+        N = 100
+        X = np.vstack([np.random.randn(N), np.ones(N)]).T
+        X_tf = tf.convert_to_tensor(X)
+        _ = mt(X_tf)
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_meta_create():
     N = 100
     X = np.vstack([np.random.randn(N), np.ones(N)]).T
@@ -157,6 +182,7 @@ def test_meta_lvars():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_meta_hashing():
     """Make sure we can hash meta graphs."""
     N = 100
@@ -172,6 +198,7 @@ def test_meta_hashing():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_meta_types():
     """Make sure our custom types/classes check out."""
 
@@ -181,6 +208,7 @@ def test_meta_types():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_meta_compare():
     """Make objects compare correctly."""
 
@@ -199,6 +227,7 @@ def test_meta_compare():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_meta_multi_output():
     """Make sure we can handle TF `Operation`s that output more than on tensor."""
     d, U, V = mt.linalg.svd(var())
@@ -213,6 +242,7 @@ def test_meta_multi_output():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_meta_reify():
     a_mt = mt(tf.compat.v1.placeholder('float64', name='a', shape=[1, 2]))
     b_mt = mt(tf.compat.v1.placeholder('float64', name='b', shape=[]))
@@ -236,6 +266,7 @@ def test_meta_reify():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_meta_distributions():
     N = 100
     sigma_tf = tfd.Gamma(np.asarray(1.), np.asarray(1.)).sample()
@@ -270,6 +301,7 @@ def test_meta_distributions():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_inputs_remapping():
     t1 = [[1, 2, 3], [4, 5, 6]]
     t2 = [[7, 8, 9], [10, 11, 12]]
