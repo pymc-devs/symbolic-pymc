@@ -47,6 +47,16 @@ def tf_dprint(obj, printer=None):
 
     The output roughly follows the format of `theano.printing.debugprint`.
     """
+    if isinstance(obj, tf.Tensor):
+        try:
+            obj.op
+        except AttributeError:
+            raise ValueError(
+                f"TensorFlow Operation not available; "
+                "try recreating the object with eager-mode disabled"
+                " (e.g. within `tensorflow.python.eager.context.graph_mode`)"
+            )
+
     if printer is None:
         printer = TFlowPrinter(str, sys.stdout)
 

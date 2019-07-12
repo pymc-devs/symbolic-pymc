@@ -2,15 +2,37 @@ import io
 import textwrap
 
 import pytest
-
+import numpy as np
 import tensorflow as tf
 
 from contextlib import redirect_stdout
 
+from tensorflow.python.eager.context import graph_mode
+
 from symbolic_pymc.tensorflow.printing import tf_dprint
+
+from tests.tensorflow import run_in_graph_mode
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+def test_eager_mode():
+
+    assert tf.executing_eagerly()
+
+    N = 100
+    X = np.vstack([np.random.randn(N), np.ones(N)]).T
+    X_tf = tf.convert_to_tensor(X)
+
+    with pytest.raises(ValueError):
+        tf_dprint(X_tf)
+
+    with graph_mode():
+        X_tf = tf.convert_to_tensor(X)
+        tf_dprint(X_tf)
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_ascii_printing():
     """Make sure we can ascii/text print a TF graph."""
 
@@ -44,6 +66,7 @@ def test_ascii_printing():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_unknown_shape():
     """Make sure we can ascii/text print a TF graph with unknown shapes."""
 

@@ -176,7 +176,18 @@ def _metatize_tf_object(obj):
     try:
         obj = tf.convert_to_tensor(obj)
     except TypeError:
-        raise ValueError("Could not find a TensorFlow MetaSymbol class for {}".format(obj))
+        raise ValueError("Could not find a TensorFlow MetaSymbol class for {obj}")
+
+    if isinstance(obj, tf.Tensor):
+        try:
+            obj.op
+        except AttributeError:
+            raise ValueError(
+                f"TensorFlow Operation not available; "
+                "try recreating the object with eager-mode disabled"
+                " (e.g. within `tensorflow.python.eager.context.graph_mode`)"
+            )
+
     return _metatize(obj)
 
 
@@ -585,6 +596,16 @@ class TFlowMetaTensor(MetaVariable, TFlowMetaSymbol, metaclass=TFlowMetaOpFactor
     @classmethod
     def _metatize(cls, obj):
         """Specialize the meta type based on a `tf.Tensor`'s op."""
+
+        try:
+            obj.op
+        except AttributeError:
+            raise ValueError(
+                f"TensorFlow Operation not available; "
+                "try recreating the object with eager-mode disabled"
+                " (e.g. within `tensorflow.python.eager.context.graph_mode`)"
+            )
+
         cls = TFlowMetaTensor._op_types.get(obj.op.type, cls)
         return cls(*[getattr(obj, s) for s in getattr(cls, "__slots__", [])], obj=obj)
 

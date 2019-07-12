@@ -7,10 +7,12 @@ from unification import unify, reify, var
 from symbolic_pymc.tensorflow.meta import (TFlowOpName, mt, TFlowMetaTensorShape)
 from symbolic_pymc.etuple import (ExpressionTuple, etuple, etuplize)
 
+from tests.tensorflow import run_in_graph_mode
 from tests.tensorflow.utils import assert_ops_equal
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_etuple_term():
     a = tf.compat.v1.placeholder(tf.float64, name='a')
     b = tf.compat.v1.placeholder(tf.float64, name='b')
@@ -50,6 +52,7 @@ def test_etuple_term():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_basic_unify_reify():
     # Test reification with manually constructed replacements
     a = tf.compat.v1.placeholder(tf.float64, name='a')
@@ -80,6 +83,7 @@ def test_basic_unify_reify():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
 def test_sexp_unify_reify():
     """Make sure we can unify and reify etuples/S-exps."""
     # Unify `A . (x + y)`, for `x`, `y` logic variables
