@@ -313,3 +313,17 @@ def test_inputs_remapping():
     assert z_mt.inputs[0][0].obj == z.op.inputs[0]
     assert z_mt.inputs[0][1].obj == z.op.inputs[1]
     assert z_mt.inputs[1].obj == z.op.inputs[2]
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
+def test_nodedef():
+    with graph_mode():
+        X = np.random.normal(0, 1, (10, 10))
+        S = tf.matmul(X, X, transpose_a=True)
+        d, U, V = tf.linalg.svd(S)
+        node_def_mt = mt(d.op.node_def)
+
+    assert 'compute_uv' in node_def_mt.attr
+    assert 'full_matrices' in node_def_mt.attr
+    assert 'T' not in node_def_mt.attr

@@ -120,14 +120,19 @@ class MetaOpDefLibrary(op_def_library.OpDefLibrary):
         )
         return opdef_sig
 
-    def add_op(self, op_def):
-        op_info = self._ops.get(op_def.name, None)
+    def add_op(self, opdef):
+        op_info = self._ops.get(opdef.name, None)
         if op_info is None:
-            super().add_op(op_def)
-            op_info = self._ops[op_def.name]
+            super().add_op(opdef)
+            op_info = self._ops[opdef.name]
             opdef_sig = self.make_opdef_sig(op_info.op_def)
             op_info.opdef_sig = opdef_sig
         return op_info
+
+    def get_opinfo(self, opdef):
+        if isinstance(opdef, str):
+            opdef = op_def_registry.get_registered_ops()[opdef]
+        return self.add_op(opdef)
 
 
 op_def_lib = MetaOpDefLibrary()
@@ -348,40 +353,44 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
     __slots__ = ["op", "name", "attr"]
 
     @classmethod
-    def _protobuf_convert(cls, k, v, ignore=False):
+    def _protobuf_convert(cls, k, v):
+        """Convert a small subset of protobuf objects.
+
+        FYI: This would cover a lot at once (but not any meta object
+        conversions):
+            from google.protobuf.json_format import MessageToDict
+            MessageToDict(obj, use_integers_for_enums=True)
+        """
+
         if k == "shape":
             return tensor_shape.as_shape(v.shape)
         elif k == "dtype":
             return tf.as_dtype(v.type).name
         elif k == "value":
             return tensor_util.MakeNdarray(v.tensor)
-        # NOTE: We would need to get names for `k` from
-        # `op_def.input_args` in order to do this.
-        # elif k == 'N':
-        #     self.attr[k] = v.i
-        #
-        # or we could do something more generic like this...
-        #
-        # else:
-        #     v = tuple((k.name, v) for k, v in v.ListFields())
-        elif ignore:
-            return v
         else:
-            raise TypeError(f"Could not convert {k}")
+            # Consider only the narrow case where a single object is converted
+            # (e.g. a Python builtin type under `v.b`, `v.f`, etc.)
+            v = tuple(v for k, v in v.ListFields())
+            if len(v) == 1:
+                return v[0]
+            else:
+                raise TypeError(f"Could not convert {k}")
 
     def __init__(self, op, name, attr, obj=None):
         self.op = metatize(op)
         assert name is not None
         self.name = name if isvar(name) else TFlowOpName(name)
-        # self.input = [TFlowOpName(i) for i in input]
 
         if not isvar(attr):
-            # This would cover a lot at once (but not any meta object
-            # conversions):
-            #   from google.protobuf.json_format import MessageToDict
-            #   MessageToDict(obj, use_integers_for_enums=True)
-
             self.attr = OrderedDict()
+
+            # We want to limit the attributes we'll consider to those that show
+            # up in an OpDef function's signature (e.g. ignore info about
+            # permissible types).
+            opinfo = op_def_lib.get_opinfo(self.op)
+            op_param_names = opinfo.opdef_sig.parameters.keys()
+
             for k, v in sorted(dict(attr).items()):
                 if isinstance(v, Message):
                     try:
@@ -389,13 +398,14 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
                     except TypeError:
                         continue
 
-                # XXX: We can't let `metatize` convert NumPy values;
-                # otherwise, we'll loop endlessly on "Const" Ops.
-                if k != "value":
-                    with suppress(ValueError):
-                        v = metatize(v)
+                if k != "T" and k in op_param_names:
+                    # XXX: We can't let `metatize` convert NumPy values;
+                    # otherwise, we'll loop endlessly on "Const" Ops.
+                    if k != "value":
+                        with suppress(ValueError):
+                            v = metatize(v)
 
-                self.attr[k] = v
+                    self.attr[k] = v
         else:
             self.attr = attr
 
