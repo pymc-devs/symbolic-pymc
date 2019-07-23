@@ -238,11 +238,15 @@ class TFlowMetaOpDef(MetaOp, TFlowMetaSymbol):
         super().__init__(obj=obj)
 
     def out_meta_types(self, inputs=None):
-        out_meta_types = tuple(
-            # TODO: What other types should we expect?
-            TFlowMetaTensor if o.type_attr == "T" else None
-            for i, o in enumerate(self.obj.output_arg)
-        )
+        def _convert_outputs(o):
+            if o.type_attr == "T":
+                return (TFlowMetaTensor, var())
+            elif o.type_attr == "dtype":
+                return (TFlowMetaTensor, inputs.get("dtype", var()))
+            else:
+                return (TFlowMetaTensor, var())
+
+        out_meta_types = tuple(_convert_outputs(o) for o in self.obj.output_arg)
         # TODO: We also have permissible dtype information:
         # from objects in the array `self.obj.attr` under the field
         # `allowed_values`.
@@ -498,8 +502,8 @@ class TFlowMetaOp(TFlowMetaSymbol):
         out_types_mt = self.op_def.out_meta_types(inputs=apply_arguments)
 
         mt_outs = tuple(
-            o(
-                var(),
+            o_type(
+                var() if o_dtype is None else o_dtype,
                 op=self,
                 value_index=i,
                 shape=var(),
@@ -509,7 +513,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
                     else var()
                 ),
             )
-            for i, o in enumerate(out_types_mt)
+            for i, (o_type, o_dtype) in enumerate(out_types_mt)
         )
 
         self._outputs = mt_outs
