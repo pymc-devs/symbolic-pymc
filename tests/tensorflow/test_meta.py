@@ -320,12 +320,16 @@ def test_inputs_remapping():
 @pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_nodedef():
-    with graph_mode():
-        X = np.random.normal(0, 1, (10, 10))
-        S = tf.matmul(X, X, transpose_a=True)
-        d, U, V = tf.linalg.svd(S)
-        node_def_mt = mt(d.op.node_def)
+    X = np.random.normal(0, 1, (10, 10))
+    S = tf.matmul(X, X, transpose_a=True)
+    d, U, V = tf.linalg.svd(S)
+    node_def_mt = mt(d.op.node_def)
 
     assert 'compute_uv' in node_def_mt.attr
     assert 'full_matrices' in node_def_mt.attr
     assert 'T' not in node_def_mt.attr
+
+    # Some outputs use nodedef information; let's test those.
+    norm_rv = mt.RandomStandardNormal(mean=0, stddev=1, shape=(1000,), dtype=tf.float32, name=var())
+    assert isinstance(norm_rv, TFlowMetaTensor)
+    assert norm_rv.dtype == tf.float32
