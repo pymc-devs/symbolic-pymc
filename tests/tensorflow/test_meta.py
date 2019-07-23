@@ -49,6 +49,8 @@ def test_meta_helper():
     assert mt.add.obj.name == 'Add'
     assert isinstance(mt.matmul, TFlowMetaOpDef)
     assert mt.matmul.obj.name == 'MatMul'
+    assert isinstance(mt.RandomStandardNormal, TFlowMetaOpDef)
+    assert mt.RandomStandardNormal.obj.name == 'RandomStandardNormal'
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")

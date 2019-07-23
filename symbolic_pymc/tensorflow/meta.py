@@ -12,7 +12,7 @@ from inspect import Parameter, Signature
 
 from collections import OrderedDict, UserString
 
-from functools import partial, wraps
+from functools import partial
 
 from unification import Var, var, isvar
 
@@ -785,10 +785,13 @@ class TFlowMetaAccessor(object):
     @classmethod
     def find_opdef(cls, name):
         """Attempt to create a meta `OpDef` for a given TF function/`Operation` name."""
-        raw_op_name = op_def_lib.lower_op_name_to_raw.get(name, None)
-        if raw_op_name is not None:
-            meta_obj = TFlowMetaOpDef(obj=op_def_registry.get_registered_ops()[raw_op_name])
+        raw_op_name = op_def_lib.lower_op_name_to_raw.get(name, name)
+        op_def = op_def_registry.get_registered_ops()[raw_op_name]
+
+        if op_def is not None:
+            meta_obj = TFlowMetaOpDef(obj=op_def)
             return meta_obj
+
         return None
 
     def __getattr__(self, obj):
@@ -810,14 +813,14 @@ class TFlowMetaAccessor(object):
             # it implements a constructor/helper-like `__call__`.
             meta_obj = self.find_opdef(obj)
 
-            if meta_obj is None:
-                # It's a function, so let's provide a wrapper that converts
-                # to-and-from theano and meta objects.
-                @wraps(ns_obj)
-                def meta_obj(*args, **kwargs):
-                    args = [o.reify() if hasattr(o, "reify") else o for o in args]
-                    res = ns_obj(*args, **kwargs)
-                    return metatize(res)
+            # if meta_obj is None:
+            #     # It's a function, so let's provide a wrapper that converts
+            #     # to-and-from theano and meta objects.
+            #     @wraps(ns_obj)
+            #     def meta_obj(*args, **kwargs):
+            #         args = [o.reify() if hasattr(o, "reify") else o for o in args]
+            #         res = ns_obj(*args, **kwargs)
+            #         return metatize(res)
 
         elif isinstance(ns_obj, types.ModuleType):
             # It's a sub-module, so let's create another
