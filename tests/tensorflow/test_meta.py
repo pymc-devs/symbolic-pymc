@@ -311,7 +311,9 @@ def test_inputs_remapping():
 
     z_mt = mt(z)
 
-    assert isinstance(z_mt.inputs[0], list)
+    # Even though we gave it unhashable arguments, the operator should've
+    # converted them
+    assert isinstance(z_mt.inputs[0], tuple)
     assert z_mt.inputs[0][0].obj == z.op.inputs[0]
     assert z_mt.inputs[0][1].obj == z.op.inputs[1]
     assert z_mt.inputs[1].obj == z.op.inputs[2]

@@ -480,7 +480,16 @@ class TFlowMetaOp(TFlowMetaSymbol):
         if isvar(inputs):
             self.inputs = inputs
         else:
-            self.inputs = tuple(metatize(i) for i in inputs)
+
+            def _convert_inputs(i):
+                i = metatize(i)
+                # Inputs are supposed to be immutable, so we're able to convert
+                # lists to tuples.
+                if isinstance(i, list):
+                    i = tuple(i)
+                return i
+
+            self.inputs = tuple(_convert_inputs(i) for i in inputs)
 
         super().__init__(obj=obj)
 
