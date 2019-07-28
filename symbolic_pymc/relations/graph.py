@@ -7,8 +7,9 @@ from kanren.core import goaleval
 
 from kanren import eq
 from cons.core import ConsPair, ConsNull
-from kanren.core import conde, lall
 from kanren.goals import conso, fail
+
+from . import conde, lall
 
 from ..etuple import etuplize, ExpressionTuple
 
@@ -217,7 +218,7 @@ def graph_applyo(
         def preprocess_graph(x):
             return x
 
-    def _gapplyo(s):
+    def graph_applyo_goal(s):
 
         nonlocal in_graph, out_graph
 
@@ -256,4 +257,4 @@ def graph_applyo(
         g = goaleval(g)
         yield from g(s)
 
-    return _gapplyo
+    return graph_applyo_goal
