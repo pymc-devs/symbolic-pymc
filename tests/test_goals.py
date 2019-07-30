@@ -1,7 +1,6 @@
 from unification import var
 
-from kanren import eq  # , run, lall
-# from kanren.core import goaleval
+from kanren import eq
 
 from symbolic_pymc.relations import lconj, lconj_seq, ldisj, ldisj_seq, conde
 
@@ -82,29 +81,3 @@ def test_conde_basics():
     res = list(lconj(conde([eq(1, 2)], [eq(1, 1)]),
                      conde([eq(1, 2)], [eq(1, 1)]))({}))
     assert res == [{}]
-
-# def test_short_circuit_lconj():
-#
-#     def one_bad_goal(goal_nums, good_goals=10, _eq=eq):
-#         for i in goal_nums:
-#             if i == good_goals:
-#                 def _g(S, i=i):
-#                     print('{} bad'.format(i))
-#                     yield from _eq(1, 2)(S)
-#
-#             else:
-#                 def _g(S, i=i):
-#                     print('{} good'.format(i))
-#                     yield from _eq(1, 1)(S)
-#
-#             yield _g
-#
-#     goal_nums = iter(range(20))
-#     run(0, var('q'), lall(*one_bad_goal(goal_nums)))
-#
-#     # `kanren`'s `lall` will necessarily exhaust the generator.
-#     next(goal_nums, None)
-#
-#     goal_nums = iter(range(20))
-#     run(0, var('q'), lconj(one_bad_goal(goal_nums)))
-#     next(goal_nums, None)

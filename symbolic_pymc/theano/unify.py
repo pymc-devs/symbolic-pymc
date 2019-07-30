@@ -4,24 +4,25 @@ from kanren.term import term, operator, arguments
 
 from unification.core import _reify, _unify, reify
 
+from .meta import TheanoMetaSymbol
 from ..meta import metatize
 from ..unify import unify_MetaSymbol
 from ..etuple import ExpressionTuple, etuplize
-from .meta import TheanoMetaSymbol
+from ..constraints import KanrenState
 
 
 tt_class_abstractions = tuple(c.base for c in TheanoMetaSymbol.base_subclasses())
 
 _unify.add(
-    (TheanoMetaSymbol, tt_class_abstractions, dict),
+    (TheanoMetaSymbol, tt_class_abstractions, (KanrenState, dict)),
     lambda u, v, s: unify_MetaSymbol(u, metatize(v), s),
 )
 _unify.add(
-    (tt_class_abstractions, TheanoMetaSymbol, dict),
+    (tt_class_abstractions, TheanoMetaSymbol, (KanrenState, dict)),
     lambda u, v, s: unify_MetaSymbol(metatize(u), v, s),
 )
 _unify.add(
-    (tt_class_abstractions, tt_class_abstractions, dict),
+    (tt_class_abstractions, tt_class_abstractions, (KanrenState, dict)),
     lambda u, v, s: unify_MetaSymbol(metatize(u), metatize(v), s),
 )
 
@@ -31,7 +32,7 @@ def _reify_TheanoClasses(o, s):
     return reify(meta_obj, s)
 
 
-_reify.add((tt_class_abstractions, dict), _reify_TheanoClasses)
+_reify.add((tt_class_abstractions, (KanrenState, dict)), _reify_TheanoClasses)
 
 operator.add((tt.Variable,), lambda x: operator(metatize(x)))
 

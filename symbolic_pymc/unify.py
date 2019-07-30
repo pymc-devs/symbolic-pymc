@@ -12,6 +12,8 @@ from .meta import MetaSymbol, MetaVariable
 
 from .etuple import etuple, ExpressionTuple
 
+from .constraints import KanrenState
+
 
 class UnificationFailure(Exception):
     pass
@@ -67,14 +69,16 @@ def unify_MetaSymbol(u, v, s):
     return s
 
 
-_unify.add((MetaSymbol, MetaSymbol, dict), unify_MetaSymbol)
-
-_tuple__unify = _unify.dispatch(tuple, tuple, dict)
+_unify.add((MetaSymbol, MetaSymbol, (KanrenState, dict)), unify_MetaSymbol)
 
 _unify.add(
-    (ExpressionTuple, (tuple, ExpressionTuple), dict), lambda x, y, s: _tuple__unify(x, y, s)
+    (ExpressionTuple, (tuple, ExpressionTuple), (KanrenState, dict)),
+    lambda x, y, s: _unify.dispatch(tuple, tuple, type(s))(x, y, s),
 )
-_unify.add((tuple, ExpressionTuple, dict), lambda x, y, s: _tuple__unify(x, y, s))
+_unify.add(
+    (tuple, ExpressionTuple, (KanrenState, dict)),
+    lambda x, y, s: _unify.dispatch(tuple, tuple, type(s))(x, y, s),
+)
 
 
 def _reify_MetaSymbol(o, s):
@@ -106,11 +110,11 @@ def _reify_MetaSymbol(o, s):
         return newobj
 
 
-_reify.add((MetaSymbol, dict), _reify_MetaSymbol)
+_reify.add((MetaSymbol, (KanrenState, dict)), _reify_MetaSymbol)
 
-_tuple__reify = _reify.dispatch(tuple, dict)
-
-_reify.add((ExpressionTuple, dict), lambda x, s: _tuple__reify(x, s))
+_reify.add(
+    (ExpressionTuple, (KanrenState, dict)), lambda x, s: _reify.dispatch(tuple, type(s))(x, s)
+)
 
 
 _isvar = isvar.dispatch(object)
@@ -175,7 +179,7 @@ def _term_ExpressionTuple(rand, rators):
 term.add((object, ExpressionTuple), _term_ExpressionTuple)
 
 
-@_reify.register(ExpressionTuple, dict)
+@_reify.register(ExpressionTuple, (KanrenState, dict))
 def _reify_ExpressionTuple(t, s):
     """When `kanren` reifies `etuple`s, we don't want them to turn into regular `tuple`s.
 
