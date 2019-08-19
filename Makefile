@@ -1,4 +1,4 @@
-.PHONY: help venv conda docker docstyle format style black test lint check coverage
+.PHONY: help venv conda docker docstyle format style black test lint check coverage docs
 .DEFAULT_GOAL = help
 
 PYTHON = python
@@ -62,6 +62,15 @@ test:  # Test code using pytest.
 
 coverage: test
 	diff-cover coverage.xml --compare-branch=master --fail-under=100
+
+docs:
+	# latesttag=$(git describe --tags `git rev-list --tags --max-count=1`)
+	# echo checking out ${latesttag}
+	# git checkout ${latesttag}
+	pushd docs && \
+	make html && \
+	ghp-import -n -p -r upstream -b gh-pages build/html && \
+	popd
 
 lint: docstyle format style  # Lint code using pydocstyle, black and pylint.
 
