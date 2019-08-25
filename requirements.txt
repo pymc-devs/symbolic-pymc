@@ -1,7 +1,7 @@
 scipy>=1.2.0
 Theano>=1.0.4
 tf-nightly-2.0-preview==2.0.0.dev20190606
-tfp-nightly>=0.7.0.dev20190320
+tfp-nightly==0.8.0.dev20190705
 pymc3>=3.6
 pymc4 @ git+https://github.com/pymc-devs/pymc4.git@master#egg=pymc4-0.0.1
 multipledispatch>=0.6.0
