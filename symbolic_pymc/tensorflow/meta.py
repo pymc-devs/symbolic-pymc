@@ -177,6 +177,9 @@ class TFlowOpName(UserString):
         return hash((self._unique_name, self._in_idx))
 
 
+_metatize.add((TFlowOpName,), lambda x: x)
+
+
 def _metatize_tf_object(obj):
     try:
         obj = tf.convert_to_tensor(obj)
