@@ -41,6 +41,8 @@ def test_op_names():
     # but not output numbers
     assert TFlowOpName('blah/add_1:0') != TFlowOpName('blah/add:1')
 
+    assert isinstance(mt(TFlowOpName('blah/add_1:0')), TFlowOpName)
+
 
 @pytest.mark.usefixtures("run_with_tensorflow")
 def test_meta_helper():
