@@ -337,3 +337,25 @@ def test_nodedef():
     norm_rv = mt.RandomStandardNormal(mean=0, stddev=1, shape=(1000,), dtype=tf.float32, name=var())
     assert isinstance(norm_rv, TFlowMetaTensor)
     assert norm_rv.dtype == tf.float32
+
+    # We shouldn't be metatizing all parsed `node_def.attr` values; otherwise,
+    # we won't be able to reconstruct corresponding meta Ops using their meta
+    # OpDefs and inputs.
+    x_test = tf.constant([1.8, 2.2], dtype=tf.float32)
+    y_test = tf.dtypes.cast(x_test, dtype=tf.int32, name="y")
+    y_test_mt = mt(y_test)
+
+    # `ytest_mt.inputs` should have two `.attr` values that are Python
+    # primitives (i.e. int and bool); these shouldn't get metatized and break
+    # our ability to reconstruct the object from its rator + rands.
+    assert y_test_mt == y_test_mt.op.op_def(*y_test_mt.inputs)
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
+def test_metatize():
+    class CustomClass(object):
+        pass
+
+    with pytest.raises(ValueError):
+        mt(CustomClass())

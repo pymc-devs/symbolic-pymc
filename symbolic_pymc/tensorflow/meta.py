@@ -6,8 +6,6 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from contextlib import suppress
-
 from inspect import Parameter, Signature
 
 from collections import OrderedDict, UserString
@@ -183,7 +181,7 @@ _metatize.add((TFlowOpName,), lambda x: x)
 def _metatize_tf_object(obj):
     try:
         obj = tf.convert_to_tensor(obj)
-    except TypeError:
+    except (TypeError, ValueError):
         raise ValueError("Could not find a TensorFlow MetaSymbol class for {obj}")
 
     if isinstance(obj, tf.Tensor):
@@ -368,9 +366,8 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
             from google.protobuf.json_format import MessageToDict
             MessageToDict(obj, use_integers_for_enums=True)
         """
-
         if k == "shape":
-            return tensor_shape.as_shape(v.shape)
+            return metatize(tensor_shape.as_shape(v.shape))
         elif k == "dtype":
             return tf.as_dtype(v.type).name
         elif k == "value":
@@ -406,12 +403,6 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
                         continue
 
                 if k != "T" and k in op_param_names:
-                    # XXX: We can't let `metatize` convert NumPy values;
-                    # otherwise, we'll loop endlessly on "Const" Ops.
-                    if k != "value":
-                        with suppress(ValueError):
-                            v = metatize(v)
-
                     self.attr[k] = v
         else:
             self.attr = attr
