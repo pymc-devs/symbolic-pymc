@@ -86,25 +86,26 @@ class MetaOpDefLibrary(op_def_library.OpDefLibrary):
                 params[name] = new_param
 
         else:
-            params = []
-            for i_name, i_type in input_args:
+            for i_name, i_type in input_args.items():
                 p = Parameter(i_name, Parameter.POSITIONAL_OR_KEYWORD, annotation=i_type)
                 params[i_name] = p
 
             # These are the ambiguities we're attempting to overcome
             # with the `tf.raw_ops` functions above.
-            for a_name, a_type in attrs:
+            for a_name, a_type in attrs.items():
+
                 if a_name == "T":
                     # This is a type value that will most likely be inferred
                     # from/by the inputs.
                     # TODO: We could check for an `allowed_values` attribute.
                     continue
+
                 p = Parameter(
                     a_name,
                     Parameter.POSITIONAL_OR_KEYWORD,
                     # TODO: We could use the `default_value`
                     # attribute.
-                    default=None,
+                    default=Parameter.empty,
                     annotation=a_type,
                 )
                 params[a_name] = p

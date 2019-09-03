@@ -16,6 +16,7 @@ from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaOpDef,
                                            TFlowMetaNodeDef,
                                            TFlowOpName,
+                                           MetaOpDefLibrary,
                                            mt)
 
 from tests.tensorflow import run_in_graph_mode
@@ -319,6 +320,47 @@ def test_inputs_remapping():
     assert z_mt.inputs[0][0].obj == z.op.inputs[0]
     assert z_mt.inputs[0][1].obj == z.op.inputs[1]
     assert z_mt.inputs[1].obj == z.op.inputs[2]
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+def test_opdef_sig():
+    """Make sure we can construct an `inspect.Signature` object for a protobuf OpDef when its corresponding function isn't present in `tf.raw_ops`."""
+    from tensorflow.core.framework import op_def_pb2
+
+    custom_opdef_tf = op_def_pb2.OpDef()
+    custom_opdef_tf.name = "MyOpDef"
+
+    arg1_tf = op_def_pb2.OpDef.ArgDef()
+    arg1_tf.name = "arg1"
+    arg1_tf.type_attr = "T"
+
+    arg2_tf = op_def_pb2.OpDef.ArgDef()
+    arg2_tf.name = "arg2"
+    arg2_tf.type_attr = "T"
+
+    custom_opdef_tf.input_arg.extend([arg1_tf, arg2_tf])
+
+    attr1_tf = op_def_pb2.OpDef.AttrDef()
+    attr1_tf.name = "T"
+    attr1_tf.type = "type"
+
+    attr2_tf = op_def_pb2.OpDef.AttrDef()
+    attr2_tf.name = "axis"
+    attr2_tf.type = "int"
+    attr2_tf.default_value.i = 1
+
+    custom_opdef_tf.attr.extend([attr1_tf, attr2_tf])
+
+    opdef_sig = MetaOpDefLibrary.make_opdef_sig(custom_opdef_tf)
+
+    import inspect
+    # These are standard inputs
+    assert opdef_sig.parameters['arg1'].default == inspect._empty
+    assert opdef_sig.parameters['arg2'].default == inspect._empty
+    # These are attributes that are sometimes required by the OpDef
+    assert opdef_sig.parameters['axis'].default == inspect._empty
+    # The obligatory tensor name parameter
+    assert opdef_sig.parameters['name'].default is None
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
