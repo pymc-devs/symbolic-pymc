@@ -6,8 +6,6 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from contextlib import suppress
-
 from inspect import Parameter, Signature
 
 from collections import OrderedDict, UserString
@@ -88,25 +86,26 @@ class MetaOpDefLibrary(op_def_library.OpDefLibrary):
                 params[name] = new_param
 
         else:
-            params = []
-            for i_name, i_type in input_args:
+            for i_name, i_type in input_args.items():
                 p = Parameter(i_name, Parameter.POSITIONAL_OR_KEYWORD, annotation=i_type)
                 params[i_name] = p
 
             # These are the ambiguities we're attempting to overcome
             # with the `tf.raw_ops` functions above.
-            for a_name, a_type in attrs:
+            for a_name, a_type in attrs.items():
+
                 if a_name == "T":
                     # This is a type value that will most likely be inferred
                     # from/by the inputs.
                     # TODO: We could check for an `allowed_values` attribute.
                     continue
+
                 p = Parameter(
                     a_name,
                     Parameter.POSITIONAL_OR_KEYWORD,
                     # TODO: We could use the `default_value`
                     # attribute.
-                    default=None,
+                    default=Parameter.empty,
                     annotation=a_type,
                 )
                 params[a_name] = p
@@ -183,7 +182,7 @@ _metatize.add((TFlowOpName,), lambda x: x)
 def _metatize_tf_object(obj):
     try:
         obj = tf.convert_to_tensor(obj)
-    except TypeError:
+    except (TypeError, ValueError):
         raise ValueError("Could not find a TensorFlow MetaSymbol class for {obj}")
 
     if isinstance(obj, tf.Tensor):
@@ -368,9 +367,8 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
             from google.protobuf.json_format import MessageToDict
             MessageToDict(obj, use_integers_for_enums=True)
         """
-
         if k == "shape":
-            return tensor_shape.as_shape(v.shape)
+            return metatize(tensor_shape.as_shape(v.shape))
         elif k == "dtype":
             return tf.as_dtype(v.type).name
         elif k == "value":
@@ -406,12 +404,6 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
                         continue
 
                 if k != "T" and k in op_param_names:
-                    # XXX: We can't let `metatize` convert NumPy values;
-                    # otherwise, we'll loop endlessly on "Const" Ops.
-                    if k != "value":
-                        with suppress(ValueError):
-                            v = metatize(v)
-
                     self.attr[k] = v
         else:
             self.attr = attr

@@ -16,6 +16,7 @@ from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaOpDef,
                                            TFlowMetaNodeDef,
                                            TFlowOpName,
+                                           MetaOpDefLibrary,
                                            mt)
 
 from tests.tensorflow import run_in_graph_mode
@@ -322,6 +323,47 @@ def test_inputs_remapping():
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
+def test_opdef_sig():
+    """Make sure we can construct an `inspect.Signature` object for a protobuf OpDef when its corresponding function isn't present in `tf.raw_ops`."""
+    from tensorflow.core.framework import op_def_pb2
+
+    custom_opdef_tf = op_def_pb2.OpDef()
+    custom_opdef_tf.name = "MyOpDef"
+
+    arg1_tf = op_def_pb2.OpDef.ArgDef()
+    arg1_tf.name = "arg1"
+    arg1_tf.type_attr = "T"
+
+    arg2_tf = op_def_pb2.OpDef.ArgDef()
+    arg2_tf.name = "arg2"
+    arg2_tf.type_attr = "T"
+
+    custom_opdef_tf.input_arg.extend([arg1_tf, arg2_tf])
+
+    attr1_tf = op_def_pb2.OpDef.AttrDef()
+    attr1_tf.name = "T"
+    attr1_tf.type = "type"
+
+    attr2_tf = op_def_pb2.OpDef.AttrDef()
+    attr2_tf.name = "axis"
+    attr2_tf.type = "int"
+    attr2_tf.default_value.i = 1
+
+    custom_opdef_tf.attr.extend([attr1_tf, attr2_tf])
+
+    opdef_sig = MetaOpDefLibrary.make_opdef_sig(custom_opdef_tf)
+
+    import inspect
+    # These are standard inputs
+    assert opdef_sig.parameters['arg1'].default == inspect._empty
+    assert opdef_sig.parameters['arg2'].default == inspect._empty
+    # These are attributes that are sometimes required by the OpDef
+    assert opdef_sig.parameters['axis'].default == inspect._empty
+    # The obligatory tensor name parameter
+    assert opdef_sig.parameters['name'].default is None
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_nodedef():
     X = np.random.normal(0, 1, (10, 10))
@@ -337,3 +379,25 @@ def test_nodedef():
     norm_rv = mt.RandomStandardNormal(mean=0, stddev=1, shape=(1000,), dtype=tf.float32, name=var())
     assert isinstance(norm_rv, TFlowMetaTensor)
     assert norm_rv.dtype == tf.float32
+
+    # We shouldn't be metatizing all parsed `node_def.attr` values; otherwise,
+    # we won't be able to reconstruct corresponding meta Ops using their meta
+    # OpDefs and inputs.
+    x_test = tf.constant([1.8, 2.2], dtype=tf.float32)
+    y_test = tf.dtypes.cast(x_test, dtype=tf.int32, name="y")
+    y_test_mt = mt(y_test)
+
+    # `ytest_mt.inputs` should have two `.attr` values that are Python
+    # primitives (i.e. int and bool); these shouldn't get metatized and break
+    # our ability to reconstruct the object from its rator + rands.
+    assert y_test_mt == y_test_mt.op.op_def(*y_test_mt.inputs)
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
+def test_metatize():
+    class CustomClass(object):
+        pass
+
+    with pytest.raises(ValueError):
+        mt(CustomClass())
