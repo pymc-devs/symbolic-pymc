@@ -70,8 +70,8 @@ def test_basic_unify_reify():
     test_base_res = test_reify_res.reify()
     assert isinstance(test_base_res, tf.Tensor)
 
-    expected_res = (tf.constant(1, dtype=tf.float64) +
-                    tf.constant(2, dtype=tf.float64) * a)
+    expected_res = tf.add(tf.constant(1, dtype=tf.float64),
+                          tf.constant(2, dtype=tf.float64) * a)
     assert_ops_equal(test_base_res, expected_res)
 
     # Simply make sure that unification succeeds
@@ -94,7 +94,7 @@ def test_sexp_unify_reify():
     y = tf.compat.v1.placeholder(tf.float64, name='y',
                                  shape=tf.TensorShape([None, 1]))
 
-    z = tf.matmul(A, x + y)
+    z = tf.matmul(A, tf.add(x, y))
 
     z_sexp = etuplize(z)
 
