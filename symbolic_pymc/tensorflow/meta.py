@@ -170,7 +170,10 @@ class TFlowOpName(UserString):
         if type(self) != type(other):
             return False
 
-        return self._unique_name == other._unique_name and self._in_idx == other._in_idx
+        return (
+            self._unique_name.lower() == other._unique_name.lower()
+            and self._in_idx == other._in_idx
+        )
 
     def __hash__(self):
         return hash((self._unique_name, self._in_idx))
@@ -309,7 +312,7 @@ class TFlowMetaOpDef(MetaOp, TFlowMetaSymbol):
         # Get the `OpDef`-instantiating parameters and call them a "node_def".
         node_attr = {a.name: apply_arguments.get(a.name, a) for a in self.obj.attr}
 
-        op_name = op_kwargs.get("name", self.obj.name.lower())
+        op_name = op_kwargs.get("name", self.obj.name)
 
         # input_arg_names = [(getattr(a, 'name', None), i.name)
         #                    for a, i in zip(args, self.obj.input_arg)]
@@ -453,7 +456,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
 
             if isinstance(name, (str, TFlowOpName)) or name is None:
                 if name is None:
-                    name = op_def.obj.name.lower()
+                    name = op_def.obj.name
                 # from tensorflow.python.framework import ops
                 # if name and name[-1] == "/":
                 #     name = ops._name_from_scope_name(str(name))
@@ -512,7 +515,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
                 value_index=i,
                 shape=var(),
                 name=(
-                    TFlowOpName(f"{self.name.lower()}:{i}")
+                    TFlowOpName(f"{self.name}:{i}")
                     if isinstance(self.name, (str, TFlowOpName))
                     else var()
                 ),
@@ -536,8 +539,6 @@ class TFlowMetaOp(TFlowMetaSymbol):
 
         mt_outs = self.outputs
 
-        if isvar(mt_outs):
-            out_var = var()
         if len(mt_outs) == 1:
             out_var = mt_outs[0]
         else:
@@ -553,8 +554,13 @@ class TFlowMetaOp(TFlowMetaSymbol):
         # tt_op = self.op.reify()
         # if not self.is_meta(tt_op):
         op_inputs, op_inputs_unreified = _meta_reify_iter(self.inputs)
+
+        if isvar(self.node_def):
+            return self
+
         op_attrs, op_attrs_unreified = _meta_reify_iter(self.node_def.attr)
-        if not op_inputs_unreified and not op_attrs_unreified and not MetaSymbol.is_meta(self.name):
+
+        if not (op_inputs_unreified or op_attrs_unreified or MetaSymbol.is_meta(self.name)):
 
             # We have to use a primitive string or TF will complain.
             name = self.name
@@ -644,14 +650,16 @@ class TFlowMetaTensor(MetaVariable, TFlowMetaSymbol, metaclass=TFlowMetaOpFactor
     def inputs(self):
         """Return the tensor's inputs/rands.
 
-        NOTE: These inputs differ from `self.op.inputs` in that contain
+        NOTE: These inputs differ from `self.op.inputs` in that they contain
         the `node_def` parameters, as well.
         In other words, these can be used to recreate this object (per
         the meta object spec).
         """
         if self.op is not None and not isvar(self.op):
             input_args = self.op.op_def.input_args(
-                *self.op.inputs, name=self.op.name, **self.op.node_def.attr
+                *self.op.inputs,
+                name=self.op.name if not isvar(self.op.name) else None,
+                **self.op.node_def.attr,
             )
             return tuple(input_args.values())
 
@@ -659,7 +667,7 @@ class TFlowMetaTensor(MetaVariable, TFlowMetaSymbol, metaclass=TFlowMetaOpFactor
         if self.obj is not None and not isinstance(self.obj, Var):
             return self.obj
 
-        if not self.op:
+        if (not self.op) or isvar(self.op):
             op_res = super().reify()
             return op_res
 
@@ -793,7 +801,7 @@ class TFlowMetaAccessor(object):
     @classmethod
     def find_opdef(cls, name):
         """Attempt to create a meta `OpDef` for a given TF function/`Operation` name."""
-        raw_op_name = op_def_lib.lower_op_name_to_raw.get(name, name)
+        raw_op_name = op_def_lib.lower_op_name_to_raw.get(name.lower(), name)
         op_def = op_def_registry.get_registered_ops()[raw_op_name]
 
         if op_def is not None:

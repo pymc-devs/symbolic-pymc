@@ -8,6 +8,7 @@ from tensorflow_probability import distributions as tfd
 
 from unification import var, isvar
 
+from symbolic_pymc.meta import MetaSymbol
 from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaTensorShape,
                                            TFlowMetaConstant,
@@ -165,6 +166,35 @@ def test_meta_create():
 
     with pytest.raises(TypeError):
         TFlowMetaTensor('float64', 'Add', name='q__')
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
+def test_meta_Op():
+
+    from tensorflow.python.eager.context import graph_mode
+
+
+    with graph_mode():
+        t1_tf = tf.convert_to_tensor([[1, 2, 3], [4, 5, 6]])
+        t2_tf = tf.convert_to_tensor([[7, 8, 9], [10, 11, 12]])
+        test_out_tf = tf.concat([t1_tf, t2_tf], 0)
+
+        # TODO: Without explicit conversion, each element within these arrays gets
+        # converted to a `Tensor` by `metatize`.  That doesn't seem very
+        # reasonable.  Likewise, the `0` gets converted, but it probably shouldn't be.
+        test_op = TFlowMetaOp(mt.Concat, var(), [[t1_tf, t2_tf], 0])
+
+        # Make sure we converted lists to tuples
+        assert isinstance(test_op.inputs, tuple)
+        assert isinstance(test_op.inputs[0], tuple)
+
+        test_op = TFlowMetaOp(mt.Concat, var(), [[t1_tf, t2_tf], 0], outputs=[test_out_tf])
+
+        # NodeDef is a logic variable, so this shouldn't actually reify.
+        assert MetaSymbol.is_meta(test_op.reify())
+        assert isinstance(test_op.outputs, tuple)
+        assert MetaSymbol.is_meta(test_op.outputs[0])
+
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")

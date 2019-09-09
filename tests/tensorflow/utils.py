@@ -2,6 +2,7 @@ from collections.abc import Mapping
 
 import tensorflow as tf
 
+
 def assert_ops_equal(a, b, compare_fn=lambda a, b: a.op.type == b.op.type):
     if hasattr(a, 'op') or hasattr(b, 'op'):
         assert hasattr(a, 'op') and hasattr(b, 'op')
