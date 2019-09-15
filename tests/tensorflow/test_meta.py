@@ -167,6 +167,7 @@ def test_meta_create():
     with pytest.raises(TypeError):
         TFlowMetaTensor('float64', 'Add', name='q__')
 
+
 @pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_meta_Op():
@@ -194,7 +195,6 @@ def test_meta_Op():
         assert MetaSymbol.is_meta(test_op.reify())
         assert isinstance(test_op.outputs, tuple)
         assert MetaSymbol.is_meta(test_op.outputs[0])
-
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
@@ -381,7 +381,7 @@ def test_opdef_sig():
 
     custom_opdef_tf.attr.extend([attr1_tf, attr2_tf])
 
-    opdef_sig = MetaOpDefLibrary.make_opdef_sig(custom_opdef_tf)
+    opdef_sig, opdef_func = MetaOpDefLibrary.make_opdef_sig(custom_opdef_tf)
 
     import inspect
     # These are standard inputs
@@ -431,3 +431,13 @@ def test_metatize():
 
     with pytest.raises(ValueError):
         mt(CustomClass())
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
+def test_opdef_func():
+    sum_mt = mt.Sum([[1, 2]], [1])
+    sum_tf = sum_mt.reify()
+
+    with tf.compat.v1.Session() as sess:
+        assert sum_tf.eval() == np.r_[3]
