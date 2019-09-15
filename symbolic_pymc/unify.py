@@ -43,23 +43,31 @@ def debug_unify(enable=True):
         _unify._cache.clear()
 
 
+_base_unify = unify.dispatch(object, object, dict)
+
+
 def unify_numpy(u, v, s):
     """Handle NumPy arrays in a special way to avoid warnings/exceptions."""
+    u = walk(u, s)
     v = walk(v, s)
+
+    if u is v:
+        return s
     if isvar(u):
         return assoc(s, u, v)
     if isvar(v):
         return assoc(s, v, u)
-    # Switch the order of comparison so that `v.__eq__` is tried (in case it's
-    # not also a NumPy array, but has logic for such comparisons)
-    if np.array_equal(v, u):
+
+    if isinstance(u, np.ndarray) or isinstance(v, np.ndarray):
+        if np.array_equal(v, u):
+            return s
+    elif u == v:
         return s
+
     return _unify(u, v, s)
 
 
-unify.add((np.ndarray, object, dict), unify_numpy)
-unify.add((object, np.ndarray, dict), unify_numpy)
-unify.add((np.ndarray, np.ndarray, dict), unify_numpy)
+unify.add((object, object, dict), unify_numpy)
 
 
 def unify_MetaSymbol(u, v, s):
