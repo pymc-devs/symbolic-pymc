@@ -36,3 +36,15 @@ def test_numpy():
     s = unify([1, var('a')], np_array)
 
     assert s is False
+
+    s = unify(var('a'), 2, {var('a'): np_array})
+
+    assert s is False
+
+    s = unify(var('a'), var('b'), {var('a'): np_array})
+
+    assert s[var('a')] is np_array
+    assert s[var('b')] is np_array
+
+    s = unify(np_array, np_array)
+    assert s == {}

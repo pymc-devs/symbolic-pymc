@@ -48,15 +48,13 @@ class MetaOpDefLibrary(op_def_library.OpDefLibrary):
         super().__init__(*args, **kwargs)
 
     @classmethod
-    def make_opdef_sig(cls, opdef):
+    def make_opdef_sig(cls, opdef, opdef_py_func=None):
         """Create a `Signature` object for an `OpDef`.
 
         Annotations are include so that one can partially verify arguments.
         """
         input_args = OrderedDict([(a.name, a.type or a.type_attr) for a in opdef.input_arg])
         attrs = OrderedDict([(a.name, a.type) for a in opdef.attr])
-
-        opdef_py_func = getattr(tf.raw_ops, opdef.name, None)
 
         params = OrderedDict()
         if opdef_py_func:
@@ -86,6 +84,9 @@ class MetaOpDefLibrary(op_def_library.OpDefLibrary):
                 params[name] = new_param
 
         else:
+            # We're crafting the Operation from a low-level via `apply_op`.
+            opdef_py_func = partial(op_def_lib.apply_op, opdef.name)
+
             for i_name, i_type in input_args.items():
                 p = Parameter(i_name, Parameter.POSITIONAL_OR_KEYWORD, annotation=i_type)
                 params[i_name] = p
@@ -117,15 +118,17 @@ class MetaOpDefLibrary(op_def_library.OpDefLibrary):
         opdef_sig = Signature(
             params.values(), return_annotation=[(o.name, o.type_attr) for o in opdef.output_arg]
         )
-        return opdef_sig
+        return opdef_sig, opdef_py_func
 
     def add_op(self, opdef):
         op_info = self._ops.get(opdef.name, None)
         if op_info is None:
             super().add_op(opdef)
             op_info = self._ops[opdef.name]
-            opdef_sig = self.make_opdef_sig(op_info.op_def)
+            opdef_func = getattr(tf.raw_ops, opdef.name, None)
+            opdef_sig, opdef_func = self.make_opdef_sig(op_info.op_def, opdef_func)
             op_info.opdef_sig = opdef_sig
+            op_info.opdef_func = opdef_func
         return op_info
 
     def get_opinfo(self, opdef):
@@ -239,7 +242,7 @@ class TFlowMetaOpDef(MetaOp, TFlowMetaSymbol):
     def __init__(self, obj=None):
         op_info = op_def_lib.add_op(obj)
         self.apply_func_sig = op_info.opdef_sig
-        self.apply_func = partial(op_def_lib.apply_op, obj.name)
+        self.apply_func = op_info.opdef_func
         super().__init__(obj=obj)
 
     def out_meta_types(self, inputs=None):
