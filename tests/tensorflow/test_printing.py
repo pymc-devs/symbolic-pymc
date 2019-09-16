@@ -144,3 +144,70 @@ def test_numpy():
     )
 
     assert std_out.getvalue() == expected_out.lstrip()
+
+
+@run_in_graph_mode
+def test_depth_indexing():
+    """Make sure graph indexing functions as expected."""
+
+    A = tf.compat.v1.placeholder("float", name="A", shape=tf.TensorShape([None, None]))
+    x = tf.compat.v1.placeholder("float", name="x", shape=tf.TensorShape([None, 1]))
+    y = tf.multiply(1.0, x, name="y")
+
+    z = tf.matmul(A, tf.add(y, y, name="x_p_y"), name="A_dot")
+
+    std_out = io.StringIO()
+    with redirect_stdout(std_out):
+        tf_dprint(z, depth_upper=3)
+
+    expected_out = textwrap.dedent(
+        """
+    Tensor(MatMul):0,\tdtype=float32,\tshape=[None, 1],\t"A_dot:0"
+    |  Tensor(Placeholder):0,\tdtype=float32,\tshape=[None, None],\t"A:0"
+    |  Tensor(Add):0,\tdtype=float32,\tshape=[None, 1],\t"x_p_y:0"
+    |  |  Tensor(Mul):0,\tdtype=float32,\tshape=[None, 1],\t"y:0"
+    |  |  |  ...
+    |  |  Tensor(Mul):0,\tdtype=float32,\tshape=[None, 1],\t"y:0"
+    |  |  |  ...
+    """
+    )
+
+    assert std_out.getvalue() == expected_out.lstrip()
+
+    std_out = io.StringIO()
+    with redirect_stdout(std_out):
+        tf_dprint(z, depth_lower=1)
+
+    expected_out = textwrap.dedent(
+        """
+    ... Tensor(Placeholder):0,\tdtype=float32,\tshape=[None, None],\t"A:0"
+    ... Tensor(Add):0,\tdtype=float32,\tshape=[None, 1],\t"x_p_y:0"
+    ... |  Tensor(Mul):0,\tdtype=float32,\tshape=[None, 1],\t"y:0"
+    ... |  |  Tensor(Const):0,\tdtype=float32,\tshape=[],\t"y/x:0"
+    ... |  |  |  1.
+    ... |  |  Tensor(Placeholder):0,\tdtype=float32,\tshape=[None, 1],\t"x:0"
+    ... |  Tensor(Mul):0,\tdtype=float32,\tshape=[None, 1],\t"y:0"
+    ... |  |  ...
+    """
+    )
+
+    assert std_out.getvalue() == expected_out.lstrip()
+
+    std_out = io.StringIO()
+    with redirect_stdout(std_out):
+        tf_dprint(z, depth_lower=1, depth_upper=4)
+
+    expected_out = textwrap.dedent(
+        """
+    ... Tensor(Placeholder):0,\tdtype=float32,\tshape=[None, None],\t"A:0"
+    ... Tensor(Add):0,\tdtype=float32,\tshape=[None, 1],\t"x_p_y:0"
+    ... |  Tensor(Mul):0,\tdtype=float32,\tshape=[None, 1],\t"y:0"
+    ... |  |  Tensor(Const):0,\tdtype=float32,\tshape=[],\t"y/x:0"
+    ... |  |  |  ...
+    ... |  |  Tensor(Placeholder):0,\tdtype=float32,\tshape=[None, 1],\t"x:0"
+    ... |  Tensor(Mul):0,\tdtype=float32,\tshape=[None, 1],\t"y:0"
+    ... |  |  ...
+    """
+    )
+
+    assert std_out.getvalue() == expected_out.lstrip()
