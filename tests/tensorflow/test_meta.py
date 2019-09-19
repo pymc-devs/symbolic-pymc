@@ -102,7 +102,7 @@ def test_meta_create():
     # Create a (constant) tensor meta object manually.
     X_raw_mt = TFlowMetaConstant(obj=X)
 
-    assert X_raw_mt.data is X
+    assert X_raw_mt._data is X
 
     # These are *not* equivalent, since they're constants without matching
     # constant values (well, our manually-created meta constant has no constant
@@ -146,8 +146,8 @@ def test_meta_create():
     # tf.add(1, 2).op.node_def
     # tf.add(tf.convert_to_tensor(1), tf.convert_to_tensor(2)).op.node_def
 
-    add_mt.op.node_def.input = [None, None]
-    add_mt_2.op.node_def.input = [None, None]
+    # add_mt.op.node_def.input = [None, None]
+    # add_mt_2.op.node_def.input = [None, None]
     assert add_mt == add_mt_2
 
     a_mt = mt(tf.compat.v1.placeholder('float64', name='a', shape=[1, 2]))
@@ -202,18 +202,18 @@ def test_meta_lvars():
     """Make sure we can use lvars as values."""
 
     nd_mt = TFlowMetaNodeDef(var(), var(), var())
-    assert all(isvar(getattr(nd_mt, s)) for s in nd_mt.__slots__)
+    assert all(isvar(getattr(nd_mt, s)) for s in nd_mt.__all_props__)
 
     mo_mt = TFlowMetaOp(var(), var(), var(), var())
-    assert all(isvar(getattr(mo_mt, s)) for s in mo_mt.__slots__)
+    assert all(isvar(getattr(mo_mt, s)) for s in mo_mt.__all_props__)
 
     ts_mt = TFlowMetaTensorShape(var())
-    assert all(isvar(getattr(ts_mt, s)) for s in ts_mt.__slots__)
+    assert all(isvar(getattr(ts_mt, s)) for s in ts_mt.__all_props__)
 
     assert isvar(ts_mt.as_list())
 
     tn_mt = TFlowMetaTensor(var(), var(), var(), var(), var())
-    assert all(isvar(getattr(tn_mt, s)) for s in tn_mt.__slots__)
+    assert all(isvar(getattr(tn_mt, s)) for s in tn_mt.__all_props__)
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
@@ -292,7 +292,7 @@ def test_meta_reify():
     assert add_tf.shape.as_list() == [1, 2]
 
     # Remove cached base object and force manual reification.
-    add_mt.obj = None
+    add_mt._obj = None
     add_tf = add_mt.reify()
 
     assert isinstance(add_tf, tf.Tensor)
@@ -320,9 +320,9 @@ def test_meta_distributions():
     # Now, let's see if we can reconstruct it entirely from the
     # meta objects.
     def _remove_obj(meta_obj):
-        if (hasattr(meta_obj, 'obj') and
+        if (hasattr(meta_obj, '_obj') and
                 not isinstance(meta_obj, TFlowMetaOpDef)):
-            meta_obj.obj = None
+            meta_obj._obj = None
 
         if hasattr(meta_obj, 'ancestors'):
             for a in meta_obj.ancestors or []:

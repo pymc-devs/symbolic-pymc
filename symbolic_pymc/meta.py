@@ -6,6 +6,7 @@ import numpy as np
 
 from itertools import chain
 from functools import partial
+from collections import OrderedDict
 from collections.abc import Iterator, Mapping
 
 from unification import isvar, Var
@@ -84,33 +85,50 @@ class MetaSymbolType(abc.ABCMeta):
 
         # We need to track the cumulative slots, because subclasses can define
         # their own--yet we'll need to track changes across all of them.
-        all_slots = set(
-            chain.from_iterable(s.__all_slots__ for s in bases if hasattr(s, "__all_slots__"))
+        slots = clsdict.get("__slots__", ())
+        all_slots = tuple(
+            OrderedDict.fromkeys(
+                chain(
+                    chain.from_iterable(
+                        tuple(s.__all_slots__) for s in bases if hasattr(s, "__all_slots__")
+                    ),
+                    tuple(slots),
+                )
+            )
         )
-        all_slots |= set(clsdict.get("__slots__", []))
+
         clsdict["__all_slots__"] = all_slots
+        clsdict["__all_props__"] = tuple(s for s in all_slots if not s.startswith("_"))
+        clsdict["__volatile_slots__"] = tuple(s for s in all_slots if s.startswith("_"))
+        clsdict["__props__"] = tuple(s for s in slots if not s.startswith("_"))
 
-        def __setattr__(self, attr, obj):
-            """If a slot value is changed, discard any associated non-meta/base objects."""
-            if attr == "obj":
-                if isinstance(obj, MetaSymbol):
-                    raise ValueError("base object cannot be a meta object!")
-            elif (
-                getattr(self, "obj", None) is not None
-                and not isinstance(self.obj, Var)
-                and attr in getattr(self, "__all_slots__", {})
-                and hasattr(self, attr)
-                and getattr(self, attr) != obj
-            ):
-                self.obj = None
+        if clsdict["__volatile_slots__"]:
 
-            object.__setattr__(self, attr, obj)
+            def __setattr__(self, attr, obj):
+                """If a slot value is changed, reset cached slots."""
 
-        clsdict["__setattr__"] = __setattr__
+                # Underscored-prefixed/volatile/stateful slots can be set
+                # without affecting other such slots.
+                if (
+                    attr not in self.__volatile_slots__
+                    # Are we trying to set a custom property?
+                    and attr in getattr(self, "__all_props__", ())
+                    # Is it a custom property that's already been set?
+                    and hasattr(self, attr)
+                    # Are we setting it to a new value?
+                    and getattr(self, attr) is not obj
+                ):
+                    for s in self.__volatile_slots__:
+                        object.__setattr__(self, s, None)
+
+                object.__setattr__(self, attr, obj)
+
+            clsdict["__setattr__"] = __setattr__
 
         @classmethod
         def __metatize(cls, obj):
-            return cls(*[getattr(obj, s) for s in getattr(cls, "__slots__", [])], obj=obj)
+            """Metatize using the `__all_props__` property."""
+            return cls(*tuple(getattr(obj, s) for s in getattr(cls, "__all_props__", ())), obj=obj)
 
         clsdict.setdefault("_metatize", __metatize)
 
@@ -118,6 +136,22 @@ class MetaSymbolType(abc.ABCMeta):
 
         if isinstance(new_cls.base, type):
             _metatize.add((new_cls.base,), new_cls._metatize)
+
+        # Wrap the class implementation of `__hash__` with this value-caching
+        # code.
+        if "_hash" in clsdict["__volatile_slots__"]:
+            _orig_hash = new_cls.__hash__
+            new_cls._orig_hash = _orig_hash
+
+            def _cached_hash(self):
+                if getattr(self, "_hash", None) is not None:
+                    return self._hash
+
+                object.__setattr__(self, "_hash", _orig_hash(self))
+
+                return self._hash
+
+            new_cls.__hash__ = _cached_hash
 
         # TODO: Could register base classes.
         # E.g. cls.register(bases)
@@ -130,11 +164,17 @@ class MetaSymbol(metaclass=MetaSymbolType):
     TODO: Should `MetaSymbol.obj` be an abstract property and a `weakref`?
     """
 
+    __slots__ = ("_obj", "_hash")
+
     @property
     @abc.abstractmethod
     def base(self):
         """Return the underlying (e.g. a theano/tensorflow) base type/rator for this meta object."""
         raise NotImplementedError()
+
+    @property
+    def obj(self):
+        return object.__getattribute__(self, "_obj")
 
     @classmethod
     def base_classes(cls, mro_order=True):
@@ -149,11 +189,11 @@ class MetaSymbol(metaclass=MetaSymbolType):
         return isinstance(obj, MetaSymbol) or isvar(obj)
 
     def __init__(self, obj=None):
-        self.obj = obj
+        self._obj = obj
 
     def rands(self):
         """Create a tuple of the meta object's operator parameters (i.e. "rands")."""
-        return tuple(getattr(self, s) for s in getattr(self, "__slots__", []))
+        return tuple(getattr(self, s) for s in getattr(self, "__all_props__", ()))
 
     def reify(self):
         """Create a concrete base object from this meta object (and its rands)."""
@@ -168,7 +208,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
             res = rator(*reified_rands)
 
             if not any_unreified:
-                self.obj = res
+                self._obj = res
 
             return res
 
@@ -183,11 +223,11 @@ class MetaSymbol(metaclass=MetaSymbolType):
         if not (self.base == other.base):
             return False
 
-        a_slots = getattr(self, "__slots__", None)
+        a_slots = getattr(self, "__all_props__", None)
         if a_slots is not None:
             if not all(_check_eq(getattr(self, attr), getattr(other, attr)) for attr in a_slots):
                 return False
-        elif getattr(other, "__slots__", None) is not None:
+        elif getattr(other, "__all_props__", None) is not None:
             # The other object has slots, but this one doesn't.
             return False
         else:
@@ -204,7 +244,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
         return not self.__eq__(other)
 
     def __hash__(self):
-        if getattr(self, "__slots__", None) is not None:
+        if getattr(self, "__props__", None) is not None:
             rands = tuple(_make_hashable(p) for p in self.rands())
             return hash(rands + (self.base,))
         else:
@@ -233,8 +273,8 @@ class MetaSymbol(metaclass=MetaSymbolType):
             with p.group(2, f"{self.__class__.__name__}(", ")"):
                 p.breakable()
                 idx = None
-                if hasattr(self, "__slots__"):
-                    for idx, (name, item) in enumerate(zip(self.__slots__, self.rands())):
+                if hasattr(self, "__props__"):
+                    for idx, (name, item) in enumerate(zip(self.__props__, self.rands())):
                         if idx:
                             p.text(",")
                             p.breakable()
@@ -269,14 +309,12 @@ class MetaOp(MetaSymbol):
     implementation.
     """
 
+    __slots__ = ()
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @property
-    def obj(self):
-        return object.__getattribute__(self, "_obj")
-
-    @obj.setter
+    @MetaSymbol.obj.setter
     def obj(self, x):
         if hasattr(self, "_obj"):
             raise ValueError("Cannot reset obj in an `Op`")
@@ -293,6 +331,8 @@ class MetaOp(MetaSymbol):
 
 
 class MetaVariable(MetaSymbol):
+    __slots__ = ()
+
     @property
     @abc.abstractmethod
     def operator(self):

@@ -41,11 +41,12 @@ load_dispatcher()
 
 
 class TheanoMetaSymbol(MetaSymbol):
-    pass
+    __slots__ = []
 
 
 class TheanoMetaType(TheanoMetaSymbol):
     base = theano.Type
+    __slots__ = []
 
     def __call__(self, name=None):
         if self.obj:
@@ -55,6 +56,7 @@ class TheanoMetaType(TheanoMetaSymbol):
 
 class TheanoMetaRandomStateType(TheanoMetaType):
     base = tt.raw_random.RandomStateType
+    __slots__ = []
 
 
 class TheanoMetaTensorType(TheanoMetaType):
@@ -62,10 +64,10 @@ class TheanoMetaTensorType(TheanoMetaType):
     __slots__ = ["dtype", "broadcastable", "name"]
 
     def __init__(self, dtype, broadcastable, name, obj=None):
-        super().__init__(obj=obj)
         self.dtype = dtype
         self.broadcastable = broadcastable
         self.name = name
+        super().__init__(obj=obj)
 
 
 class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
@@ -81,10 +83,11 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
     """
 
     base = tt.Op
+    __slots__ = ["_op_sig"]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.op_sig = inspect.signature(self.obj.make_node)
+    def __init__(self, obj):
+        self._op_sig = inspect.signature(obj.make_node)
+        super().__init__(obj=obj)
 
     def out_meta_types(self, inputs=None):
         """Return the types of meta variables this `Op` is expected to produce given the inputs.
@@ -119,7 +122,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
         name = kwargs.pop("name", None)
 
         # Use the `Op`'s default `make_node` arguments, if any.
-        op_arg_bind = self.op_sig.bind(*args, **kwargs)
+        op_arg_bind = self._op_sig.bind(*args, **kwargs)
         op_arg_bind.apply_defaults()
         op_args, op_args_unreified = _meta_reify_iter(op_arg_bind.args)
 
@@ -143,7 +146,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
                     # Allow the base object to be unified, so that reification
                     # can recover the underlying object--instead of recreating
                     # it and sacrificing equality.
-                    res_var.obj = var()
+                    res_var._obj = var()
 
                 elif tt_out.name != name:
                     tt_out.name = name
@@ -175,7 +178,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
             # problems.
             out_meta_type, = self.out_meta_types(op_args)
             res_var = out_meta_type(ttype, res_apply, index, name)
-            res_var.obj = var()
+            res_var._obj = var()
 
         return res_var
 
@@ -188,6 +191,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
 
 class TheanoMetaElemwise(TheanoMetaOp):
     base = tt.Elemwise
+    __slots__ = []
 
     def __call__(self, *args, ttype=None, index=None, **kwargs):
         obj_nout = getattr(self.obj, "nfunc_spec", None)
@@ -202,36 +206,41 @@ class TheanoMetaDimShuffle(TheanoMetaOp):
     __slots__ = ["input_broadcastable", "new_order", "inplace"]
 
     def __init__(self, input_broadcastable, new_order, inplace=True, obj=None):
-        super().__init__(obj=obj)
         self.input_broadcastable = input_broadcastable
         self.new_order = new_order
         self.inplace = inplace
+        super().__init__(obj=obj)
 
 
 class TheanoMetaRandomVariable(TheanoMetaOp):
     base = RandomVariable
+    __slots__ = []
 
     def __init__(self, obj=None):
         super().__init__(obj=obj)
         # The `name` keyword parameter isn't an `Apply` node input, so we need
         # to remove it from the automatically generated signature.
-        self.op_sig = self.op_sig.replace(parameters=list(self.op_sig.parameters.values())[0:4])
+        self._op_sig = self._op_sig.replace(parameters=list(self._op_sig.parameters.values())[0:4])
 
 
 class TheanoMetaApply(TheanoMetaSymbol):
     base = tt.Apply
-    __slots__ = ["op", "inputs"]
+    __slots__ = ["op", "inputs", "_outputs"]
 
     def __init__(self, op, inputs, outputs=None, obj=None):
-        super().__init__(obj=obj)
         self.op = metatize(op)
         self.inputs = tuple(metatize(i) for i in inputs)
-        self.outputs = outputs
+        self._outputs = outputs
         if outputs is not None:
             # TODO: Convert these to meta objects?
-            self.outputs = tuple(weakref.ref(o) for o in outputs)
+            self._outputs = tuple(weakref.ref(o) for o in outputs)
         else:
-            self.outputs = None
+            self._outputs = None
+        super().__init__(obj=obj)
+
+    @property
+    def outputs(self):
+        return self._outputs
 
     def reify(self):
         if self.obj and not isinstance(self.obj, Var):
@@ -242,7 +251,7 @@ class TheanoMetaApply(TheanoMetaSymbol):
                 reified_rands, any_unreified = _meta_reify_iter(self.inputs)
                 if not any_unreified:
                     tt_var = tt_op(*reified_rands)
-                    self.obj = tt_var.owner
+                    self._obj = tt_var.owner
                     return tt_var.owner
             return self
 
@@ -263,7 +272,6 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
     __slots__ = ["type", "owner", "index", "name"]
 
     def __init__(self, type, owner, index, name, obj=None):
-        super().__init__(obj=obj)
         self.type = metatize(type)
         if owner is not None:
             self.owner = metatize(owner)
@@ -271,6 +279,7 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
             self.owner = None
         self.index = index
         self.name = name
+        super().__init__(obj=obj)
 
     @property
     def operator(self):
@@ -321,7 +330,7 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
             else:
                 tt_var.name = self.name
             assert tt_var is not None
-            self.obj = tt_var
+            self._obj = tt_var
             return tt_var
 
         return super().reify()
@@ -330,6 +339,7 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
 class TheanoMetaTensorVariable(TheanoMetaVariable):
     # TODO: Could extend `theano.tensor.var._tensor_py_operators`, too.
     base = tt.TensorVariable
+    __slots__ = []
 
     @property
     def ndim(self):
@@ -343,17 +353,27 @@ class TheanoMetaTensorVariable(TheanoMetaVariable):
 
 class TheanoMetaConstant(TheanoMetaVariable):
     base = theano.Constant
-    __slots__ = ["type", "data"]
+    __slots__ = ["data"]
+
+    @classmethod
+    def _metatize(cls, obj):
+        res = TheanoMetaConstant(obj.type, obj.data, name=obj.name, obj=obj)
+        return res
 
     def __init__(self, type, data, name=None, obj=None):
-        super().__init__(type, None, None, name, obj=obj)
         self.data = data
+        super().__init__(type, None, None, name, obj=obj)
 
 
 class TheanoMetaTensorConstant(TheanoMetaConstant):
     # TODO: Could extend `theano.tensor.var._tensor_py_operators`, too.
     base = tt.TensorConstant
-    __slots__ = ["type", "data", "name"]
+
+    __slots__ = []
+
+    @classmethod
+    def _metatize(cls, obj):
+        return super()._metatize(obj)
 
     def __init__(self, type, data, name=None, obj=None):
         super().__init__(type, data, name, obj=obj)
@@ -361,7 +381,7 @@ class TheanoMetaTensorConstant(TheanoMetaConstant):
 
 class TheanoMetaSharedVariable(TheanoMetaVariable):
     base = tt.sharedvar.SharedVariable
-    __slots__ = ["name", "type", "data", "strict"]
+    __slots__ = ["data", "strict"]
 
     @classmethod
     def _metatize(cls, obj):
@@ -371,18 +391,20 @@ class TheanoMetaSharedVariable(TheanoMetaVariable):
         return res
 
     def __init__(self, name, type, data, strict, obj=None):
-        super().__init__(type, None, None, name, obj=obj)
         self.data = data
         self.strict = strict
+        super().__init__(type, None, None, name, obj=obj)
 
 
 class TheanoMetaTensorSharedVariable(TheanoMetaSharedVariable):
     # TODO: Could extend `theano.tensor.var._tensor_py_operators`, too.
     base = tt.sharedvar.TensorSharedVariable
+    __slots__ = []
 
 
 class TheanoMetaScalarSharedVariable(TheanoMetaSharedVariable):
     base = tt.sharedvar.ScalarSharedVariable
+    __slots__ = []
 
 
 class TheanoMetaAccessor(object):

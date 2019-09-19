@@ -73,10 +73,10 @@ unify.add((object, object, dict), unify_numpy)
 def unify_MetaSymbol(u, v, s):
     if type(u) != type(v):
         return False
-    if hasattr(u, "__slots__"):
+    if hasattr(u, "__all_props__"):
         s = unify(
-            [getattr(u, slot) for slot in u.__slots__],
-            [getattr(v, slot) for slot in v.__slots__],
+            [getattr(u, slot) for slot in u.__all_props__],
+            [getattr(v, slot) for slot in v.__all_props__],
             s,
         )
     elif u != v:
