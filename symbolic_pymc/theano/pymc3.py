@@ -90,108 +90,108 @@ def _convert_rv_to_dist(op, rv):
     return pm.Uniform, params
 
 
-@dispatch(pm.Normal, object)
-def convert_dist_to_rv(dist, rng):
+@convert_dist_to_rv.register(pm.Normal, object)
+def convert_dist_to_rv_Normal(dist, rng):
     size = dist.shape.astype(int)[NormalRV.ndim_supp :]
     res = NormalRV(dist.mu, dist.sd, size=size, rng=rng)
     return res
 
 
-@dispatch(NormalRVType, Apply)
-def _convert_rv_to_dist(op, rv):
+@_convert_rv_to_dist.register(NormalRVType, Apply)
+def _convert_rv_to_dist_Normal(op, rv):
     params = {"mu": rv.inputs[0], "sd": rv.inputs[1]}
     return pm.Normal, params
 
 
-@dispatch(pm.HalfNormal, object)
-def convert_dist_to_rv(dist, rng):
+@convert_dist_to_rv.register(pm.HalfNormal, object)
+def convert_dist_to_rv_HalfNormal(dist, rng):
     size = dist.shape.astype(int)[HalfNormalRV.ndim_supp :]
     res = HalfNormalRV(np.array(0.0, dtype=dist.dtype), dist.sd, size=size, rng=rng)
     return res
 
 
-@dispatch(HalfNormalRVType, Apply)
-def _convert_rv_to_dist(op, rv):
+@_convert_rv_to_dist.register(HalfNormalRVType, Apply)
+def _convert_rv_to_dist_HalfNormal(op, rv):
     assert not np.any(tt_get_values(rv.inputs[0]))
     params = {"sd": rv.inputs[1]}
     return pm.HalfNormal, params
 
 
-@dispatch(pm.MvNormal, object)
-def convert_dist_to_rv(dist, rng):
+@convert_dist_to_rv.register(pm.MvNormal, object)
+def convert_dist_to_rv_MvNormal(dist, rng):
     size = dist.shape.astype(int)[MvNormalRV.ndim_supp :]
     res = MvNormalRV(dist.mu, dist.cov, size=size, rng=rng)
     return res
 
 
-@dispatch(MvNormalRVType, Apply)
-def _convert_rv_to_dist(op, rv):
+@_convert_rv_to_dist.register(MvNormalRVType, Apply)
+def _convert_rv_to_dist_MvNormal(op, rv):
     params = {"mu": rv.inputs[0], "cov": rv.inputs[1]}
     return pm.MvNormal, params
 
 
-@dispatch(pm.Gamma, object)
-def convert_dist_to_rv(dist, rng):
+@convert_dist_to_rv.register(pm.Gamma, object)
+def convert_dist_to_rv_Gamma(dist, rng):
     size = dist.shape.astype(int)[GammaRV.ndim_supp :]
     res = GammaRV(dist.alpha, tt.inv(dist.beta), size=size, rng=rng)
     return res
 
 
-@dispatch(GammaRVType, Apply)
-def _convert_rv_to_dist(op, rv):
+@_convert_rv_to_dist.register(GammaRVType, Apply)
+def _convert_rv_to_dist_Gamma(op, rv):
     params = {"alpha": rv.inputs[0], "beta": rv.inputs[1]}
     return pm.Gamma, params
 
 
-@dispatch(pm.InverseGamma, object)
-def convert_dist_to_rv(dist, rng):
+@convert_dist_to_rv.register(pm.InverseGamma, object)
+def convert_dist_to_rv_InverseGamma(dist, rng):
     size = dist.shape.astype(int)[InvGammaRV.ndim_supp :]
     res = InvGammaRV(dist.alpha, scale=dist.beta, size=size, rng=rng)
     return res
 
 
-@dispatch(InvGammaRVType, Apply)
-def _convert_rv_to_dist(op, rv):
+@_convert_rv_to_dist.register(InvGammaRVType, Apply)
+def _convert_rv_to_dist_InvGamma(op, rv):
     assert not np.any(tt_get_values(rv.inputs[1]))
     params = {"alpha": rv.inputs[0], "beta": rv.inputs[2]}
     return pm.InverseGamma, params
 
 
-@dispatch(pm.Exponential, object)
-def convert_dist_to_rv(dist, rng):
+@convert_dist_to_rv.register(pm.Exponential, object)
+def convert_dist_to_rv_Exponential(dist, rng):
     size = dist.shape.astype(int)[ExponentialRV.ndim_supp :]
     res = ExponentialRV(tt.inv(dist.lam), size=size, rng=rng)
     return res
 
 
-@dispatch(ExponentialRVType, Apply)
-def _convert_rv_to_dist(op, rv):
+@_convert_rv_to_dist.register(ExponentialRVType, Apply)
+def _convert_rv_to_dist_Exponential(op, rv):
     params = {"lam": tt.inv(rv.inputs[0])}
     return pm.Exponential, params
 
 
-@dispatch(pm.Cauchy, object)
-def convert_dist_to_rv(dist, rng):
+@convert_dist_to_rv.register(pm.Cauchy, object)
+def convert_dist_to_rv_Cauchy(dist, rng):
     size = dist.shape.astype(int)[CauchyRV.ndim_supp :]
     res = CauchyRV(dist.alpha, dist.beta, size=size, rng=rng)
     return res
 
 
-@dispatch(CauchyRVType, Apply)
-def _convert_rv_to_dist(op, rv):
+@_convert_rv_to_dist.register(CauchyRVType, Apply)
+def _convert_rv_to_dist_Cauchy(op, rv):
     params = {"alpha": rv.inputs[0], "beta": rv.inputs[1]}
     return pm.Cauchy, params
 
 
-@dispatch(pm.HalfCauchy, object)
-def convert_dist_to_rv(dist, rng):
+@convert_dist_to_rv.register(pm.HalfCauchy, object)
+def convert_dist_to_rv_HalfCauchy(dist, rng):
     size = dist.shape.astype(int)[HalfCauchyRV.ndim_supp :]
     res = HalfCauchyRV(np.array(0.0, dtype=dist.dtype), dist.beta, size=size, rng=rng)
     return res
 
 
-@dispatch(HalfCauchyRVType, Apply)
-def _convert_rv_to_dist(op, rv):
+@_convert_rv_to_dist.register(HalfCauchyRVType, Apply)
+def _convert_rv_to_dist_HalfCauchy(op, rv):
     # TODO: Assert that `rv.inputs[0]` must be all zeros!
     params = {"beta": rv.inputs[1]}
     return pm.HalfCauchy, params

@@ -9,6 +9,7 @@ import tensorflow_probability as tfp
 from inspect import Parameter, Signature
 
 from collections import OrderedDict, UserString
+from collections.abc import Sequence
 
 from functools import partial
 
@@ -30,7 +31,7 @@ from ..meta import (
     MetaSymbolType,
     MetaOp,
     MetaVariable,
-    _meta_reify_iter,
+    meta_reify_iter,
     _metatize,
     metatize,
 )
@@ -195,7 +196,7 @@ def _metatize_tf_object(obj):
         try:
             obj.op
         except AttributeError:
-            raise ValueError(
+            raise AttributeError(
                 f"TensorFlow Operation not available; "
                 "try recreating the object with eager-mode disabled"
                 " (e.g. within `tensorflow.python.eager.context.graph_mode`)"
@@ -216,7 +217,28 @@ class TFlowMetaSymbol(MetaSymbol):
     __slots__ = ()
 
 
-class TFlowMetaOpDef(MetaOp):
+class OpDefFactoryType(MetaSymbolType):
+    __opdefs__ = {}
+
+    def __call__(cls, obj=None):
+
+        if obj is not None:
+            obj_hash = obj.name  # obj.SerializeToString()
+            opdef = cls.__opdefs__.get(obj_hash, None)
+        else:
+            obj_hash = None
+            opdef = None
+
+        if opdef is None:
+            opdef = super().__call__(obj=obj)
+
+            if obj is not None:
+                cls.__opdefs__[obj_hash] = opdef
+
+        return opdef
+
+
+class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
     """A meta `OpDef`.
 
     This is like an `Op` node in Theano.
@@ -259,13 +281,11 @@ class TFlowMetaOpDef(MetaOp):
 
     def input_args(self, *args, **kwargs):
         kwargs = OrderedDict(
-            [
-                (k, v)
-                for k, v in kwargs.items()
-                # Filter out the optional keyword arguments so they we only pass
-                # expected arguments to the `OpDef`'s apply function.
-                if k in self._apply_func_sig.parameters
-            ]
+            (k, v)
+            for k, v in kwargs.items()
+            # Filter out the optional keyword arguments so they we only pass
+            # expected arguments to the `OpDef`'s apply function.
+            if k in self._apply_func_sig.parameters
         )
         op_args = self._apply_func_sig.bind(*args, **kwargs)
         op_args.apply_defaults()
@@ -273,8 +293,8 @@ class TFlowMetaOpDef(MetaOp):
 
     def __call__(self, *args, **kwargs):
         """Create the meta object(s) resulting from an application of this `OpDef`'s implied `Operation`."""
-        op_args, op_args_unreified = _meta_reify_iter(args)
-        op_kwargs, op_kwargs_unreified = _meta_reify_iter(kwargs)
+        op_args, op_args_unreified = meta_reify_iter(args)
+        op_kwargs, op_kwargs_unreified = meta_reify_iter(kwargs)
         apply_arguments = self.input_args(*op_args, **op_kwargs)
 
         if not op_args_unreified and not op_kwargs_unreified:
@@ -300,7 +320,6 @@ class TFlowMetaOpDef(MetaOp):
         # If we're here, that means we have to create the meta objects
         # manually.
         #
-
         # TODO: `tf.placeholder`s are pretty flexible, we could probably use
         # one as a stand-in for any un-reified tensor arguments and at least
         # get some partial `dtype`, `shape` and `name` info.
@@ -314,17 +333,9 @@ class TFlowMetaOpDef(MetaOp):
 
         op_name = op_kwargs.get("name", self.obj.name)
 
-        # input_arg_names = [(getattr(a, 'name', None), i.name)
-        #                    for a, i in zip(args, self.obj.input_arg)]
-        # if isvar(op_name) or any(isvar(a) or isvar(i) for a, i in input_arg_names):
-        #     node_input = [var() for i in self.obj.input_arg]
-        # else:
-        #     node_input = [getattr(a, 'name', None) or f"{op_name}/{i.name}"
-        #                   for a, i in input_arg_names]
-
         node_def = TFlowMetaNodeDef(self.obj.name, op_name, node_attr)
 
-        op_mt = TFlowMetaOp(self, node_def, op_input_args, name=op_name)
+        op_mt = TFlowMetaOp(self, node_def, op_input_args)
 
         res_var = op_mt.default_output
 
@@ -359,7 +370,7 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
     """
 
     base = NodeDef
-    __slots__ = ["op", "name", "attr"]
+    __slots__ = ["op", "name", "attr", "_frozen_attr"]
 
     @classmethod
     def _protobuf_convert(cls, k, v):
@@ -392,15 +403,14 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
         self.name = name if isvar(name) else TFlowOpName(name)
 
         if not isvar(attr):
-            self.attr = OrderedDict()
-
             # We want to limit the attributes we'll consider to those that show
             # up in an OpDef function's signature (e.g. ignore info about
             # permissible types).
             opinfo = op_def_lib.get_opinfo(self.op)
             op_param_names = opinfo.opdef_sig.parameters.keys()
 
-            for k, v in sorted(dict(attr).items()):
+            _attr = dict()
+            for k, v in attr.items():
                 if isinstance(v, Message):
                     try:
                         v = self._protobuf_convert(k, v)
@@ -408,9 +418,44 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
                         continue
 
                 if k != "T" and k in op_param_names:
-                    self.attr[k] = v
+                    _attr[k] = v
+
+            self.attr = _attr
         else:
             self.attr = attr
+
+    @property
+    def frozen_attr(self):
+        if getattr(self, "_frozen_attr", None) is not None:
+            return self._frozen_attr
+
+        if isvar(self.attr):
+            self._frozen_attr = self.attr
+        else:
+            self._frozen_attr = frozenset(
+                (k, v.tostring() if isinstance(v, np.ndarray) else v) for k, v in self.attr.items()
+            )
+        return self._frozen_attr
+
+    def __eq__(self, other):
+
+        if self is other:
+            return True
+
+        if not (type(self) == type(other)):
+            return False
+
+        if (
+            self.op == other.op
+            and self.name == other.name
+            and self.frozen_attr == other.frozen_attr
+        ):
+            return True
+
+        return False
+
+    def __hash__(self):
+        return hash((hash(self.op), hash(self.name), hash(self.frozen_attr)))
 
 
 class TFlowMetaOp(TFlowMetaSymbol):
@@ -422,7 +467,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
     """
 
     base = tf.Operation
-    __slots__ = ["op_def", "node_def", "inputs", "name", "_type", "_outputs", "_default_output"]
+    __slots__ = ["op_def", "node_def", "inputs", "_name", "_type", "_outputs", "_default_output"]
 
     @classmethod
     def _metatize(cls, obj):
@@ -433,62 +478,74 @@ class TFlowMetaOp(TFlowMetaSymbol):
         ]
         return cls(*new_args, obj=obj)
 
-    def __init__(self, op_def, node_def, inputs, name=None, outputs=None, obj=None):
+    def __init__(self, op_def, node_def, inputs, outputs=None, obj=None):
+        """Create a TensorFlow meta `Operation`.
+
+        The real signature of `tf.Operation.__init__` includes the graph
+        object, so we can't really the signature directly.  This is part of the
+        reason why we have `TFlowMetaOpFactory.__call__` and
+        `TFlowMetaTensor.operator` + `TFlowMetaTensor.inputs` that do not
+        directly use `__all_props__`/`TFlowMetaTensor.rands` and construct the
+        objects directly.
+        """
         super().__init__(obj=obj)
 
         if isinstance(op_def, str):
             op_def = op_def_registry.get_registered_ops()[op_def]
 
-        if isvar(op_def):
-            self.op_def = op_def
-            # Create a logic variables to fill missing properties
-            # obtained/inferred from a missing OpDef.
-            self._type = var()
-            self.name = var() if name is None else name
-            if outputs is None:
-                self._outputs = var()
-            elif isvar(outputs):
-                self._outputs = outputs
-            else:
-                self._outputs = tuple(metatize(o) for o in outputs)
-        else:
-            self.op_def = metatize(op_def)
-            self._type = self.op_def.obj.name
-
-            if isinstance(name, (str, TFlowOpName)) or name is None:
-                if name is None:
-                    name = op_def.obj.name
-                # from tensorflow.python.framework import ops
-                # if name and name[-1] == "/":
-                #     name = ops._name_from_scope_name(str(name))
-                # else:
-                #     g_tf = ops.get_default_graph()
-                #     name = g_tf.unique_name(str(name))
-                self.name = TFlowOpName(name)
-            else:
-                self.name = name
-
-            if not isvar(outputs) and outputs is not None:
-                # TODO: Use `weakref`?
-                self._outputs = tuple(metatize(o) for o in outputs)
-            else:
-                self._outputs = outputs
-
+        self.op_def = metatize(op_def)
         self.node_def = metatize(node_def)
 
         if isvar(inputs):
             self.inputs = inputs
         else:
+            # Inputs are supposed to be immutable, so we're able to convert
+            # lists to tuples.
+            def _convert_inputs(arg, nested):
+                if nested and isinstance(arg, list):
+                    arg = tuple(metatize(i) for i in arg)
+                else:
+                    arg = metatize(arg)
 
-            def _convert_inputs(i):
-                i = metatize(i)
-                # Inputs are supposed to be immutable, so we're able to convert
-                # lists to tuples.
-                if isinstance(i, list):
-                    i = tuple(i)
-                return i
+                return arg
 
-            self.inputs = tuple(_convert_inputs(i) for i in inputs)
+            if not isvar(self.op_def):
+                self.inputs = tuple(
+                    _convert_inputs(i, hasattr(info, "number_attr"))
+                    for i, info in zip(inputs, self.op_def.obj.input_arg)
+                )
+            else:
+                self.inputs = tuple(_convert_inputs(i, False) for i in inputs)
+
+        if outputs is not None:
+            if isvar(outputs):
+                self._outputs = outputs
+            else:
+                self._outputs = tuple(metatize(o) for o in outputs)
+
+    @property
+    def type(self):
+        if getattr(self, "_type", None) is not None:
+            return self._type
+
+        if isvar(self.op_def):
+            self._type = var()
+        else:
+            self._type = self.op_def.obj.name
+
+        return self._type
+
+    @property
+    def name(self):
+        if getattr(self, "_name", None) is not None:
+            return self._name
+
+        if isvar(self.node_def):
+            self._name = var()
+        else:
+            self._name = TFlowOpName(self.node_def.name)
+
+        return self._name
 
     @property
     def outputs(self):
@@ -501,34 +558,29 @@ class TFlowMetaOp(TFlowMetaSymbol):
         One of the reasons that they're dynamically computed: as constituent
         meta elements are unified, we may obtain more information about the
         """
-        if self._outputs is not None:
+        if getattr(self, "_outputs", None) is not None:
             return self._outputs
 
-        apply_arguments = self.op_def.input_args(*self.inputs, **self.node_def.attr)
-        out_types_mt = self.op_def.out_meta_types(inputs=apply_arguments)
+        if (
+            isvar(self.op_def)
+            or isvar(self.inputs)
+            or isvar(self.node_def)
+            or isvar(self.node_def.attr)
+        ):
+            self._outputs = var()
+        else:
 
-        mt_outs = tuple(
-            o_type(
-                var() if o_dtype is None else o_dtype,
-                op=self,
-                value_index=i,
-                shape=var(),
-                name=(
-                    TFlowOpName(f"{self.name}:{i}")
-                    if isinstance(self.name, (str, TFlowOpName))
-                    else var()
-                ),
+            apply_arguments = self.op_def.input_args(*self.inputs, **self.node_def.attr)
+            out_types_mt = self.op_def.out_meta_types(inputs=apply_arguments)
+
+            mt_outs = tuple(
+                o_type(self, i, var() if o_dtype is None else o_dtype)
+                for i, (o_type, o_dtype) in enumerate(out_types_mt)
             )
-            for i, (o_type, o_dtype) in enumerate(out_types_mt)
-        )
 
-        self._outputs = mt_outs
+            self._outputs = mt_outs
 
         return self._outputs
-
-    @property
-    def type(self):
-        return self._type
 
     @property
     def default_output(self):
@@ -556,12 +608,12 @@ class TFlowMetaOp(TFlowMetaSymbol):
 
         # tt_op = self.op.reify()
         # if not self.is_meta(tt_op):
-        op_inputs, op_inputs_unreified = _meta_reify_iter(self.inputs)
+        op_inputs, op_inputs_unreified = meta_reify_iter(self.inputs)
 
         if isvar(self.node_def):
             return self
 
-        op_attrs, op_attrs_unreified = _meta_reify_iter(self.node_def.attr)
+        op_attrs, op_attrs_unreified = meta_reify_iter(self.node_def.attr)
 
         if not (op_inputs_unreified or op_attrs_unreified or MetaSymbol.is_meta(self.name)):
 
@@ -581,68 +633,48 @@ class TFlowMetaOp(TFlowMetaSymbol):
         return self
 
 
-class TFlowMetaOpFactory(MetaSymbolType):
-    """A type that enables the creation of meta `OpDef`s by their string names.
-
-    Example
-    -------
-    >>> TFlowMetaTensor('float64', 'Placeholder')
-    TFlowMetaTensor(tf.float64, TFlowMetaOp(TFlowMetaOpDef(obj=name: "Placeholde...bj=<tf.Operation 'Placeholder' type=Placeholder>), 0, TFlowMetaTensorShape(None,, obj=TensorShape(None)), 'Placeholder:0', obj=<tf.Tensor 'Placeholder:0' shape=<unknown> dtype=float64>)
-
-    """
-
-    _op_types = {}
-
-    def __new__(cls, name, bases, clsdict):
-        op_type = clsdict.get("op_type", None)
-        new_cls = super().__new__(cls, name, bases, clsdict)
-        if op_type is not None:
-            cls._op_types[op_type] = new_cls
-        return new_cls
-
-    def __call__(cls, dtype=None, op=None, value_index=None, shape=None, name=None, obj=None):
-        if isinstance(op, str):
-            # Attempt to construct this meta `Tensor` from the `OpDef` and
-            # these `Tensor` arguments.
-            # NOTE: This is really only expected to work for nullary
-            # `Operation`s (with, perhaps, some optional arguments).
-            op_def_mt = TFlowMetaOpDef(obj=op_def_registry.get_registered_ops()[op.capitalize()])
-
-            obj_mt = op_def_mt(dtype=dtype, shape=shape, name=name)
-            return obj_mt
-
-        return type.__call__(
-            cls, dtype, op=op, value_index=value_index, shape=shape, name=name, obj=obj
-        )
-
-
-class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable, metaclass=TFlowMetaOpFactory):
+class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
     base = tf.Tensor
-    __slots__ = ("dtype", "op", "value_index", "shape", "name")
+    __slots__ = ("op", "value_index", "dtype", "_shape", "_name")
 
-    @classmethod
-    def _metatize(cls, obj):
-        """Specialize the meta type based on a `tf.Tensor`'s op."""
-
-        try:
-            obj.op
-        except AttributeError:
-            raise ValueError(
-                f"TensorFlow Operation not available; "
-                "try recreating the object with eager-mode disabled"
-                " (e.g. within `tensorflow.python.eager.context.graph_mode`)"
-            )
-
-        cls = TFlowMetaTensor._op_types.get(obj.op.type, cls)
-        return cls(*tuple(getattr(obj, s) for s in getattr(cls, "__all_props__", ())), obj=obj)
-
-    def __init__(self, dtype, op=None, value_index=None, shape=None, name=None, obj=None):
-        super().__init__(obj=obj)
-        self.dtype = dtype
+    def __init__(self, op, value_index, dtype, obj=None):
         self.op = metatize(op)
-        self.shape = metatize(shape)
+        self.dtype = dtype
         self.value_index = value_index
-        self.name = TFlowOpName(name) if isinstance(name, str) else name
+        super().__init__(obj=obj)
+
+    @property
+    def shape(self):
+        if getattr(self, "_shape", None):
+            return self._shape
+
+        if self.obj is not None and not isinstance(self.obj, Var):
+            self._shape = metatize(self.obj.shape)
+        else:
+            self._shape = TFlowMetaTensorShape(var())
+
+        return self._shape
+
+    @property
+    def name(self):
+        if getattr(self, "_name", None):
+            return self._name
+
+        if self.obj is not None and not isinstance(self.obj, Var):
+            name = self.obj.name
+        elif (
+            self.op is not None
+            and not isvar(self.op)
+            and not isvar(self.op.name)
+            and not isinstance(self.op.outputs, Sequence)
+        ):
+            out_num = self.op.outputs.index(self)
+            name = f"{self.op.name}:{out_num}"
+        else:
+            name = var()
+
+        self._name = name
+        return self._name
 
     @property
     def operator(self):
@@ -658,6 +690,10 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable, metaclass=TFlowMetaOpFactor
         In other words, these can be used to recreate this object (per
         the meta object spec).
         """
+        # TODO: In keeping with our desire to return logic variables in cases
+        # where params aren't given/inferred, we could return something like
+        # `cons(var(), var())` here (although that wouldn't be necessarily imply
+        # that the result is a proper list/tuple).
         if self.op is not None and not isvar(self.op):
             input_args = self.op.op_def.input_args(
                 *self.op.inputs,
@@ -694,18 +730,30 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable, metaclass=TFlowMetaOpFactor
 
 class TFlowMetaTensorShape(TFlowMetaSymbol):
     base = tf.TensorShape
-    __slots__ = ("dims",)
+    __slots__ = ("dims", "_rank")
 
-    def __init__(self, dims, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, dims, obj=None):
+        super().__init__(obj=obj)
         self.dims = dims
         if self.dims is not None and not isvar(self.dims):
+            # TODO: Just like the comment in `TFlowMetaTensor.inputs`,
+            # `self.dims` should be something like `cons(var(), ...)` and not a
+            # straight logic variable.
             self.dims = tuple(tensor_shape.as_dimension(d).value for d in self.dims)
 
     @property
     def rank(self):
+        if getattr(self, "_rank", None):
+            return self._rank
+
         if self.dims is not None and not isvar(self.dims):
-            return len(self.dims)
+            rank = len(self.dims)
+        else:
+            # TODO: How do we represent/tie in len(var())?
+            rank = var()
+
+        self._rank = rank
+        return self._rank
 
     @property
     def ndims(self):
@@ -719,69 +767,6 @@ class TFlowMetaTensorShape(TFlowMetaSymbol):
 
     def __hash__(self):
         return hash((self.base, self.dims))
-
-
-class TFlowConstantType(type):
-    # def __subclasscheck__(self, c):
-
-    def __instancecheck__(self, o):
-        if isinstance(o, tf.Tensor):
-            return o.op.type == "Const"
-        return False
-
-
-class _TFlowConstant(tf.Tensor, metaclass=TFlowConstantType):
-    """A helper for `isinstance` functionality."""
-
-    pass
-
-
-class TFlowMetaConstant(TFlowMetaTensor):
-    base = _TFlowConstant
-    __slots__ = ("_data",)
-    op_type = "Const"
-
-    def __init__(self, dtype=None, op=None, value_index=None, shape=None, name=None, obj=None):
-
-        assert obj is not None
-
-        # If `obj` is a NumPy array, create the corresponding TF object, and,
-        # if it's a TF object, create the corresponding NumPy array.
-        if not isinstance(obj, tf.Tensor):
-            tf_obj = tf.constant(obj, dtype=dtype, shape=shape, name=name)
-        else:
-            tf_obj = obj
-            obj = tf_obj.op.node_def.attr["value"]
-            obj = tensor_util.MakeNdarray(obj.tensor)
-
-        assert tf_obj.op.type == "Const"
-
-        super().__init__(
-            tf_obj.dtype.name,
-            op=tf_obj.op,
-            value_index=tf_obj.value_index,
-            name=tf_obj.name,
-            obj=tf_obj,
-        )
-
-        self._data = obj
-
-        assert self.obj is not None
-
-    def __eq__(self, other):
-        if self is other:
-            return True
-
-        if not (type(self) == type(other)):
-            return False
-
-        if not (self.base == other.base):
-            return False
-
-        return np.array_equal(self._data, other._data)
-
-    def __hash__(self):
-        return hash((self.base, self._data.tostring()))
 
 
 class TFlowMetaAccessor(object):

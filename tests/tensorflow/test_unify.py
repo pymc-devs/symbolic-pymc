@@ -77,7 +77,7 @@ def test_basic_unify_reify():
     # Simply make sure that unification succeeds
     meta_expected_res = mt(expected_res)
     s_test = unify(test_expr, meta_expected_res, {})
-    assert len(s_test) == 5
+    assert len(s_test) == 3
 
     assert reify(test_expr, s_test) == meta_expected_res
 

@@ -11,8 +11,6 @@ from unification import var, isvar
 from symbolic_pymc.meta import MetaSymbol
 from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaTensorShape,
-                                           TFlowMetaConstant,
-                                           _TFlowConstant,
                                            TFlowMetaOp,
                                            TFlowMetaOpDef,
                                            TFlowMetaNodeDef,
@@ -66,10 +64,10 @@ def test_meta_eager():
     X = np.vstack([np.random.randn(N), np.ones(N)]).T
     X_tf = tf.convert_to_tensor(X)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         _ = mt(X_tf)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         _ = mt(X)
 
     with graph_mode():
@@ -95,14 +93,10 @@ def test_meta_create():
 
     assert X_mt == mt(X_tf)
 
-    # from google.protobuf import json_format
-    # [i for i in X_tf.op.inputs]
-    # print(json_format.MessageToJson(X_tf.op.op_def))
-
     # Create a (constant) tensor meta object manually.
-    X_raw_mt = TFlowMetaConstant(obj=X)
+    X_raw_mt = TFlowMetaTensor(X_tf.op, X_tf.value_index, X_tf.dtype, obj=X_tf)
 
-    assert X_raw_mt._data is X
+    assert np.array_equal(X_raw_mt.op.node_def.attr['value'], X)
 
     # These are *not* equivalent, since they're constants without matching
     # constant values (well, our manually-created meta constant has no constant
@@ -133,23 +127,6 @@ def test_meta_create():
     assert isinstance(add_mt_2.op.obj, tf.Operation)
     assert add_mt_2.op.obj.type == 'Add'
 
-    assert add_mt.obj is not None
-    add_mt.name = None
-    assert add_mt.obj is None
-    add_mt_2.name = None
-
-    # These aren't technically equal because of the TF auto-generated names,
-    # but, since we're using special string wrappers for the names, it should
-    # work in most cases.
-    # However, the node_def input names will break equality, since even the TF
-    # names aren't the same between these two different constructions:
-    # tf.add(1, 2).op.node_def
-    # tf.add(tf.convert_to_tensor(1), tf.convert_to_tensor(2)).op.node_def
-
-    # add_mt.op.node_def.input = [None, None]
-    # add_mt_2.op.node_def.input = [None, None]
-    assert add_mt == add_mt_2
-
     a_mt = mt(tf.compat.v1.placeholder('float64', name='a', shape=[1, 2]))
     b_mt = mt(tf.compat.v1.placeholder('float64', name='b'))
     assert a_mt != b_mt
@@ -157,44 +134,30 @@ def test_meta_create():
     assert a_mt.shape.ndims == 2
     assert a_mt.shape == TFlowMetaTensorShape([1, 2])
 
-    # TODO: Create a placeholder using the string `Operator` name.
-    z_mt = TFlowMetaTensor('float64', 'Placeholder', name='z__')
-
-    assert z_mt.op.type == 'Placeholder'
-    assert z_mt.name.startswith('z__')
-    assert z_mt.obj.name.startswith('z__')
-
-    with pytest.raises(TypeError):
-        TFlowMetaTensor('float64', 'Add', name='q__')
-
 
 @pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_meta_Op():
 
-    from tensorflow.python.eager.context import graph_mode
+    t1_tf = tf.convert_to_tensor([[1, 2, 3], [4, 5, 6]])
+    t2_tf = tf.convert_to_tensor([[7, 8, 9], [10, 11, 12]])
+    test_out_tf = tf.concat([t1_tf, t2_tf], 0)
 
+    # TODO: Without explicit conversion, each element within these arrays gets
+    # converted to a `Tensor` by `metatize`.  That doesn't seem very
+    # reasonable.  Likewise, the `0` gets converted, but it probably shouldn't be.
+    test_op = TFlowMetaOp(mt.Concat, var(), [[t1_tf, t2_tf], 0])
 
-    with graph_mode():
-        t1_tf = tf.convert_to_tensor([[1, 2, 3], [4, 5, 6]])
-        t2_tf = tf.convert_to_tensor([[7, 8, 9], [10, 11, 12]])
-        test_out_tf = tf.concat([t1_tf, t2_tf], 0)
+    # Make sure we converted lists to tuples
+    assert isinstance(test_op.inputs, tuple)
+    assert isinstance(test_op.inputs[0], tuple)
 
-        # TODO: Without explicit conversion, each element within these arrays gets
-        # converted to a `Tensor` by `metatize`.  That doesn't seem very
-        # reasonable.  Likewise, the `0` gets converted, but it probably shouldn't be.
-        test_op = TFlowMetaOp(mt.Concat, var(), [[t1_tf, t2_tf], 0])
+    test_op = TFlowMetaOp(mt.Concat, var(), [[t1_tf, t2_tf], 0], outputs=[test_out_tf])
 
-        # Make sure we converted lists to tuples
-        assert isinstance(test_op.inputs, tuple)
-        assert isinstance(test_op.inputs[0], tuple)
-
-        test_op = TFlowMetaOp(mt.Concat, var(), [[t1_tf, t2_tf], 0], outputs=[test_out_tf])
-
-        # NodeDef is a logic variable, so this shouldn't actually reify.
-        assert MetaSymbol.is_meta(test_op.reify())
-        assert isinstance(test_op.outputs, tuple)
-        assert MetaSymbol.is_meta(test_op.outputs[0])
+    # NodeDef is a logic variable, so this shouldn't actually reify.
+    assert MetaSymbol.is_meta(test_op.reify())
+    assert isinstance(test_op.outputs, tuple)
+    assert MetaSymbol.is_meta(test_op.outputs[0])
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
@@ -212,7 +175,7 @@ def test_meta_lvars():
 
     assert isvar(ts_mt.as_list())
 
-    tn_mt = TFlowMetaTensor(var(), var(), var(), var(), var())
+    tn_mt = TFlowMetaTensor(var(), var(), var())
     assert all(isvar(getattr(tn_mt, s)) for s in tn_mt.__all_props__)
 
 
@@ -230,16 +193,6 @@ def test_meta_hashing():
     add_mt = mt.add(tf.convert_to_tensor([1.0, 2.0]), mt.add(a_mt, a_mt))
 
     assert isinstance(hash(add_mt), int)
-
-
-@pytest.mark.usefixtures("run_with_tensorflow")
-@run_in_graph_mode
-def test_meta_types():
-    """Make sure our custom types/classes check out."""
-
-    const_tf = tf.convert_to_tensor([1.0, 2.0])
-
-    assert isinstance(const_tf, _TFlowConstant)
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")

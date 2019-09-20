@@ -4,3 +4,4 @@ pytest-cov>=2.6.1
 pytest-html>=1.20.0
 pylint>=2.3.1
 black>=19.3b0
+ipython

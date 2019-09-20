@@ -1,7 +1,7 @@
 import types
 import inspect
 
-import weakref
+import numpy as np
 import theano
 import theano.tensor as tt
 
@@ -18,7 +18,7 @@ from ..meta import (
     MetaSymbolType,
     MetaOp,
     MetaVariable,
-    _meta_reify_iter,
+    meta_reify_iter,
     metatize,
     _metatize,
 )
@@ -58,6 +58,17 @@ class TheanoMetaRandomStateType(TheanoMetaType):
     base = tt.raw_random.RandomStateType
     __slots__ = []
 
+    def __eq__(self, other):
+        res = super().__eq__(other)
+
+        if res is NotImplemented:
+            return getattr(self, "obj", None) == getattr(other, "obj", None) is not None
+
+        return res
+
+    def __hash__(self):
+        return hash((self.base, self.obj))
+
 
 class TheanoMetaTensorType(TheanoMetaType):
     base = tt.TensorType
@@ -85,7 +96,22 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
     base = tt.Op
     __slots__ = ["_op_sig"]
 
-    def __init__(self, obj):
+    def __init__(self, *args, obj=None, **kwargs):
+
+        if obj is None:
+            # This might be a dynamically generated `Op`, so let's try to
+            # create the underlying base `Op`, since `MetaOp`s should always
+            # have a base object.
+            op_args, op_args_unreified = meta_reify_iter(args)
+            op_kwargs, op_kwargs_unreified = meta_reify_iter(kwargs)
+
+            if op_args_unreified or op_kwargs_unreified:
+                raise NotImplementedError(
+                    f"Could not automatically construct base Op for {type(self)}"
+                )
+            else:
+                obj = self.base(*args, **kwargs)
+
         self._op_sig = inspect.signature(obj.make_node)
         super().__init__(obj=obj)
 
@@ -98,7 +124,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
         return (TheanoMetaTensorVariable,)
 
     def __call__(self, *args, ttype=None, index=None, **kwargs):
-        """Emulate `make_node` for this `Op` and return .
+        """Emulate `make_node`.
 
         NOTE: Meta objects will use positional arguments and non-"name" keyword
         args as `Apply` node inputs.  Also, if some of the `Op` constructor
@@ -124,7 +150,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
         # Use the `Op`'s default `make_node` arguments, if any.
         op_arg_bind = self._op_sig.bind(*args, **kwargs)
         op_arg_bind.apply_defaults()
-        op_args, op_args_unreified = _meta_reify_iter(op_arg_bind.args)
+        op_args, op_args_unreified = meta_reify_iter(op_arg_bind.args)
 
         if not op_args_unreified:
             tt_out = self.obj(*op_args)
@@ -146,7 +172,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
                     # Allow the base object to be unified, so that reification
                     # can recover the underlying object--instead of recreating
                     # it and sacrificing equality.
-                    res_var._obj = var()
+                    # res_var._obj = var()
 
                 elif tt_out.name != name:
                     tt_out.name = name
@@ -229,17 +255,29 @@ class TheanoMetaApply(TheanoMetaSymbol):
 
     def __init__(self, op, inputs, outputs=None, obj=None):
         self.op = metatize(op)
-        self.inputs = tuple(metatize(i) for i in inputs)
-        self._outputs = outputs
-        if outputs is not None:
-            # TODO: Convert these to meta objects?
-            self._outputs = tuple(weakref.ref(o) for o in outputs)
+
+        if not isvar(inputs):
+            self.inputs = tuple(metatize(i) for i in inputs)
         else:
-            self._outputs = None
+            self.inputs = inputs
+
+        if outputs is not None and not isvar(outputs):
+            self._outputs = tuple(metatize(o) for o in outputs)
+        else:
+            self._outputs = outputs
+
         super().__init__(obj=obj)
 
     @property
     def outputs(self):
+        if getattr(self, "_outputs", None) is not None:
+            return self._outputs
+
+        if self.obj is not None:
+            self._outputs = tuple(metatize(o) for o in self.obj.outputs)
+        else:
+            self._outputs = None
+
         return self._outputs
 
     def reify(self):
@@ -248,7 +286,7 @@ class TheanoMetaApply(TheanoMetaSymbol):
         else:
             tt_op = self.op.reify()
             if not self.is_meta(tt_op):
-                reified_rands, any_unreified = _meta_reify_iter(self.inputs)
+                reified_rands, any_unreified = meta_reify_iter(self.inputs)
                 if not any_unreified:
                     tt_var = tt_op(*reified_rands)
                     self._obj = tt_var.owner
@@ -257,14 +295,17 @@ class TheanoMetaApply(TheanoMetaSymbol):
 
     @property
     def nin(self):
-        return len(self.inputs)
+        if not isvar(self.inputs):
+            return len(self.inputs)
+        # TODO: Should we return (and cache) a logic variable for this case?
+        return None
 
     @property
     def nout(self):
-        if self.outputs is not None:
+        if self.outputs is not None and not isvar(self.outputs):
             return len(self.outputs)
-        elif self.obj:
-            return len(self.obj.outputs)
+        # TODO: Should we return (and cache) a logic variable for this case?
+        return None
 
 
 class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
@@ -301,7 +342,7 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
         # Having an `owner` causes issues (e.g. being consistent about
         # other, unrelated outputs of an `Apply` node), and, in this case,
         # the `Apply` node that owns this variable needs to construct it.
-        reified_rands, any_unreified = _meta_reify_iter(self.rands())
+        reified_rands, any_unreified = meta_reify_iter(self.rands())
         tt_apply = self.owner.obj
 
         if tt_apply and not isvar(tt_apply):
@@ -310,19 +351,58 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
             # tell us which, but, when that's not available, we can
             # sometimes infer it.
             if tt_apply.nout == 1:
-                tt_index = 0
+                tt_var = tt_apply.outputs[0]
                 # Make sure we didn't have a mismatched non-meta index value.
                 assert isvar(self.index) or self.index is None or self.index == 0
                 # Set/replace `None` or meta value
                 self.index = 0
-                tt_var = tt_apply.outputs[tt_index]
-            elif not self.is_meta(self.index):
-                tt_var = tt_apply.outputs[self.index]
-            elif self.index is None:
-                tt_var = tt_apply.default_output()
-                self.index = tt_apply.outputs.index(tt_var)
+            elif self.index is None or isvar(self.index):
+                try:
+                    tt_var = tt_apply.default_output()
+                    self.index = tt_apply.outputs.index(tt_var)
+                except AttributeError:
+                    # This an undesirable scenario, because we have to
+                    # determine/guess which base object in `self.outputs`
+                    # corresponds to this meta tensor.
+
+                    # The following would be great, but it won't work because
+                    # `self.index` is `None` and it's the indices of
+                    # `self.owner.outputs` won't be.
+                    # tt_var = self.owner.outputs.index(self)
+
+                    # We do a kind of partial matching and choose the first
+                    # one.
+                    for i, o in enumerate(self.owner.outputs):
+                        if issubclass(type(o), type(self)):
+                            if all(
+                                getattr(self, p) == getattr(o, p)
+                                for p in self.__all_props__
+                                if p != "index"
+                            ):
+                                if type(o) == type(self):
+                                    tt_var = o.obj
+                                    if isvar(self.index):
+                                        # We don't want overwrite the logic
+                                        # variable
+                                        return o
+                                    else:
+                                        self.index = i
+                                else:
+                                    # This output matches but, because it's a
+                                    # more specific type/class, we can't simply
+                                    # mutate `self` to equal it, so we return
+                                    # it instead.
+                                    if not isvar(self.index):
+                                        # Same here: we don't want overwrite
+                                        # the logic variable
+                                        self.index = i
+                                    return o
+                                break
+                    else:
+                        return self
             else:
-                return self
+                tt_var = tt_apply.outputs[self.index]
+
             # If our name value is not set/concrete, then use the reified
             # value's.  Otherwise, use ours.
             if isvar(self.name) or self.name is None:
@@ -339,16 +419,21 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
 class TheanoMetaTensorVariable(TheanoMetaVariable):
     # TODO: Could extend `theano.tensor.var._tensor_py_operators`, too.
     base = tt.TensorVariable
-    __slots__ = []
+    __slots__ = ["_ndim"]
 
     @property
     def ndim(self):
-        # TODO: Would be cool if we could return
-        # a logic variable representing this.
+        if getattr(self, "_ndim", None) is not None:
+            return self._ndim
+
         if isinstance(self.type, TheanoMetaTensorType) and isinstance(
-            self.type.broadastable, (list, tuple)
+            self.type.broadcastable, (list, tuple)
         ):
-            return len(self.type.broadcastable)
+            self._ndim = len(self.type.broadcastable)
+        else:
+            self._ndim = var()
+
+        return self._ndim
 
 
 class TheanoMetaConstant(TheanoMetaVariable):
@@ -357,19 +442,38 @@ class TheanoMetaConstant(TheanoMetaVariable):
 
     @classmethod
     def _metatize(cls, obj):
-        res = TheanoMetaConstant(obj.type, obj.data, name=obj.name, obj=obj)
+        res = cls(obj.type, obj.data, name=obj.name, obj=obj)
         return res
 
     def __init__(self, type, data, name=None, obj=None):
         self.data = data
         super().__init__(type, None, None, name, obj=obj)
 
+    def __eq__(self, other):
+        if self is other:
+            return True
+
+        if type(self) != type(other):
+            return False
+
+        if all(
+            (s.tostring() if isinstance(s, np.ndarray) else s)
+            == (o.tostring() if isinstance(o, np.ndarray) else o)
+            for s, o in zip(self.rands(), other.rands())
+        ):
+            return True
+
+        return False
+
+    def __hash__(self):
+        return hash(v.tostring() if isinstance(v, np.ndarray) else v for v in self.rands())
+
 
 class TheanoMetaTensorConstant(TheanoMetaConstant):
     # TODO: Could extend `theano.tensor.var._tensor_py_operators`, too.
     base = tt.TensorConstant
 
-    __slots__ = []
+    __slots__ = ["_ndim"]
 
     @classmethod
     def _metatize(cls, obj):
@@ -378,6 +482,20 @@ class TheanoMetaTensorConstant(TheanoMetaConstant):
     def __init__(self, type, data, name=None, obj=None):
         super().__init__(type, data, name, obj=obj)
 
+    @property
+    def ndim(self):
+        if getattr(self, "_ndim", None) is not None:
+            return self._ndim
+
+        if isinstance(self.type, TheanoMetaTensorType) and isinstance(
+            self.type.broadcastable, (list, tuple)
+        ):
+            self._ndim = len(self.type.broadcastable)
+        else:
+            self._ndim = var()
+
+        return self._ndim
+
 
 class TheanoMetaSharedVariable(TheanoMetaVariable):
     base = tt.sharedvar.SharedVariable
@@ -385,9 +503,7 @@ class TheanoMetaSharedVariable(TheanoMetaVariable):
 
     @classmethod
     def _metatize(cls, obj):
-        res = TheanoMetaSharedVariable(
-            obj.name, obj.type, obj.container.data, obj.container.strict, obj=obj
-        )
+        res = cls(obj.name, obj.type, obj.container.data, obj.container.strict, obj=obj)
         return res
 
     def __init__(self, name, type, data, strict, obj=None):
@@ -517,6 +633,8 @@ def mt_diag(v, k=0):
     else:
         raise ValueError("Input must has v.ndim >= 1.")
 
+
+mt.diag = mt_diag
 
 fact(commutative, mt.add)
 fact(commutative, mt.mul)
