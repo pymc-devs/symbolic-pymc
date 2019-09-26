@@ -5,7 +5,7 @@ from unification import reify
 from kanren.core import goaleval
 
 from kanren import eq
-from kanren.cons import is_cons, is_null
+from cons.core import ConsPair, ConsNull
 from kanren.core import conde, lall
 from kanren.goals import conso, fail
 
@@ -75,11 +75,11 @@ def lapply_anyo(relation, l_in, l_out, null_type=False, skip_op=True):
             l_out_, l_in_ = reify((l_out, l_in), s)
 
             out_null_type = False
-            if is_cons(l_out_) or is_null(l_out_):
+            if isinstance(l_out_, (ConsPair, ConsNull)):
                 out_null_type = type(l_out_)()
 
             in_null_type = False
-            if is_cons(l_in_) or is_null(l_in_):
+            if isinstance(l_in_, (ConsPair, ConsNull)):
                 in_null_type = type(l_in_)()
 
                 if out_null_type is not False and not type(in_null_type) == type(out_null_type):

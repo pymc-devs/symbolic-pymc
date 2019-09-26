@@ -2,6 +2,7 @@ from functools import wraps
 
 import numpy as np
 
+from cons import cdr
 from kanren.term import term, operator, arguments
 
 from unification.more import unify
