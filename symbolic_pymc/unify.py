@@ -1,8 +1,10 @@
-from functools import wraps
-
 import numpy as np
 
-from cons import cdr
+from functools import wraps
+from operator import itemgetter
+
+from cons.core import _cdr
+
 from kanren.term import term, operator, arguments
 
 from unification.more import unify
@@ -97,6 +99,13 @@ def unify_MetaSymbol(u, v, s):
 
 _unify.add((MetaSymbol, MetaSymbol, dict), unify_MetaSymbol)
 
+_tuple__unify = _unify.dispatch(tuple, tuple, dict)
+
+_unify.add(
+    (ExpressionTuple, (tuple, ExpressionTuple), dict), lambda x, y, s: _tuple__unify(x, y, s)
+)
+_unify.add((tuple, ExpressionTuple, dict), lambda x, y, s: _tuple__unify(x, y, s))
+
 
 def _reify_MetaSymbol(o, s):
     if isinstance(o.obj, Var):
@@ -125,10 +134,19 @@ def _reify_MetaSymbol(o, s):
 
 _reify.add((MetaSymbol, dict), _reify_MetaSymbol)
 
+_tuple__reify = _reify.dispatch(tuple, dict)
+
+_reify.add((ExpressionTuple, dict), lambda x, s: _tuple__reify(x, s))
+
 
 _isvar = isvar.dispatch(object)
 
 isvar.add((MetaSymbol,), lambda x: _isvar(x) or (not isinstance(x.obj, Var) and isvar(x.obj)))
+
+
+# We don't want to lose special functionality (and caching) because `cdr` uses
+# `islice`.
+_cdr.add((ExpressionTuple,), itemgetter(slice(1, None)))
 
 
 def operator_MetaSymbol(x):
@@ -170,6 +188,7 @@ def operator_MetaVariable(x):
 
 operator.add((MetaSymbol,), operator_MetaSymbol)
 operator.add((MetaVariable,), operator_MetaVariable)
+operator.add((ExpressionTuple,), itemgetter(0))
 
 
 def arguments_MetaSymbol(x):
@@ -204,6 +223,7 @@ def arguments_MetaVariable(x):
 
 arguments.add((MetaSymbol,), arguments_MetaSymbol)
 arguments.add((MetaVariable,), arguments_MetaVariable)
+arguments.add((ExpressionTuple,), itemgetter(slice(1, None)))
 
 
 def _term_ExpressionTuple(rand, rators):
@@ -230,12 +250,12 @@ def _reify_ExpressionTuple(t, s):
             # Nothing changed/updated; return the original `etuple`.
             return t
 
-        if hasattr(t, "orig_expr"):
+        if hasattr(t, "_orig_expr"):
             # Everything is equal and/or there are some non-logic variables in
             # the result.  Keep tracking the original expression information,
             # in case the original expression is reproduced.
             res = etuple(*res)
-            res.orig_expr = t.orig_expr
+            res._orig_expr = t._orig_expr
             return res
 
     res = etuple(*res)

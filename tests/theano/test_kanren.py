@@ -24,7 +24,7 @@ def test_terms():
 
     # Implicit `etuple` conversion should retain the original object
     # (within the implicitly introduced meta object, of course).
-    assert test_expr == arguments(test_expr).orig_expr._eval_obj.obj
+    assert test_expr == arguments(test_expr)._orig_expr._eval_obj.obj
 
     assert graph_equal(test_expr, term(operator(test_expr),
                                        arguments(test_expr)))
@@ -83,22 +83,26 @@ def test_kanren():
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_assoccomm():
-    from kanren.assoccomm import buildo
+    from symbolic_pymc.relations import buildo
 
     x, a, b, c = tt.dvectors('xabc')
     test_expr = x + 1
     q = var('q')
 
-    assert q == run(1, q, buildo(tt.add, test_expr.owner.inputs, test_expr))[0]
-    assert tt.add == run(1, q,
-                         buildo(q, test_expr.owner.inputs, test_expr))[0].reify()
-    assert graph_equal(tuple(test_expr.owner.inputs),
-                       run(1, q, buildo(tt.add, q, test_expr))[0])
+    res = run(1, q, buildo(tt.add, test_expr.owner.inputs, test_expr))
+    assert q == res[0]
 
-    assert (mt(a),) == run(0, var('x'),
-                           (eq_comm, mt.mul(a, b), mt.mul(b, var('x'))))
-    assert (mt(a),) == run(0, var('x'),
-                           (eq_comm, mt.add(a, b), mt.add(b, var('x'))))
+    res = run(1, q, buildo(q, test_expr.owner.inputs, test_expr))
+    assert tt.add == res[0].reify()
+
+    res = run(1, q, buildo(tt.add, q, test_expr))
+    assert mt(tuple(test_expr.owner.inputs)) == res[0]
+
+    res = run(0, var('x'), eq_comm(mt.mul(a, b), mt.mul(b, var('x'))))
+    assert (mt(a),) == res
+
+    res = run(0, var('x'), eq_comm(mt.add(a, b), mt.add(b, var('x'))))
+    assert (mt(a),) == res
 
     res = run(0, var('x'),
               (eq_assoc,
@@ -109,10 +113,12 @@ def test_assoccomm():
     # picks apart the results of `arguments(...)`, I don't know if we can
     # keep the `etuple`s around.  We might be able to convert the results
     # to `etuple`s automatically by wrapping `eq_assoc`, though.
-    assert etuple(*res[0]).eval_obj == mt(b + c)
+    res_obj = etuple(*res[0]).eval_obj
+    assert res_obj == mt(b + c)
 
     res = run(0, var('x'),
               (eq_assoc,
                mt.mul(a, b, c),
                mt.mul(a, var('x'))))
-    assert etuple(*res[0]).eval_obj == mt(b * c)
+    res_obj = etuple(*res[0]).eval_obj
+    assert res_obj == mt(b * c)

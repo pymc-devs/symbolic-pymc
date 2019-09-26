@@ -22,11 +22,10 @@ concat = goalify(lambda *args: "".join(args))
 
 def buildo(op, args, obj):
     if not isvar(obj):
-        if not (isinstance(obj, ExpressionTuple) and isinstance(args, ExpressionTuple)):
-            obj = etuplize(obj, shallow=True)
+        if not isvar(args):
             args = etuplize(args, shallow=True)
         oop, oargs = operator(obj), arguments(obj)
-        return lallgreedy((eq, op, oop), (eq, args, oargs))
+        return lallgreedy(eq(op, oop), eq(args, oargs))
     elif isvar(args) or isvar(op):
         return conso(op, args, obj)
     else:

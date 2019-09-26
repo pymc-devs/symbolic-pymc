@@ -124,7 +124,11 @@ def reduceo(relation, in_expr, out_expr):
 
 
 def graph_applyo(
-    relation, in_graph, out_graph, preprocess_graph=partial(etuplize, shallow=True), inside=False
+    relation,
+    in_graph,
+    out_graph,
+    preprocess_graph=partial(etuplize, shallow=True, return_bad_args=True),
+    inside=False,
 ):
     """Relate the fixed-points of two term-graphs under a given relation.
 

@@ -3,6 +3,8 @@ import reprlib
 
 import toolz
 
+from collections import Sequence
+
 from multipledispatch import dispatch
 
 from kanren.term import operator, arguments
@@ -13,64 +15,108 @@ etuple_repr.maxstring = 100
 etuple_repr.maxother = 100
 
 
-class KwdPair(tuple):
+class KwdPair(object):
     """A class used to indicate a keyword + value mapping.
 
     TODO: Could subclass `ast.keyword`.
 
     """
 
-    def __new__(cls, arg, value):
+    __slots__ = ("arg", "value")
+
+    def __init__(self, arg, value):
         assert isinstance(arg, str)
-        obj = super().__new__(cls, (arg, value))
-        return obj
+        self.arg = arg
+        self.value = value
 
     @property
     def eval_obj(self):
-        return KwdPair(self[0], getattr(self[1], "eval_obj", self[1]))
+        return KwdPair(self.arg, getattr(self.value, "eval_obj", self.value))
 
     def __repr__(self):
-        return f"{str(self[0])}={repr(self[1])}"
+        return f"{self.__class__.__name__}({repr(self.arg)}, {repr(self.value)})"
+
+    def __str__(self):
+        return f"{self.arg}={self.value}"
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(str(self))
 
 
-class ExpressionTuple(tuple):
-    """A tuple object that represents an expression.
+class ExpressionTuple(Sequence):
+    """A tuple-like object that represents an expression.
 
-    This object carries the underlying object, if any, and preserves it
-    through limited forms of concatenation/cons-ing.
+    This object caches the return value resulting from evaluation of the
+    expression it represents.  Likewise, it holds onto the "parent" expression
+    from which it was derived (e.g. as a slice), if any, so that it can
+    preserve the return value through limited forms of concatenation/cons-ing
+    that would reproduce the parent expression.
 
+    TODO: Should probably use weakrefs for that.
     """
 
+    __slots__ = ("_eval_obj", "_tuple", "_orig_expr")
     null = object()
 
-    def __new__(cls, *args, **kwargs):
-        obj = super().__new__(cls, *args, **kwargs)
-        # TODO: Consider making this a weakref.
-        obj._eval_obj = cls.null
-        return obj
+    def __new__(cls, seq=None, **kwargs):
+
+        # XXX: This doesn't actually remove the entry from the kwargs
+        # passed to __init__!
+        # It does, however, remove it for the check below.
+        kwargs.pop("eval_obj", None)
+
+        if seq is None and not kwargs and isinstance(seq, cls):
+            return seq
+
+        res = super().__new__(cls)
+
+        return res
+
+    def __init__(self, seq=None, **kwargs):
+        """Create an expression tuple.
+
+        If the keyword 'eval_obj' is given, the `ExpressionTuple`'s
+        evaluated object is set to the corresponding value.
+        XXX: There is no verification/check that the arguments evaluate to the
+        user-specified 'eval_obj', so be careful.
+        """
+
+        _eval_obj = kwargs.pop("eval_obj", self.null)
+        etuple_kwargs = tuple(KwdPair(k, v) for k, v in kwargs.items())
+
+        if seq:
+            self._tuple = tuple(seq) + etuple_kwargs
+        else:
+            self._tuple = etuple_kwargs
+
+        # TODO: Consider making these a weakrefs.
+        self._eval_obj = _eval_obj
+        self._orig_expr = None
 
     @property
     def eval_obj(self):
         """Return the evaluation of this expression tuple.
 
-        XXX: If the object isn't cached, it will be evaluated recursively.
+        Warning: If the evaluation value isn't cached, it will be evaluated
+        recursively.
 
         """
-        if self._eval_obj is not ExpressionTuple.null:
+        if self._eval_obj is not self.null:
             return self._eval_obj
         else:
-            evaled_args = [getattr(i, "eval_obj", i) for i in self[1:]]
+            evaled_args = [getattr(i, "eval_obj", i) for i in self._tuple[1:]]
             arg_grps = toolz.groupby(lambda x: isinstance(x, KwdPair), evaled_args)
             evaled_args = arg_grps.get(False, [])
             evaled_kwargs = arg_grps.get(True, [])
 
-            op = self[0]
+            op = self._tuple[0]
             try:
                 op_sig = inspect.signature(op)
             except ValueError:
-                _eval_obj = op(*(evaled_args + [kw[1] for kw in evaled_kwargs]))
+                # This handles some builtin function types
+                _eval_obj = op(*(evaled_args + [kw.value for kw in evaled_kwargs]))
             else:
-                op_args = op_sig.bind(*evaled_args, **dict(evaled_kwargs))
+                op_args = op_sig.bind(*evaled_args, **{kw.arg: kw.value for kw in evaled_kwargs})
                 op_args.apply_defaults()
 
                 _eval_obj = op(*op_args.args, **op_args.kwargs)
@@ -84,80 +130,94 @@ class ExpressionTuple(tuple):
     def eval_obj(self, obj):
         raise ValueError("Value of evaluated expression cannot be set!")
 
+    def __add__(self, x):
+        res = self._tuple + x
+        if self._orig_expr is not None and res == self._orig_expr._tuple:
+            return self._orig_expr
+        return type(self)(res)
+
+    def __contains__(self, *args):
+        return self._tuple.__contains__(*args)
+
+    def __ge__(self, *args):
+        return self._tuple.__ge__(*args)
+
     def __getitem__(self, key):
-        # if isinstance(key, slice):
-        #     return [self.list[i] for i in xrange(key.start, key.stop, key.step)]
-        # return self.list[key]
-        tuple_res = super().__getitem__(key)
+        tuple_res = self._tuple[key]
         if isinstance(key, slice) and isinstance(tuple_res, tuple):
             tuple_res = type(self)(tuple_res)
-            tuple_res.orig_expr = self
+            tuple_res._orig_expr = self
         return tuple_res
 
-    def __add__(self, x):
-        res = type(self)(super().__add__(x))
-        if res == getattr(self, "orig_expr", None):
-            return self.orig_expr
-        return res
+    def __gt__(self, *args):
+        return self._tuple.__gt__(*args)
+
+    def __iter__(self, *args):
+        return self._tuple.__iter__(*args)
+
+    def __le__(self, *args):
+        return self._tuple.__le__(*args)
+
+    def __len__(self, *args):
+        return self._tuple.__len__(*args)
+
+    def __lt__(self, *args):
+        return self._tuple.__lt__(*args)
+
+    def __mul__(self, *args):
+        return self._tuple.__mul__(*args)
+
+    def __rmul__(self, *args):
+        return self._tuple.__rmul__(*args)
 
     def __radd__(self, x):
-        res = type(self)(x + tuple(self))
-        if res == getattr(self, "orig_expr", None):
-            return self.orig_expr
-        return res
+        res = x + self._tuple  # type(self)(x + self._tuple)
+        if self._orig_expr is not None and res == self._orig_expr._tuple:
+            return self._orig_expr
+        return type(self)(res)
 
     def __str__(self):
-        return f"e({', '.join(tuple(str(i) for i in self))})"
+        return f"e({', '.join(tuple(str(i) for i in self._tuple))})"
 
     def __repr__(self):
-        return f"ExpressionTuple({etuple_repr.repr(tuple(self))})"
+        return f"ExpressionTuple({etuple_repr.repr(self._tuple)})"
 
     def _repr_pretty_(self, p, cycle):
         if cycle:
-            p.text(f"{self.__class__.__name__}(...)")
+            p.text(f"e(...)")
         else:
-            with p.group(2, f"{self.__class__.__name__}((", "))"):
-                p.breakable()
-                for idx, item in enumerate(self):
+            with p.group(2, "e(", ")"):
+                p.breakable(sep="")
+                for idx, item in enumerate(self._tuple):
                     if idx:
                         p.text(",")
                         p.breakable()
                     p.pretty(item)
 
+    def __eq__(self, other):
+        return self._tuple == other
+
+    def __hash__(self):
+        return hash(self._tuple)
+
 
 def etuple(*args, **kwargs):
-    """Create an expression tuple from the arguments.
+    """Create an ExpressionTuple from the argument list.
 
-    If the keyword 'eval_obj' is given, the `ExpressionTuple`'s
-    evaluated object is set to the corresponding value.
-    XXX: There is no verification/check that the arguments evaluate to the
-    user-specified 'eval_obj', so be careful.
+    In other words:
+        etuple(1, 2, 3) == ExpressionTuple((1, 2, 3))
 
     """
-    _eval_obj = kwargs.pop("eval_obj", ExpressionTuple.null)
-
-    etuple_kwargs = tuple(KwdPair(k, v) for k, v in kwargs.items())
-
-    res = ExpressionTuple(args + etuple_kwargs)
-
-    res._eval_obj = _eval_obj
-
-    return res
+    return ExpressionTuple(args, **kwargs)
 
 
 @dispatch(object)
-def etuplize(x, shallow=False):
+def etuplize(x, shallow=False, return_bad_args=False):
     """Return an expression-tuple for an object (i.e. a tuple of rand and rators).
 
-    When evaluated, the rand and rators should [re-]construct the object.  When the
-    object cannot be given such a form, the object itself is returned.
-
-    NOTE: `etuplize(...)[2:]` and `arguments(...)` will *not* return
-    the same thing by default, because the former is recursive and the latter
-    is not.  In other words, this S-expression-like "decomposition" is
-    recursive, and, as such, it requires an inside-out evaluation to
-    re-construct a "decomposed" object.  In contrast, `operator` and
-    `arguments` is necessarily a shallow "decomposition".
+    When evaluated, the rand and rators should [re-]construct the object.  When
+    the object cannot be given such a form, it is simply converted to an
+    `ExpressionTuple` and returned.
 
     Parameters
     ----------
@@ -165,6 +225,9 @@ def etuplize(x, shallow=False):
       Object to convert to expression-tuple form.
     shallow: bool
       Whether or not to do a shallow conversion.
+    return_bad_args: bool
+      Return the passed argument when its type is not appropriate, instead
+      of raising an exception.
 
     """
     if isinstance(x, ExpressionTuple):
@@ -176,18 +239,23 @@ def etuplize(x, shallow=False):
         op = operator(x)
         args = arguments(x)
     except (IndexError, NotImplementedError):
-        return x
+        op = None
+        args = x
 
-    assert isinstance(args, (list, tuple))
+    if not isinstance(args, Sequence) or isinstance(args, str):
+        if return_bad_args:
+            return x
+        else:
+            raise TypeError(f"x is neither a non-str Sequence nor term: {type(x)}")
 
     # Not everything in a list/tuple should be considered an expression.
     if not callable(op):
-        return x
+        return etuple(*x)
 
     if shallow:
         et_args = args
     else:
-        et_args = tuple(etuplize(a) for a in args)
+        et_args = tuple(etuplize(a, return_bad_args=True) for a in args)
 
     res = etuple(op, *et_args, eval_obj=x)
     return res
