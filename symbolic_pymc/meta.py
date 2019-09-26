@@ -259,19 +259,23 @@ class MetaSymbol(metaclass=MetaSymbolType):
         return hash((self.base, self.rands()))
 
     def __str__(self):
-        obj = getattr(self, "obj", None)
-        if obj is None:
-            res = self.__repr__()
-        else:
-            res = f"{self.__class__.__name__}({str(obj)})"
-        return res
+        return self.__repr__(show_obj=False, _repr=str)
 
-    def __repr__(self):
+    def __repr__(self, show_obj=True, _repr=meta_repr.repr):
+        rands = self.rands()
+
+        if rands:
+            args = _repr(self.rands())[1:-1]
+        else:
+            args = ""
+
         obj = getattr(self, "obj", None)
-        args = meta_repr.repr(self.rands()).strip("()")
-        if args:
-            args += ", "
-        args += f"obj={meta_repr.repr(obj)}"
+
+        if (show_obj and obj is not None) or not args:
+            if args:
+                args += ", "
+            args += f"obj={_repr(obj)}"
+
         return "{}({})".format(self.__class__.__name__, args)
 
     def _repr_pretty_(self, p, cycle):
@@ -279,7 +283,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
             p.text(f"{self.__class__.__name__}(...)")
         else:
             with p.group(2, f"{self.__class__.__name__}(", ")"):
-                p.breakable()
+                p.breakable(sep="")
                 idx = None
                 if hasattr(self, "__all_props__"):
                     for idx, (name, item) in enumerate(zip(self.__all_props__, self.rands())):

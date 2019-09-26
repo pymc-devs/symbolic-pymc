@@ -345,7 +345,12 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
         return f"{self.__class__.__name__}({self.obj.name})"
 
     def _repr_pretty_(self, p, cycle):
-        return p.text(f"{self.__class__.__name__}({self.obj.name})")
+        if cycle:
+            p.text(f"{self.__class__.__name__}(...)")
+        else:
+            with p.group(2, f"{self.__class__.__name__}(", ")"):
+                p.breakable(sep="")
+                p.text(self.obj.name)
 
     def __eq__(self, other):
         if self is other:

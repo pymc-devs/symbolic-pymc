@@ -116,16 +116,18 @@ def test_meta_str():
 
     some_mt = SomeMetaSymbol()
 
-    assert repr(some_mt) == 'SomeMetaSymbol(1, 2, obj=None)'
+    assert repr(some_mt) == 'SomeMetaSymbol(1, 2)'
     assert str(some_mt) == repr(some_mt)
 
     some_mt = SomeMetaSymbol(SomeType(1, 2))
 
     assert repr(some_mt) == 'SomeMetaSymbol(1, 2, obj=SomeType(1, 2))'
-    assert str(some_mt) == 'SomeMetaSymbol(SomeType<1, 2>)'
+    assert str(some_mt) == 'SomeMetaSymbol(1, 2)'
+
+    some_op_mt = SomeMetaOp()
+    assert repr(some_op_mt) == 'SomeMetaOp(obj=None)'
 
     some_op_mt = SomeMetaOp(SomeOp())
-
     assert repr(some_op_mt) == 'SomeMetaOp(obj=<SomeOp>)'
 
 
@@ -135,15 +137,15 @@ def test_meta_pretty():
 
     some_mt = SomeMetaSymbol()
 
-    assert pretty_mod.pretty(some_mt) == 'SomeMetaSymbol( field1=1, field2=2)'
+    assert pretty_mod.pretty(some_mt) == 'SomeMetaSymbol(field1=1, field2=2)'
 
     meta_repr.print_obj = True
 
-    assert pretty_mod.pretty(some_mt) == 'SomeMetaSymbol( field1=1, field2=2)'
+    assert pretty_mod.pretty(some_mt) == 'SomeMetaSymbol(field1=1, field2=2)'
 
     some_mt = SomeMetaSymbol(SomeType(1, 2))
 
-    assert pretty_mod.pretty(some_mt) == 'SomeMetaSymbol( field1=1, field2=2, obj=SomeType(1, 2))'
+    assert pretty_mod.pretty(some_mt) == 'SomeMetaSymbol(field1=1, field2=2, obj=SomeType(1, 2))'
 
     meta_repr.print_obj = False
 
@@ -151,4 +153,4 @@ def test_meta_pretty():
     some_mt.field1 = SomeMetaSymbol(SomeType(3, 4))
     some_mt.field1.field2 = SomeMetaSymbol(SomeType(5, 6))
 
-    assert pretty_mod.pretty(some_mt) == 'SomeMetaSymbol(\n  field1=SomeMetaSymbol( field1=1, field2=SomeMetaSymbol( field1=1, field2=2)),\n  field2=2)'
+    assert pretty_mod.pretty(some_mt) == 'SomeMetaSymbol(\n  field1=SomeMetaSymbol(field1=1, field2=SomeMetaSymbol(field1=1, field2=2)),\n  field2=2)'

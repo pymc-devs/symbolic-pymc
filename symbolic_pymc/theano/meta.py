@@ -212,7 +212,12 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
         return f"{self.__class__.__name__}({self.obj})"
 
     def _repr_pretty_(self, p, cycle):
-        return p.text(f"{self.__class__.__name__}({self.obj})")
+        if cycle:
+            p.text(f"{self.__class__.__name__}(...)")
+        else:
+            with p.group(2, f"{self.__class__.__name__}(", ")"):
+                p.breakable(sep="")
+                p.text(getattr(self.obj, "name", str(self.obj)))
 
 
 class TheanoMetaElemwise(TheanoMetaOp):
