@@ -37,16 +37,18 @@ from ..meta import (
 )
 
 
-class MetaOpDefLibrary(op_def_library.OpDefLibrary):
-    def __init__(self, *args, **kwargs):
-        # This is a lame way to fix the numerous naming inconsistencies between
-        # TF `Operation`s, `OpDef`s, and the corresponding user-level functions.
-        self.lower_op_name_to_raw = {
-            op_name.lower(): op_name
-            for op_name in dir(tf.raw_ops)
-            if callable(getattr(tf.raw_ops, op_name))
-        }
-        super().__init__(*args, **kwargs)
+class MetaOpDefLibrary(object):
+
+    lower_op_name_to_raw = {
+        op_name.lower(): op_name
+        for op_name in dir(tf.raw_ops)
+        if callable(getattr(tf.raw_ops, op_name))
+    }
+    opdef_signatures = {}
+
+    @classmethod
+    def apply_op(cls, *args, **kwargs):
+        return op_def_library.apply_op(*args, **kwargs)
 
     @classmethod
     def make_opdef_sig(cls, opdef, opdef_py_func=None):
@@ -121,21 +123,22 @@ class MetaOpDefLibrary(op_def_library.OpDefLibrary):
         )
         return opdef_sig, opdef_py_func
 
-    def add_op(self, opdef):
-        op_info = self._ops.get(opdef.name, None)
-        if op_info is None:
-            super().add_op(opdef)
-            op_info = self._ops[opdef.name]
-            opdef_func = getattr(tf.raw_ops, opdef.name, None)
-            opdef_sig, opdef_func = self.make_opdef_sig(op_info.op_def, opdef_func)
-            op_info.opdef_sig = opdef_sig
-            op_info.opdef_func = opdef_func
-        return op_info
-
-    def get_opinfo(self, opdef):
+    @classmethod
+    def get_op_info(cls, opdef):
         if isinstance(opdef, str):
-            opdef = op_def_registry.get_registered_ops()[opdef]
-        return self.add_op(opdef)
+            opdef_name = opdef
+            opdef = op_def_registry.get(opdef_name)
+        else:
+            opdef_name = opdef.name
+
+        opdef_sig = cls.opdef_signatures.get(opdef_name, None)
+
+        if opdef_sig is None and opdef is not None:
+            opdef_func = getattr(tf.raw_ops, opdef.name, None)
+            opdef_sig = cls.make_opdef_sig(opdef, opdef_func)
+            cls.opdef_signatures[opdef.name] = cls.make_opdef_sig(opdef, opdef_func)
+
+        return opdef_sig
 
 
 op_def_lib = MetaOpDefLibrary()
@@ -251,7 +254,7 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
             >>> from google.protobuf import json_format
             >>> print(json_format.MessageToJson(opdef))
         - If you want to use an `OpDef` to construct a node, see
-          `op_def_library.OpDefLibrary.apply_op`.
+          `op_def_library.apply_op`.
 
     """
 
@@ -260,9 +263,7 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
 
     def __init__(self, obj=None):
         super().__init__(obj=obj)
-        op_info = op_def_lib.add_op(obj)
-        self._apply_func_sig = op_info.opdef_sig
-        self._apply_func = op_info.opdef_func
+        self._apply_func_sig, self._apply_func = op_def_lib.get_op_info(obj)
 
     def out_meta_types(self, inputs=None):
         def _convert_outputs(o):
@@ -411,8 +412,8 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
             # We want to limit the attributes we'll consider to those that show
             # up in an OpDef function's signature (e.g. ignore info about
             # permissible types).
-            opinfo = op_def_lib.get_opinfo(self.op)
-            op_param_names = opinfo.opdef_sig.parameters.keys()
+            opdef_sig, _ = op_def_lib.get_op_info(self.op)
+            op_param_names = opdef_sig.parameters.keys()
 
             _attr = dict()
             for k, v in attr.items():
@@ -496,7 +497,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
         super().__init__(obj=obj)
 
         if isinstance(op_def, str):
-            op_def = op_def_registry.get_registered_ops()[op_def]
+            op_def = op_def_registry.get(op_def)
 
         self.op_def = metatize(op_def)
         self.node_def = metatize(node_def)
@@ -798,7 +799,7 @@ class TFlowMetaAccessor(object):
     def find_opdef(cls, name):
         """Attempt to create a meta `OpDef` for a given TF function/`Operation` name."""
         raw_op_name = op_def_lib.lower_op_name_to_raw.get(name.lower(), name)
-        op_def = op_def_registry.get_registered_ops()[raw_op_name]
+        op_def = op_def_registry.get(raw_op_name)
 
         if op_def is not None:
             meta_obj = TFlowMetaOpDef(obj=op_def)

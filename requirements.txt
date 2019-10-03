@@ -1,9 +1,9 @@
 scipy>=1.2.0
 Theano>=1.0.4
 pymc4 @ git+https://github.com/pymc-devs/pymc4.git@master#egg=pymc4-0.0.1
-tfp-nightly==0.9.0.dev20190908
-tf-nightly-2.0-preview==2.0.0.dev20190908
-tensorflow-estimator-2.0-preview==1.14.0.dev2019090801
+tfp-nightly==0.9.0.dev20191003
+tf-nightly-2.0-preview==2.0.0.dev20191002
+tensorflow-estimator-2.0-preview>=1.14.0.dev2019090801
 pymc3>=3.6
 multipledispatch>=0.6.0
 unification>=0.2.2
