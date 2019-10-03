@@ -4,10 +4,10 @@ from kanren.term import term, operator, arguments
 
 from unification.core import _reify, _unify, reify
 
+from .meta import TFlowMetaSymbol
 from ..meta import metatize
 from ..unify import unify_MetaSymbol
 from ..etuple import ExpressionTuple, etuplize
-from .meta import TFlowMetaSymbol
 
 tf_class_abstractions = tuple(c.base for c in TFlowMetaSymbol.__subclasses__())
 

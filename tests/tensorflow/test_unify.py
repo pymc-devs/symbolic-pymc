@@ -18,7 +18,7 @@ def test_etuple_term():
     b = tf.compat.v1.placeholder(tf.float64, name='b')
 
     a_mt = mt(a)
-    a_mt.obj = None
+    a_mt._obj = None
     a_reified = a_mt.reify()
     assert isinstance(a_reified, tf.Tensor)
     assert a_reified.shape.dims is None
@@ -57,7 +57,7 @@ def test_basic_unify_reify():
     # Test reification with manually constructed replacements
     a = tf.compat.v1.placeholder(tf.float64, name='a')
     x_l = var('x_l')
-    a_reif = reify(x_l, {x_l: a})
+    a_reif = reify(x_l, {x_l: mt(a)})
     assert a_reif.obj is not None
     # Confirm that identity is preserved (i.e. that the underlying object
     # was properly tracked and not unnecessarily reconstructed)
@@ -77,7 +77,7 @@ def test_basic_unify_reify():
     # Simply make sure that unification succeeds
     meta_expected_res = mt(expected_res)
     s_test = unify(test_expr, meta_expected_res, {})
-    assert len(s_test) == 5
+    assert len(s_test) == 3
 
     assert reify(test_expr, s_test) == meta_expected_res
 

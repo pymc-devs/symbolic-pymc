@@ -4,7 +4,7 @@ from operator import add
 
 from kanren.term import term, operator, arguments
 
-from symbolic_pymc.etuple import (ExpressionTuple, etuple)
+from symbolic_pymc.etuple import (ExpressionTuple, etuple, KwdPair)
 
 
 def test_etuple():
@@ -117,3 +117,25 @@ def test_etuple_kwargs():
     e8 = etuple(enumerate, etuple(list, ['a', 'b', 'c', 'd']),
                 start=etuple(add, 1, etuple(add, 1, 1)))
     assert list(e8.eval_obj) == [(3, 'a'), (4, 'b'), (5, 'c'), (6, 'd')]
+
+    # Use "eval_obj" kwarg and make sure it doesn't end up in the `_tuple` object
+    e9 = etuple(add, 1, 2, eval_obj=3)
+    assert e9._tuple == (add, 1, 2)
+    assert e9._eval_obj == 3
+
+
+def test_str():
+    et = etuple(1, etuple("a", 2), etuple(3, "b"))
+    assert repr(et) == "ExpressionTuple((1, ExpressionTuple(('a', 2)), ExpressionTuple((3, 'b'))))"
+    assert str(et) == 'e(1, e(a, 2), e(3, b))'
+
+    kw = KwdPair('a', 1)
+
+    assert repr(kw) == "KwdPair('a', 1)"
+    assert str(kw) == 'a=1'
+
+
+def test_pprint():
+    pretty_mod = pytest.importorskip("IPython.lib.pretty")
+    et = etuple(1, etuple("a", *range(20)), etuple(3, "b"), blah=etuple('c', 0))
+    assert pretty_mod.pretty(et) == "e(\n  1,\n  e('a', 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19),\n  e(3, 'b'),\n  blah=e(c, 0))"
