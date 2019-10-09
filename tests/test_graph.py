@@ -1,4 +1,5 @@
 from operator import add, mul
+from functools import partial
 from math import log, exp
 
 import pytest
@@ -44,7 +45,7 @@ ExpressionTuple.__lt__ = lambda self, other: self < (other,) if isinstance(other
 ExpressionTuple.__gt__ = lambda self, other: self > (other,) if isinstance(other, int) else tuple(self) > tuple(other)
 
 
-def reduces(in_expr, out_expr):
+def math_reduceo(in_expr, out_expr):
     """Create a relation for a couple math-based identities."""
     x_lv = var()
     x_lv.token = f'x{x_lv.token}'
@@ -58,9 +59,33 @@ def reduces(in_expr, out_expr):
                   [(isinstanceo, [out_expr, (float, int, ExpressionTuple)], True)]))
 
 
-def math_reduceo(a, b):
+def full_math_reduceo(a, b):
     """Produce all results for repeated applications of the math-based relation."""
-    return (reduceo, reduces, a, b)
+    return (reduceo, math_reduceo, a, b)
+
+
+def fixedp_graph_applyo(r, x, y):
+    return reduceo(partial(graph_applyo, r, preprocess_graph=None), x, y)
+
+
+def test_reduceo():
+    q_lv = var()
+
+    # Reduce/forward
+    res = run(0, q_lv, full_math_reduceo(
+        etuple(log, etuple(exp, etuple(log, 1))), q_lv))
+    assert len(res) == 1
+    assert res[0] == etuple(log, 1)
+
+    res = run(0, q_lv, full_math_reduceo(
+        etuple(log, etuple(exp, etuple(log, etuple(exp, 1)))), q_lv))
+    assert res[0] == 1
+    assert res[1] == etuple(log, etuple(exp, 1))
+
+    # Expand/backward
+    res = run(2, q_lv, full_math_reduceo(q_lv, 1))
+    assert res[0] == etuple(log, etuple(exp, 1))
+    assert res[1] == etuple(log, etuple(exp, etuple(log, etuple(exp, 1))))
 
 
 def test_lapply_anyo_types():
@@ -90,6 +115,28 @@ def test_lapply_anyo_types():
     assert all(r[0] == add for r in res)
 
 
+def test_lapply_misc():
+    q_lv = var('q')
+
+    assert len(run(0, q_lv, lapply_anyo(eq, [1, 2, 3], [1, 2, 3]))) == 1
+
+    assert len(run(0, q_lv, lapply_anyo(eq, [1, 2, 3], [1, 3, 3]))) == 0
+
+    assert len(run(4, q_lv, lapply_anyo(math_reduceo, [etuple(mul, 2, var('x'))], q_lv))) == 0
+
+    test_res = run(4, q_lv, lapply_anyo(math_reduceo, [etuple(add, 2, 2), 1], q_lv))
+    assert test_res == ([etuple(mul, 2, 2), 1],)
+
+    test_res = run(4, q_lv, lapply_anyo(math_reduceo, [1, etuple(add, 2, 2)], q_lv))
+    assert test_res == ([1, etuple(mul, 2, 2)],)
+
+    test_res = run(4, q_lv, lapply_anyo(math_reduceo, q_lv, var('z')))
+    assert all(isinstance(r, list) for r in test_res)
+
+    test_res = run(4, q_lv, lapply_anyo(math_reduceo, q_lv, var('z'), tuple()))
+    assert all(isinstance(r, tuple) for r in test_res)
+
+
 @pytest.mark.parametrize(
     'test_input, test_output',
     [([], ()),
@@ -110,7 +157,7 @@ def test_lapply_anyo(test_input, test_output):
     """Test `lapply_anyo` with fully ground terms (i.e. no logic variables)."""
     q_lv = var()
     test_res = run(0, q_lv,
-                   (lapply_anyo, math_reduceo, test_input, q_lv))
+                   (lapply_anyo, full_math_reduceo, test_input, q_lv))
 
     assert len(test_res) == len(test_output)
 
@@ -133,17 +180,28 @@ def test_lapply_anyo_reverse():
     # Unbounded reverse
     q_lv = var()
     rev_input = [etuple(mul, 2, 1)]
-    test_res = run(4, q_lv, (lapply_anyo, reduces, q_lv, rev_input))
+    test_res = run(4, q_lv, (lapply_anyo, math_reduceo, q_lv, rev_input))
     assert test_res == ([etuple(add, 1, 1)],
                         [etuple(log, etuple(exp, etuple(mul, 2, 1)))])
 
     # Guided reverse
     test_res = run(4, q_lv,
-                   (lapply_anyo, reduces,
+                   (lapply_anyo, math_reduceo,
                     [etuple(add, q_lv, 1)],
                     [etuple(mul, 2, 1)]))
 
     assert test_res == (1,)
+
+
+def test_graph_applyo_misc():
+    q_lv = var('q')
+    expr = etuple(add, etuple(mul, 2, 1), etuple(add, 1, 1))
+    assert len(run(0, q_lv, graph_applyo(eq, expr, expr, preprocess_graph=None))) == 1
+
+    expr2 = etuple(add, etuple(mul, 2, 1), etuple(add, 2, 1))
+    assert len(run(0, q_lv, graph_applyo(eq, expr, expr2, preprocess_graph=None))) == 0
+
+    assert len(run(0, q_lv, graph_applyo(eq, etuple(), etuple(), preprocess_graph=None))) == 1
 
 
 @pytest.mark.parametrize(
@@ -164,8 +222,7 @@ def test_graph_applyo(test_input, test_output):
 
     q_lv = var()
     test_res = run(len(test_output), q_lv,
-                   graph_applyo(math_reduceo, test_input, q_lv,
-                                preprocess_graph=None))
+                   fixedp_graph_applyo(full_math_reduceo, test_input, q_lv))
 
     assert len(test_res) == len(test_output)
 
@@ -184,25 +241,25 @@ def test_graph_applyo_reverse():
     """Test `graph_applyo` in "reverse" (i.e. specify the reduced form and generate the un-reduced form)."""
     q_lv = var('q')
 
-    test_res = run(2, q_lv, graph_applyo(reduces, q_lv, 5))
+    test_res = run(2, q_lv, fixedp_graph_applyo(math_reduceo, q_lv, 5))
     assert test_res == (etuple(log, etuple(exp, 5)),
                         etuple(log, etuple(exp, etuple(log, etuple(exp, 5)))))
     assert all(e.eval_obj == 5.0 for e in test_res)
 
     # Make sure we get some variety in the results
-    test_res = run(3, q_lv, graph_applyo(reduces, q_lv, etuple(mul, 2, 5)))
+    test_res = run(2, q_lv, fixedp_graph_applyo(math_reduceo, q_lv, etuple(mul, 2, 5)))
     assert test_res == (
         # Expansion of the term's root
         etuple(add, 5, 5),
         # Two step expansion at the root
         etuple(log, etuple(exp, etuple(add, 5, 5))),
         # Expansion into a sub-term
-        etuple(mul, 2, etuple(log, etuple(exp, 5)))
+        # etuple(mul, 2, etuple(log, etuple(exp, 5)))
     )
     assert all(e.eval_obj == 10.0 for e in test_res)
 
     r_lv = var('r')
-    test_res = run(4, [q_lv, r_lv], graph_applyo(reduces, q_lv, r_lv))
+    test_res = run(4, [q_lv, r_lv], fixedp_graph_applyo(math_reduceo, q_lv, r_lv))
     expect_res = ([etuple(add, 1, 1), etuple(mul, 2, 1)],
                   [etuple(log, etuple(exp, etuple(add, 1, 1))), etuple(mul, 2, 1)],
                   [etuple(), etuple()],
@@ -210,20 +267,3 @@ def test_graph_applyo_reverse():
                    etuple(mul, 2, etuple(mul, 2, 1))])
     assert list(unify(a1, a2) and unify(b1, b2)
                 for [a1, b1], [a2, b2] in zip(test_res, expect_res))
-
-
-def test_lapply_scratch():
-    q_lv = var('q')
-    assert len(run(4, q_lv, lapply_anyo(reduces, [etuple(mul, 2, var('x'))], q_lv))) == 0
-
-    test_res = run(4, q_lv, lapply_anyo(reduces, [etuple(add, 2, 2), 1], q_lv))
-    assert test_res == ([etuple(mul, 2, 2), 1],)
-
-    test_res = run(4, q_lv, lapply_anyo(reduces, [1, etuple(add, 2, 2)], q_lv))
-    assert test_res == ([1, etuple(mul, 2, 2)],)
-
-    test_res = run(4, q_lv, lapply_anyo(reduces, q_lv, var('z')))
-    assert all(isinstance(r, list) for r in test_res)
-
-    test_res = run(4, q_lv, lapply_anyo(reduces, q_lv, var('z'), tuple()))
-    assert all(isinstance(r, tuple) for r in test_res)

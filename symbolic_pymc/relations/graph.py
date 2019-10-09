@@ -1,4 +1,5 @@
 from functools import partial
+from operator import length_hint
 from unification import var, isvar
 
 from unification import reify
@@ -9,7 +10,7 @@ from cons.core import ConsPair, ConsNull
 from kanren.core import conde, lall
 from kanren.goals import conso, fail
 
-from ..etuple import etuplize, etuple, ExpressionTuple
+from ..etuple import etuplize, ExpressionTuple
 
 
 def lapply_anyo(relation, l_in, l_out, null_type=False, skip_op=True):
@@ -109,18 +110,60 @@ def lapply_anyo(relation, l_in, l_out, null_type=False, skip_op=True):
     return goal
 
 
-def reduceo(relation, in_expr, out_expr):
+def reduceo(relation, in_term, out_term):
     """Relate a term and the fixed-point of that term under a given relation.
 
     This includes the "identity" relation.
     """
-    expr_rdcd = var()
-    return conde(
-        # The fixed-point is another reduction step out.
-        [(relation, in_expr, expr_rdcd), (reduceo, relation, expr_rdcd, out_expr)],
-        # The fixed-point is a single-step reduction.
-        [(relation, in_expr, out_expr)],
-    )
+
+    def reduceo_goal(s):
+
+        nonlocal in_term, out_term
+
+        in_term_rf, out_term_rf = reify((in_term, out_term), s)
+
+        # The result of reducing the input graph once
+        term_rdcd = var()
+
+        # Are we working "backward" and (potentially) "expanding" a graph
+        # (e.g. when the relation is a reduction rule)?
+        is_expanding = isvar(in_term_rf)
+
+        # One application of the relation assigned to `term_rdcd`
+        single_apply_g = (relation, in_term, term_rdcd)
+
+        # Assign/equate (unify, really) the result of a single application to
+        # the "output" term.
+        single_res_g = eq(term_rdcd, out_term)
+
+        # Recurse into applications of the relation (well, produce a goal that
+        # will do that)
+        another_apply_g = reduceo(relation, term_rdcd, out_term)
+
+        # We want the fixed-point value to show up in the stream output
+        # *first*, but that requires some checks.
+        if is_expanding:
+            # When an un-reduced term is a logic variable (e.g. we're
+            # "expanding"), we can't go depth first.
+            # We need to draw the association between (i.e. unify) the reduced
+            # and expanded terms ASAP, in order to produce finite
+            # expanded graphs first and yield results.
+            #
+            # In other words, there's no fixed-point to produce in this
+            # situation.  Instead, for example, we have to produce an infinite
+            # stream of terms that have `out_term` as a fixed point.
+            # g = conde([single_res_g, single_apply_g],
+            #           [another_apply_g, single_apply_g])
+            g = lall(conde([single_res_g], [another_apply_g]), single_apply_g)
+        else:
+            # Run the recursion step first, so that we get the fixed-point as
+            # the first result
+            g = lall(single_apply_g, conde([another_apply_g], [single_res_g]))
+
+        g = goaleval(g)
+        yield from g(s)
+
+    return reduceo_goal
 
 
 def graph_applyo(
@@ -128,9 +171,8 @@ def graph_applyo(
     in_graph,
     out_graph,
     preprocess_graph=partial(etuplize, shallow=True, return_bad_args=True),
-    inside=False,
 ):
-    """Relate the fixed-points of two term-graphs under a given relation.
+    """Apply a relation to a graph and its subgraphs.
 
     Parameters
     ----------
@@ -144,8 +186,6 @@ def graph_applyo(
       A unary function that produces an iterable upon which `lapply_anyo`
       can be applied in order to traverse a graph's subgraphs.  The default
       function converts the graph to expression-tuple form.
-    inside: boolean (optional)
-      Process the graph or sub-graphs first.
     """
 
     if preprocess_graph in (False, None):
@@ -155,62 +195,39 @@ def graph_applyo(
 
     def _gapplyo(s):
 
-        nonlocal in_graph, out_graph, inside
-
-        in_rdc = var()
+        nonlocal in_graph, out_graph
 
         in_graph_rf, out_graph_rf = reify((in_graph, out_graph), s)
 
-        expanding = isvar(in_graph_rf)
+        _gapply = partial(graph_applyo, relation, preprocess_graph=preprocess_graph)
 
-        _gapply = partial(
-            graph_applyo,
-            relation,
-            preprocess_graph=preprocess_graph,
-            inside=inside,  # expanding and (True ^ inside)
-        )
+        graph_reduce_gl = (relation, in_graph_rf, out_graph_rf)
 
-        # This goal reduces the entire graph
-        graph_reduce_gl = (relation, in_graph_rf, in_rdc)
-
-        # This goal reduces children/arguments of the graph
-        subgraphs_reduce_gl = lapply_anyo(
-            _gapply,
-            preprocess_graph(in_graph_rf),
-            in_rdc,
-            null_type=etuple() if expanding else False,
-        )
-
-        # Take only one step (e.g. reduce the entire graph and/or its
-        # arguments)
-        reduce_once_gl = eq(in_rdc, out_graph_rf)
-
-        # Take another reduction step on top of the one(s) we already did
-        # (i.e. recurse)
-        reduce_again_gl = _gapply(in_rdc, out_graph_rf)
-
-        # We want the fixed-point value first, but that requires
-        # some checks.
-        if expanding:
-            # When the un-reduced expression is a logic variable (i.e. we're
-            # "expanding" expressions), we can't go depth first.
-            # We need to draw the association between (i.e. unify) the reduced
-            # and expanded expressions ASAP, in order to produce finite
-            # expanded graphs first and yield results.
-            g = conde(
-                [reduce_once_gl, graph_reduce_gl],
-                [reduce_again_gl, graph_reduce_gl],
-                [reduce_once_gl, subgraphs_reduce_gl],
-                [reduce_again_gl, subgraphs_reduce_gl],
-            )
+        # We need to get the sub-graphs/children of the input graph/node
+        if not isvar(in_graph_rf):
+            in_subgraphs = preprocess_graph(in_graph_rf)
+            in_subgraphs = None if length_hint(in_subgraphs, 0) == 0 else in_subgraphs
         else:
-            # TODO: With an explicit simplification order, could we determine
-            # whether or not simplifying the sub-expressions or the expression
-            # itself is more efficient?
-            g = lall(
-                conde([graph_reduce_gl], [subgraphs_reduce_gl]),
-                conde([reduce_again_gl], [reduce_once_gl]),
-            )
+            in_subgraphs = in_graph_rf
+
+        if not isvar(out_graph_rf):
+            out_subgraphs = preprocess_graph(out_graph_rf)
+            out_subgraphs = None if length_hint(out_subgraphs, 0) == 0 else out_subgraphs
+        else:
+            out_subgraphs = out_graph_rf
+
+        conde_args = ([graph_reduce_gl],)
+
+        # This goal reduces sub-graphs/children of the graph.
+        if in_subgraphs is not None and out_subgraphs is not None:
+            # We will only include it when there actually are children, or when
+            # we're dealing with a logic variable (e.g. and "generating"
+            # children).
+            subgraphs_reduce_gl = lapply_anyo(_gapply, in_subgraphs, out_subgraphs)
+
+            conde_args += ([subgraphs_reduce_gl],)
+
+        g = conde(*conde_args)
 
         g = goaleval(g)
         yield from g(s)

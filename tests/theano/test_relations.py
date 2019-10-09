@@ -4,6 +4,7 @@ import numpy as np
 import theano
 import theano.tensor as tt
 
+from functools import partial
 from unification import var
 
 from kanren import run
@@ -11,8 +12,13 @@ from kanren import run
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.random_variables import (observed, NormalRV,
                                                    HalfCauchyRV)
-from symbolic_pymc.relations.theano import tt_graph_applyo, non_obs_graph_applyo
+from symbolic_pymc.relations.graph import reduceo
+from symbolic_pymc.relations.theano import non_obs_graph_applyo
 from symbolic_pymc.relations.theano.distributions import scale_loc_transform
+
+
+def non_obs_fixedp_graph_applyo(r, x, y):
+    return reduceo(partial(non_obs_graph_applyo, r), x, y)
 
 
 @pytest.mark.usefixtures("run_with_theano")
@@ -36,7 +42,7 @@ def test_pymc_normals():
 
     graph_mt = mt(radon_like_rv)
     expr_graph, = run(1, var('q'),
-                      non_obs_graph_applyo(scale_loc_transform, graph_mt, var('q')))
+                      non_obs_fixedp_graph_applyo(scale_loc_transform, graph_mt, var('q')))
 
     radon_like_rv_opt = expr_graph.reify()
 

@@ -69,9 +69,7 @@ def non_obs_graph_applyo(relation, a, b):
         # Deconstruct the observed random variable
         (buildo, rv_op_lv, rv_args_lv, obs_rv_lv),
         # Apply relation to the RV's inputs
-        lapply_anyo(
-            lambda x, y: tt_graph_applyo(relation, x, y), rv_args_lv, new_rv_args_lv, skip_op=False
-        ),
+        lapply_anyo(partial(tt_graph_applyo, relation), rv_args_lv, new_rv_args_lv, skip_op=False),
         # Reconstruct the random variable
         (buildo, rv_op_lv, new_rv_args_lv, new_obs_rv_lv),
         # Reconstruct the observation
