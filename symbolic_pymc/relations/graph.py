@@ -13,7 +13,7 @@ from kanren.goals import conso, fail
 from ..etuple import etuplize, ExpressionTuple
 
 
-def lapply_anyo(relation, l_in, l_out, null_type=False, skip_op=True):
+def seq_apply_anyo(relation, l_in, l_out, null_type=False, skip_op=True):
     """Apply a relation to at least one pair of corresponding elements in two sequences.
 
     Parameters
@@ -27,8 +27,10 @@ def lapply_anyo(relation, l_in, l_out, null_type=False, skip_op=True):
        will not be applied to the operators (i.e. the cars) of the inputs.
     """
 
-    def _lapply_anyo(relation, l_in, l_out, i_any, null_type, skip_cars=False):
-        def _goal(s):
+    # This is a customized (based on the initial call arguments) goal
+    # constructor
+    def _seq_apply_anyo(relation, l_in, l_out, i_any, null_type, skip_cars=False):
+        def seq_apply_anyo_sub_goal(s):
 
             nonlocal i_any, null_type
 
@@ -38,35 +40,57 @@ def lapply_anyo(relation, l_in, l_out, null_type=False, skip_op=True):
             o_car, o_cdr = var(), var()
 
             conde_branches = []
+
             if i_any or (isvar(l_in_rf) and isvar(l_out_rf)):
+                # Consider terminating the sequences when we've had at least
+                # one successful goal or when both sequences are logic variables.
                 conde_branches.append([eq(l_in_rf, null_type), eq(l_in_rf, l_out_rf)])
 
-            descend_branch = [
+            # Extract the CAR and CDR of each argument sequence; this is how we
+            # iterate through elements of the two sequences.
+            cons_parts_branch = [
                 goaleval(conso(i_car, i_cdr, l_in_rf)),
                 goaleval(conso(o_car, o_cdr, l_out_rf)),
             ]
 
-            conde_branches.append(descend_branch)
+            conde_branches.append(cons_parts_branch)
 
-            conde_2_branches = [
-                [eq(i_car, o_car), _lapply_anyo(relation, i_cdr, o_cdr, i_any, null_type)]
-            ]
+            conde_relation_branches = []
+
+            relation_branch = None
 
             if not skip_cars:
-                conde_2_branches.append(
-                    [relation(i_car, o_car), _lapply_anyo(relation, i_cdr, o_cdr, True, null_type)]
-                )
+                relation_branch = [
+                    # This case tries the relation continues on.
+                    relation(i_car, o_car),
+                    # In this conde clause, we can tell future calls to
+                    # seq_apply_anyo that we've had at least one successful
+                    # application of the relation (otherwise, this clause
+                    # would fail due to the above goal).
+                    _seq_apply_anyo(relation, i_cdr, o_cdr, True, null_type),
+                ]
 
-            descend_branch.append(conde(*conde_2_branches))
+                conde_relation_branches.append(relation_branch)
+
+            base_branch = [
+                # This is the "base" case; it is used when, for example,
+                # the given relation isn't satisfied.
+                eq(i_car, o_car),
+                _seq_apply_anyo(relation, i_cdr, o_cdr, i_any, null_type),
+            ]
+
+            conde_relation_branches.append(base_branch)
+
+            cons_parts_branch.append(conde(*conde_relation_branches))
 
             g = conde(*conde_branches)
             g = goaleval(g)
 
             yield from g(s)
 
-        return _goal
+        return seq_apply_anyo_sub_goal
 
-    def goal(s):
+    def seq_apply_anyo_init_goal(s):
 
         nonlocal null_type, skip_op
 
@@ -95,7 +119,7 @@ def lapply_anyo(relation, l_in, l_out, null_type=False, skip_op=True):
                 else []
             )
 
-        g = _lapply_anyo(
+        g = _seq_apply_anyo(
             relation,
             l_in,
             l_out,
@@ -107,7 +131,7 @@ def lapply_anyo(relation, l_in, l_out, null_type=False, skip_op=True):
 
         yield from g(s)
 
-    return goal
+    return seq_apply_anyo_init_goal
 
 
 def reduceo(relation, in_term, out_term):
@@ -183,7 +207,7 @@ def graph_applyo(
     out_graph: object
       The graph for which the right-hand side of a binary relation holds.
     preprocess_graph: callable (optional)
-      A unary function that produces an iterable upon which `lapply_anyo`
+      A unary function that produces an iterable upon which `seq_apply_anyo`
       can be applied in order to traverse a graph's subgraphs.  The default
       function converts the graph to expression-tuple form.
     """
@@ -223,7 +247,7 @@ def graph_applyo(
             # We will only include it when there actually are children, or when
             # we're dealing with a logic variable (e.g. and "generating"
             # children).
-            subgraphs_reduce_gl = lapply_anyo(_gapply, in_subgraphs, out_subgraphs)
+            subgraphs_reduce_gl = seq_apply_anyo(_gapply, in_subgraphs, out_subgraphs)
 
             conde_args += ([subgraphs_reduce_gl],)
 
