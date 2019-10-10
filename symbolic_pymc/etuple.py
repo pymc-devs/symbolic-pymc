@@ -5,6 +5,8 @@ import toolz
 
 from collections import Sequence
 
+from cons.core import ConsPair
+
 from multipledispatch import dispatch
 
 from kanren.term import operator, arguments
@@ -242,7 +244,7 @@ def etuplize(x, shallow=False, return_bad_args=False):
         op = None
         args = x
 
-    if not isinstance(args, Sequence) or isinstance(args, str):
+    if not isinstance(args, ConsPair):
         if return_bad_args:
             return x
         else:

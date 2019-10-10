@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from unification import unify, reify, var
 
-from symbolic_pymc.tensorflow.meta import (TFlowOpName, mt, TFlowMetaTensorShape)
+from symbolic_pymc.tensorflow.meta import (TFlowOpName, mt, TFlowMetaTensorShape, TFlowOpName)
 from symbolic_pymc.etuple import (ExpressionTuple, etuple, etuplize)
 
 from tests.tensorflow import run_in_graph_mode
@@ -14,6 +14,11 @@ from tests.tensorflow.utils import assert_ops_equal
 @pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_etuple_term():
+
+    str_type = TFlowOpName("blah")
+    assert etuplize(str_type, return_bad_args=True) == str_type
+    assert etuplize("blah", return_bad_args=True) == "blah"
+
     a = tf.compat.v1.placeholder(tf.float64, name='a')
     b = tf.compat.v1.placeholder(tf.float64, name='b')
 
