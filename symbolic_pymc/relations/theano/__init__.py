@@ -6,7 +6,7 @@ from kanren import eq
 from kanren.core import lall
 
 from .linalg import buildo
-from ..graph import graph_applyo, lapply_anyo
+from ..graph import graph_applyo, seq_apply_anyo
 from ...etuple import etuplize, etuple
 from ...theano.meta import mt
 
@@ -69,7 +69,9 @@ def non_obs_graph_applyo(relation, a, b):
         # Deconstruct the observed random variable
         (buildo, rv_op_lv, rv_args_lv, obs_rv_lv),
         # Apply relation to the RV's inputs
-        lapply_anyo(partial(tt_graph_applyo, relation), rv_args_lv, new_rv_args_lv, skip_op=False),
+        seq_apply_anyo(
+            partial(tt_graph_applyo, relation), rv_args_lv, new_rv_args_lv, skip_op=False
+        ),
         # Reconstruct the random variable
         (buildo, rv_op_lv, new_rv_args_lv, new_obs_rv_lv),
         # Reconstruct the observation

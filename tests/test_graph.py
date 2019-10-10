@@ -10,7 +10,7 @@ from kanren import run, eq, conde, lall
 from kanren.goals import isinstanceo
 
 from symbolic_pymc.etuple import etuple, ExpressionTuple
-from symbolic_pymc.relations.graph import reduceo, lapply_anyo, graph_applyo
+from symbolic_pymc.relations.graph import reduceo, seq_apply_anyo, graph_applyo
 
 
 class OrderedFunction(object):
@@ -88,52 +88,61 @@ def test_reduceo():
     assert res[1] == etuple(log, etuple(exp, etuple(log, etuple(exp, 1))))
 
 
-def test_lapply_anyo_types():
+def test_seq_apply_anyo_types():
     """Make sure that `applyo` preserves the types between its arguments."""
     q_lv = var()
-    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), [1], q_lv))
+    res = run(1, q_lv, seq_apply_anyo(lambda x, y: eq(x, y), [1], q_lv))
     assert res[0] == [1]
-    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), (1,), q_lv))
+    res = run(1, q_lv, seq_apply_anyo(lambda x, y: eq(x, y), (1,), q_lv))
     assert res[0] == (1,)
-    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), etuple(1,), q_lv, skip_op=False))
+    res = run(1, q_lv, seq_apply_anyo(lambda x, y: eq(x, y), etuple(1,), q_lv, skip_op=False))
     assert res[0] == etuple(1,)
-    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), q_lv, (1,)))
+    res = run(1, q_lv, seq_apply_anyo(lambda x, y: eq(x, y), q_lv, (1,)))
     assert res[0] == (1,)
-    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), q_lv, [1]))
+    res = run(1, q_lv, seq_apply_anyo(lambda x, y: eq(x, y), q_lv, [1]))
     assert res[0] == [1]
-    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), q_lv, etuple(1), skip_op=False))
+    res = run(1, q_lv, seq_apply_anyo(lambda x, y: eq(x, y), q_lv, etuple(1), skip_op=False))
     assert res[0] == etuple(1)
-    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), [1, 2], [1, 2]))
+    res = run(1, q_lv, seq_apply_anyo(lambda x, y: eq(x, y), [1, 2], [1, 2]))
     assert len(res) == 1
-    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), [1, 2], [1, 3]))
+    res = run(1, q_lv, seq_apply_anyo(lambda x, y: eq(x, y), [1, 2], [1, 3]))
     assert len(res) == 0
-    res = run(1, q_lv, lapply_anyo(lambda x, y: eq(x, y), [1, 2], (1, 2)))
+    res = run(1, q_lv, seq_apply_anyo(lambda x, y: eq(x, y), [1, 2], (1, 2)))
     assert len(res) == 0
-    res = run(0, q_lv, lapply_anyo(lambda x, y: eq(y, etuple(mul, 2, x)),
+    res = run(0, q_lv, seq_apply_anyo(lambda x, y: eq(y, etuple(mul, 2, x)),
                                    etuple(add, 1, 2), q_lv, skip_op=True))
     assert len(res) == 3
     assert all(r[0] == add for r in res)
 
 
-def test_lapply_misc():
+def test_seq_apply_anyo_misc():
     q_lv = var('q')
 
-    assert len(run(0, q_lv, lapply_anyo(eq, [1, 2, 3], [1, 2, 3]))) == 1
+    assert len(run(0, q_lv, seq_apply_anyo(eq, [1, 2, 3], [1, 2, 3]))) == 1
 
-    assert len(run(0, q_lv, lapply_anyo(eq, [1, 2, 3], [1, 3, 3]))) == 0
+    assert len(run(0, q_lv, seq_apply_anyo(eq, [1, 2, 3], [1, 3, 3]))) == 0
 
-    assert len(run(4, q_lv, lapply_anyo(math_reduceo, [etuple(mul, 2, var('x'))], q_lv))) == 0
+    def one_to_threeo(x, y):
+        return conde([eq(x, 1), eq(y, 3)])
 
-    test_res = run(4, q_lv, lapply_anyo(math_reduceo, [etuple(add, 2, 2), 1], q_lv))
+    res = run(0, q_lv, seq_apply_anyo(one_to_threeo,
+                                      [1, 2, 4, 1, 4, 1, 1],
+                                      q_lv))
+
+    assert res[0] == [3, 2, 4, 3, 4, 3, 3]
+
+    assert len(run(4, q_lv, seq_apply_anyo(math_reduceo, [etuple(mul, 2, var('x'))], q_lv))) == 0
+
+    test_res = run(4, q_lv, seq_apply_anyo(math_reduceo, [etuple(add, 2, 2), 1], q_lv))
     assert test_res == ([etuple(mul, 2, 2), 1],)
 
-    test_res = run(4, q_lv, lapply_anyo(math_reduceo, [1, etuple(add, 2, 2)], q_lv))
+    test_res = run(4, q_lv, seq_apply_anyo(math_reduceo, [1, etuple(add, 2, 2)], q_lv))
     assert test_res == ([1, etuple(mul, 2, 2)],)
 
-    test_res = run(4, q_lv, lapply_anyo(math_reduceo, q_lv, var('z')))
+    test_res = run(4, q_lv, seq_apply_anyo(math_reduceo, q_lv, var('z')))
     assert all(isinstance(r, list) for r in test_res)
 
-    test_res = run(4, q_lv, lapply_anyo(math_reduceo, q_lv, var('z'), tuple()))
+    test_res = run(4, q_lv, seq_apply_anyo(math_reduceo, q_lv, var('z'), tuple()))
     assert all(isinstance(r, tuple) for r in test_res)
 
 
@@ -153,11 +162,11 @@ def test_lapply_misc():
       ([etuple(mul, 2, 1), 5],
        [etuple(add, 1, 1), 5],
        [etuple(mul, 2, 1), etuple(log, etuple(exp, 5))]))])
-def test_lapply_anyo(test_input, test_output):
-    """Test `lapply_anyo` with fully ground terms (i.e. no logic variables)."""
+def test_seq_apply_anyo(test_input, test_output):
+    """Test `seq_apply_anyo` with fully ground terms (i.e. no logic variables)."""
     q_lv = var()
     test_res = run(0, q_lv,
-                   (lapply_anyo, full_math_reduceo, test_input, q_lv))
+                   (seq_apply_anyo, full_math_reduceo, test_input, q_lv))
 
     assert len(test_res) == len(test_output)
 
@@ -175,18 +184,18 @@ def test_lapply_anyo(test_input, test_output):
     assert test_res == test_output
 
 
-def test_lapply_anyo_reverse():
-    """Test `lapply_anyo` in "reverse" (i.e. specify the reduced form and generate the un-reduced form)."""
+def test_seq_apply_anyo_reverse():
+    """Test `seq_apply_anyo` in "reverse" (i.e. specify the reduced form and generate the un-reduced form)."""
     # Unbounded reverse
     q_lv = var()
     rev_input = [etuple(mul, 2, 1)]
-    test_res = run(4, q_lv, (lapply_anyo, math_reduceo, q_lv, rev_input))
+    test_res = run(4, q_lv, (seq_apply_anyo, math_reduceo, q_lv, rev_input))
     assert test_res == ([etuple(add, 1, 1)],
                         [etuple(log, etuple(exp, etuple(mul, 2, 1)))])
 
     # Guided reverse
     test_res = run(4, q_lv,
-                   (lapply_anyo, math_reduceo,
+                   (seq_apply_anyo, math_reduceo,
                     [etuple(add, q_lv, 1)],
                     [etuple(mul, 2, 1)]))
 
@@ -202,6 +211,15 @@ def test_graph_applyo_misc():
     assert len(run(0, q_lv, graph_applyo(eq, expr, expr2, preprocess_graph=None))) == 0
 
     assert len(run(0, q_lv, graph_applyo(eq, etuple(), etuple(), preprocess_graph=None))) == 1
+
+    def one_to_threeo(x, y):
+        return conde([eq(x, 1), eq(y, 3)])
+
+    res = run(0, q_lv, graph_applyo(one_to_threeo,
+                                    [1, [1, 2, 4], 2, [[4, 1, 1]], 1],
+                                    q_lv, preprocess_graph=None))
+
+    assert res[0] == [3, [3, 2, 4], 2, [[4, 3, 3]], 3]
 
 
 @pytest.mark.parametrize(
