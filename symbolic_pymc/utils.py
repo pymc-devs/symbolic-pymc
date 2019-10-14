@@ -10,7 +10,7 @@ def _check_eq(a, b):
         return a == b
 
 
-def meta_parts_unequal(x, y, pdb=False):
+def meta_parts_unequal(x, y, pdb=False):  # pragma: no cover
     """Traverse meta objects and return the first pair of elements that are not equal."""
     res = None
     if type(x) != type(y):
