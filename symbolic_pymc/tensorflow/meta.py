@@ -8,7 +8,7 @@ import tensorflow_probability as tfp
 
 from inspect import Parameter, Signature
 
-from collections import OrderedDict, UserString
+from collections import OrderedDict
 from collections.abc import Sequence
 
 from functools import partial
@@ -142,51 +142,6 @@ class MetaOpDefLibrary(object):
 
 
 op_def_lib = MetaOpDefLibrary()
-
-
-class TFlowOpName(UserString):
-    """A wrapper for Tensor names.
-
-    TF `Operation` names, and the variables that result from them, cannot be
-    compared directly due to their uniqueness (within a TF namespace/scope).
-
-    This wrapper class ignores those TF distinctions during string comparison.
-    """
-
-    def __init__(self, s):
-        super().__init__(s)
-
-        if isinstance(s, type(self)):
-            self._scope_op = s._scope_op
-            self._in_idx = s._in_idx
-            self._scope = s._scope
-            self._op_name = s._op_name
-            self._unique_name = s._unique_name
-        else:
-            self._scope_op, _, self._in_idx = self.data.partition(":")
-            self._scope, _, self._op_name = self._scope_op.rpartition("/")
-            self._unique_name = self._op_name.split("_", 1)[0]
-
-    def __eq__(self, other):
-        if self is other:
-            return True
-
-        if isinstance(other, str):
-            return self.data == other or self._unique_name == other
-
-        if type(self) != type(other):
-            return False
-
-        return (
-            self._unique_name.lower() == other._unique_name.lower()
-            and self._in_idx == other._in_idx
-        )
-
-    def __hash__(self):
-        return hash((self._unique_name, self._in_idx))
-
-
-_metatize.add((TFlowOpName,), lambda x: x)
 
 
 def _metatize_tf_object(obj):
@@ -406,7 +361,7 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
         super().__init__(obj=obj)
         self.op = metatize(op)
         assert name is not None
-        self.name = name if isvar(name) else TFlowOpName(name)
+        self.name = name if isvar(name) else str(name)
 
         if not isvar(attr):
             # We want to limit the attributes we'll consider to those that show
@@ -549,7 +504,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
         if isvar(self.node_def):
             self._name = var()
         else:
-            self._name = TFlowOpName(self.node_def.name)
+            self._name = str(self.node_def.name)
 
         return self._name
 
