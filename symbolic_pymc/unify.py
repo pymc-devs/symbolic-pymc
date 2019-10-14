@@ -20,7 +20,7 @@ class UnificationFailure(Exception):
     pass
 
 
-def debug_unify(enable=True):
+def debug_unify(enable=True):  # pragma: no cover
     """Wrap unify functions so that they raise a `UnificationFailure` exception when unification fails."""
     if enable:
 

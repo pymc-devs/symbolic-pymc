@@ -1,4 +1,4 @@
-.PHONY: help venv conda docker docstyle format style black test lint check
+.PHONY: help venv conda docker docstyle format style black test lint check coverage
 .DEFAULT_GOAL = help
 
 PYTHON = python
@@ -58,8 +58,11 @@ black:  # Format code in-place using black.
 	black symbolic_pymc/
 
 test:  # Test code using pytest.
-	pytest -v tests/ --cov=symbolic_pymc/ --html=testing-report.html --self-contained-html
+	pytest -v tests/ --cov=symbolic_pymc/ --cov-report=xml --html=testing-report.html --self-contained-html
+
+coverage: test
+	diff-cover coverage.xml --compare-branch=master --fail-under=100
 
 lint: docstyle format style  # Lint code using pydocstyle, black and pylint.
 
-check: lint test  # Both lint and test code. Runs `make lint` followed by `make test`.
+check: lint test coverage  # Both lint and test code. Runs `make lint` followed by `make test`.
