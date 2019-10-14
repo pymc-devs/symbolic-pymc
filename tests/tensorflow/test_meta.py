@@ -1,3 +1,9 @@
+"""
+If you're debugging/running tests manually, it might help to simply
+disable eager execution entirely:
+
+    > tf.compat.v1.disable_eager_execution()
+"""
 import pytest
 import numpy as np
 
@@ -14,34 +20,11 @@ from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaOp,
                                            TFlowMetaOpDef,
                                            TFlowMetaNodeDef,
-                                           TFlowOpName,
                                            MetaOpDefLibrary,
                                            mt)
 
 from tests.tensorflow import run_in_graph_mode
 from tests.tensorflow.utils import assert_ops_equal
-
-
-@pytest.mark.usefixtures("run_with_tensorflow")
-def test_op_names():
-    """Make sure equality is flexible for `Operation`/`OpDef` names."""
-    # Against a string, only the distinct operator-name part matters
-    assert TFlowOpName('add_1') == 'add'
-    assert TFlowOpName('blah/add_1:0') == 'add'
-    assert TFlowOpName('blah/add_1:0') != 'add_1'
-    assert TFlowOpName('blah/add_1:0') != 'add:0'
-    # Unless it's the whole thing
-    assert TFlowOpName('blah/add_1:0') == 'blah/add_1:0'
-
-    # Ignore namespaces
-    assert TFlowOpName('blah/add_1:0') == TFlowOpName('add:0')
-    assert TFlowOpName('blah/add_1:0') == TFlowOpName('agh/add_1:0')
-    # and "unique" operator names (for the same operator "type")
-    assert TFlowOpName('blah/add_1:0') == TFlowOpName('add_2:0')
-    # but not output numbers
-    assert TFlowOpName('blah/add_1:0') != TFlowOpName('blah/add:1')
-
-    assert isinstance(mt(TFlowOpName('blah/add_1:0')), TFlowOpName)
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
@@ -79,14 +62,69 @@ def test_meta_eager():
 
 @pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
-def test_meta_create():
+def test_meta_basic():
+
+    var_mt = TFlowMetaTensor(var(), var(), var())
+    # It should generate a logic variable for the name and use from here on.
+    var_name = var_mt.name
+    assert isvar(var_name)
+    assert var_mt.name is var_name
+    # Same for a tensor shape
+    var_shape = var_mt.shape
+    assert isinstance(var_shape, TFlowMetaTensorShape)
+    assert isvar(var_shape.dims)
+
+    # This essentially logic-variabled tensor should not reify; it should
+    # create a distinct/new meta object that's either equal to the original
+    # meta object or partially reified.
+    assert var_mt.reify() == var_mt
+
+    # This operator is reifiable
+    # NOTE: Const objects are automatically created for the constant inputs, so
+    # we need to do this in a new graph to make sure that their auto-generated
+    # names are consistent throughout runs.
+    with tf.Graph().as_default() as test_graph:
+        test_op = TFlowMetaOp(mt.Add, TFlowMetaNodeDef('Add', 'Add', {}), [1, 0])
+
+        # This tensor has an "unknown"/logic variable output index and dtype, but,
+        # since the operator fully specifies it, reification should still work.
+        var_mt = TFlowMetaTensor(test_op, var(), var())
+
+        # This should be partially reified
+        var_tf = var_mt.reify()
+
+        assert isinstance(var_tf, tf.Tensor)
+
+        # These shouldn't be equal, since `var_mt` has logic variables for
+        # output index and dtype.  (They should be unifiable, though.)
+        assert mt(var_tf) != var_mt
+
+        # NOTE: The operator name specified by the meta NodeDef *can* be
+        # different from the reified TF tensor (e.g. when meta objects are
+        # created/reified within a graph already using the NodeDef-specified
+        # name).
+        #
+        # TODO: We could search for existing TF objects in the current graph by
+        # name and raise exceptions when the desired meta information and name
+        # do not correspond--effectively making the meta object impossible to
+        # reify in said graph.
+
+    # Next, we convert an existing TF object into a meta object
+    # and make sure everything corresponds between the two.
     N = 100
     X = np.vstack([np.random.randn(N), np.ones(N)]).T
+
     X_tf = tf.convert_to_tensor(X)
-    X_mt = mt(X)
+
+    with tf.Graph().as_default() as test_graph:
+        X_mt = mt(X)
 
     assert isinstance(X_mt, TFlowMetaTensor)
-    assert X_mt.op.obj.name.startswith('Const')
+    assert X_mt.op.obj.name == 'Const'
+    assert not hasattr(X_mt, '_name')
+    assert X_mt.name == 'Const:0'
+    assert X_mt._name == 'Const:0'
+
     # Make sure `reify` returns the cached base object.
     assert X_mt.reify() is X_mt.obj
     assert isinstance(X_mt.reify(), tf.Tensor)
@@ -373,7 +411,12 @@ def test_nodedef():
     # `ytest_mt.inputs` should have two `.attr` values that are Python
     # primitives (i.e. int and bool); these shouldn't get metatized and break
     # our ability to reconstruct the object from its rator + rands.
-    assert y_test_mt == y_test_mt.op.op_def(*y_test_mt.inputs)
+    y_test_new_mt = y_test_mt.op.op_def(*y_test_mt.inputs)
+
+    # We're changing this simply so we can use ==
+    y_test_new_mt.op.node_def.name = 'y'
+
+    assert y_test_mt == y_test_new_mt
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")

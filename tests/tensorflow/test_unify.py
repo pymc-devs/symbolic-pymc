@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from unification import unify, reify, var
 
-from symbolic_pymc.tensorflow.meta import (TFlowOpName, mt, TFlowMetaTensorShape, TFlowOpName)
+from symbolic_pymc.tensorflow.meta import (mt, TFlowMetaTensorShape)
 from symbolic_pymc.etuple import (ExpressionTuple, etuple, etuplize)
 
 from tests.tensorflow import run_in_graph_mode
@@ -15,8 +15,6 @@ from tests.tensorflow.utils import assert_ops_equal
 @run_in_graph_mode
 def test_etuple_term():
 
-    str_type = TFlowOpName("blah")
-    assert etuplize(str_type, return_bad_args=True) == str_type
     assert etuplize("blah", return_bad_args=True) == "blah"
 
     a = tf.compat.v1.placeholder(tf.float64, name='a')
@@ -42,13 +40,13 @@ def test_etuple_term():
     assert test_e[2] is a_mt.op.node_def.attr['shape']
 
     test_e._eval_obj = ExpressionTuple.null
-    a_evaled = test_e.eval_obj
+    with tf.Graph().as_default():
+        a_evaled = test_e.eval_obj
     assert all([a == b for a, b in zip(a_evaled.rands(), a_mt.rands())])
 
     a_reified = a_evaled.reify()
     assert isinstance(a_reified, tf.Tensor)
     assert a_reified.shape.dims is None
-    assert TFlowOpName(a_reified.name) == TFlowOpName(a.name)
 
     e2 = mt.add(a, b)
     e2_et = etuplize(e2)
@@ -75,8 +73,10 @@ def test_basic_unify_reify():
     test_base_res = test_reify_res.reify()
     assert isinstance(test_base_res, tf.Tensor)
 
-    expected_res = tf.add(tf.constant(1, dtype=tf.float64),
-                          tf.constant(2, dtype=tf.float64) * a)
+    with tf.Graph().as_default():
+        a = tf.compat.v1.placeholder(tf.float64, name='a')
+        expected_res = tf.add(tf.constant(1, dtype=tf.float64),
+                              tf.multiply(tf.constant(2, dtype=tf.float64), a))
     assert_ops_equal(test_base_res, expected_res)
 
     # Simply make sure that unification succeeds
