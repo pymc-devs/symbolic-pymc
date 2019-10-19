@@ -2,7 +2,7 @@
 If you're debugging/running tests manually, it might help to simply
 disable eager execution entirely:
 
-    > tf.compat.v1.disable_eager_execution()
+    tf.compat.v1.disable_eager_execution()
 """
 import pytest
 import numpy as np
@@ -171,6 +171,21 @@ def test_meta_basic():
 
     assert a_mt.shape.ndims == 2
     assert a_mt.shape == TFlowMetaTensorShape([1, 2])
+
+    # Make sure that names are properly inferred when there are no base objects
+    # to reference
+    with tf.Graph().as_default():
+        one_mt = mt(1.0)
+        log_mt = mt.log(one_mt)
+        assert log_mt.name == 'Log:0'
+        assert log_mt.dtype == tf.float32
+        assert log_mt.op.outputs[0].dtype == tf.float32
+
+        log_mt._name = None
+        one_mt._obj = None
+        log_mt._obj = None
+        assert log_mt.dtype == tf.float32
+        assert log_mt.name == 'Log:0'
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
@@ -394,7 +409,6 @@ def test_nodedef():
 
     assert 'compute_uv' in node_def_mt.attr
     assert 'full_matrices' in node_def_mt.attr
-    assert 'T' not in node_def_mt.attr
 
     # Some outputs use nodedef information; let's test those.
     norm_rv = mt.RandomStandardNormal(mean=0, stddev=1, shape=(1000,), dtype=tf.float32, name=var())

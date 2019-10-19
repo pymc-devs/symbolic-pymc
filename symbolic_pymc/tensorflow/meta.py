@@ -9,7 +9,6 @@ import tensorflow_probability as tfp
 from inspect import Parameter, Signature
 
 from collections import OrderedDict
-from collections.abc import Sequence
 
 from functools import partial
 
@@ -220,11 +219,11 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
         super().__init__(obj=obj)
         self._apply_func_sig, self._apply_func = op_def_lib.get_op_info(obj)
 
-    def out_meta_types(self, inputs=None):
+    def out_meta_types(self, inputs=None, node_def=None):
         def _convert_outputs(o):
-            if o.type_attr == "T":
-                return (TFlowMetaTensor, var())
-            elif o.type_attr == "dtype":
+            if o.type_attr == "T" and node_def:
+                return (TFlowMetaTensor, node_def.attr.get("T", var()))
+            elif o.type_attr == "dtype" and inputs:
                 return (TFlowMetaTensor, inputs.get("dtype", var()))
             else:
                 return (TFlowMetaTensor, var())
@@ -284,7 +283,6 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
             apply_arguments.get(i.name) for i in self.obj.input_arg if i.name in apply_arguments
         )
 
-        # Get the `OpDef`-instantiating parameters and call them a "node_def".
         node_attr = {a.name: apply_arguments.get(a.name, a) for a in self.obj.attr}
 
         op_name = op_kwargs.get("name", self.obj.name)
@@ -346,6 +344,8 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
             return metatize(tensor_shape.as_shape(v.shape))
         elif k == "dtype":
             return tf.as_dtype(v.type).name
+        elif k == "T":
+            return tf.as_dtype(v.type).name
         elif k == "value":
             return tensor_util.MakeNdarray(v.tensor)
         else:
@@ -364,22 +364,17 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
         self.name = name if isvar(name) else str(name)
 
         if not isvar(attr):
-            # We want to limit the attributes we'll consider to those that show
-            # up in an OpDef function's signature (e.g. ignore info about
-            # permissible types).
             opdef_sig, _ = op_def_lib.get_op_info(self.op)
-            op_param_names = opdef_sig.parameters.keys()
-
             _attr = dict()
+
             for k, v in attr.items():
                 if isinstance(v, Message):
                     try:
                         v = self._protobuf_convert(k, v)
                     except TypeError:
-                        continue
+                        v = var()
 
-                if k != "T" and k in op_param_names:
-                    _attr[k] = v
+                _attr[k] = v
 
             self.attr = _attr
         else:
@@ -532,11 +527,12 @@ class TFlowMetaOp(TFlowMetaSymbol):
         else:
 
             apply_arguments = self.op_def.input_args(*self.inputs, **self.node_def.attr)
-            out_types_mt = self.op_def.out_meta_types(inputs=apply_arguments)
+            out_types_mt = self.op_def.out_meta_types(
+                inputs=apply_arguments, node_def=self.node_def
+            )
 
             mt_outs = tuple(
-                o_type(self, i, var() if o_dtype is None else o_dtype)
-                for i, (o_type, o_dtype) in enumerate(out_types_mt)
+                o_type(self, i, o_dtype) for i, (o_type, o_dtype) in enumerate(out_types_mt)
             )
 
             self._outputs = mt_outs
@@ -574,7 +570,15 @@ class TFlowMetaOp(TFlowMetaSymbol):
         if isvar(self.node_def):
             return self
 
-        op_attrs, op_attrs_unreified = meta_reify_iter(self.node_def.attr)
+        op_attrs, op_attrs_unreified = meta_reify_iter(
+            # Only use NodeDef attrs that appear in the OpDef's call signature.
+            # Other NodeDef attrs, like dtype and shape, can be computed.
+            {
+                k: v
+                for k, v in self.node_def.attr.items()
+                if k in self.op_def._apply_func_sig.parameters
+            }
+        )
 
         if not (op_inputs_unreified or op_attrs_unreified or MetaSymbol.is_meta(self.name)):
 
@@ -586,6 +590,8 @@ class TFlowMetaOp(TFlowMetaSymbol):
             apply_arguments = self.op_def.input_args(*op_inputs, name=name, **op_attrs)
             tf_out = self.op_def._apply_func(**apply_arguments)
             op_tf = tf_out.op
+
+            # TODO: Update NodeDef attrs?
 
             assert op_tf is not None
             self._obj = op_tf
@@ -623,14 +629,8 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
 
         if self.obj is not None and not isinstance(self.obj, Var):
             name = self.obj.name
-        elif (
-            self.op is not None
-            and not isvar(self.op)
-            and not isvar(self.op.name)
-            and not isinstance(self.op.outputs, Sequence)
-        ):
-            out_num = self.op.outputs.index(self)
-            name = f"{self.op.name}:{out_num}"
+        elif isinstance(getattr(self.op, "name", None), str) and not isvar(self.value_index):
+            name = f"{self.op.name}:{self.value_index}"
         else:
             name = var()
 
