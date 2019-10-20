@@ -187,6 +187,9 @@ def test_meta_basic():
         assert log_mt.dtype == tf.float32
         assert log_mt.name == 'Log:0'
 
+        log_mt = mt.log(var(), name=var())
+        assert isvar(log_mt.name)
+
 
 @pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
@@ -200,6 +203,8 @@ def test_meta_Op():
     # converted to a `Tensor` by `metatize`.  That doesn't seem very
     # reasonable.  Likewise, the `0` gets converted, but it probably shouldn't be.
     test_op = TFlowMetaOp(mt.Concat, var(), [[t1_tf, t2_tf], 0])
+
+    assert isvar(test_op.name)
 
     # Make sure we converted lists to tuples
     assert isinstance(test_op.inputs, tuple)
