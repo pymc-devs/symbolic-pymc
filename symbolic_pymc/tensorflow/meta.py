@@ -499,7 +499,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
         if isvar(self.node_def):
             self._name = var()
         else:
-            self._name = str(self.node_def.name)
+            self._name = self.node_def.name
 
         return self._name
 
@@ -606,6 +606,8 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
 
     def __init__(self, op, value_index, dtype, obj=None):
         self.op = metatize(op)
+        # TODO: Sync this value with `op.node_def.attr['dtype']` and/or
+        # `op.node_def.attr['T']`?
         self.dtype = dtype
         self.value_index = value_index
         super().__init__(obj=obj)
