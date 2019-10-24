@@ -8,7 +8,7 @@ import tensorflow_probability as tfp
 
 from inspect import Parameter, Signature
 
-from collections import OrderedDict
+from collections import OrderedDict, Sequence
 
 from functools import partial
 
@@ -34,6 +34,8 @@ from ..meta import (
     _metatize,
     metatize,
 )
+
+from .. import meta
 
 
 class MetaOpDefLibrary(object):
@@ -164,6 +166,15 @@ def _metatize_tf_object(obj):
 
 def load_dispatcher():
     """Set/override dispatcher to default to TF objects."""
+
+    from tensorflow.python.ops.gen_linalg_ops import _SvdOutput
+
+    def _metatize_tf_svd(obj):
+        """Turn a TensorFlow `Svd` object/tuple into a standard tuple."""
+        return _metatize(tuple(obj))
+
+    _metatize.add((_SvdOutput,), _metatize_tf_svd)
+
     _metatize.add((object,), _metatize_tf_object)
 
 
@@ -207,6 +218,7 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
 
             >>> from google.protobuf import json_format
             >>> print(json_format.MessageToJson(opdef))
+
         - If you want to use an `OpDef` to construct a node, see
           `op_def_library.apply_op`.
 
@@ -220,21 +232,25 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
         self._apply_func_sig, self._apply_func = op_def_lib.get_op_info(obj)
 
     def out_meta_types(self, inputs=None, node_def=None):
+        """Return a list of tuples containing object types and corresponding dtypes for the outputs of this OpDef."""
+
         def _convert_outputs(o):
-            if o.type_attr == "T" and node_def:
+            if o.type_attr == "T" and hasattr(node_def, "attr"):
                 return (TFlowMetaTensor, node_def.attr.get("T", var()))
             elif o.type_attr == "dtype" and inputs:
                 return (TFlowMetaTensor, inputs.get("dtype", var()))
             else:
                 return (TFlowMetaTensor, var())
 
+        # TODO: We also have permissible dtype information from objects in the
+        # array `self.obj.attr` under the field `allowed_values`.
+
         out_meta_types = tuple(_convert_outputs(o) for o in self.obj.output_arg)
-        # TODO: We also have permissible dtype information:
-        # from objects in the array `self.obj.attr` under the field
-        # `allowed_values`.
+
         return out_meta_types
 
-    def input_args(self, *args, **kwargs):
+    def input_args(self, *args, apply_defaults=True, **kwargs):
+        """Return a list of arguments for this OpDef's 'apply function'."""
         kwargs = OrderedDict(
             (k, v)
             for k, v in kwargs.items()
@@ -242,17 +258,27 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
             # expected arguments to the `OpDef`'s apply function.
             if k in self._apply_func_sig.parameters
         )
+
         op_args = self._apply_func_sig.bind(*args, **kwargs)
-        op_args.apply_defaults()
+
+        if apply_defaults:
+            op_args.apply_defaults()
+
         return op_args.arguments
 
     def __call__(self, *args, **kwargs):
         """Create the meta object(s) resulting from an application of this `OpDef`'s implied `Operation`."""
-        op_args, op_args_unreified = meta_reify_iter(args)
-        op_kwargs, op_kwargs_unreified = meta_reify_iter(kwargs)
+
+        if not meta._auto_reification_disabled:
+            op_args, op_args_unreified = meta_reify_iter(args)
+            op_kwargs, op_kwargs_unreified = meta_reify_iter(kwargs)
+        else:
+            op_args, op_args_unreified = args, True
+            op_kwargs, op_kwargs_unreified = kwargs, True
+
         apply_arguments = self.input_args(*op_args, **op_kwargs)
 
-        if not op_args_unreified and not op_kwargs_unreified:
+        if not (op_args_unreified or op_kwargs_unreified):
 
             # them into meta objects.  Doing so will yield information we
             # wouldn't be able to produce otherwise (e.g. shape info).
@@ -269,29 +295,43 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
 
             tf_out = self._apply_func(**apply_arguments)
             res_var = metatize(tf_out)
-            return res_var
 
-        #
-        # If we're here, that means we have to create the meta objects
-        # manually.
-        #
-        # TODO: `tf.placeholder`s are pretty flexible, we could probably use
-        # one as a stand-in for any un-reified tensor arguments and at least
-        # get some partial `dtype`, `shape` and `name` info.
+            if "names" in meta._lvar_defaults_enabled:
+                # This should also reset the NodeDef's `obj`
+                res_var.op.node_def.name = var()
+                res_var.op.reset()
+                res_var.reset()
 
-        op_input_args = tuple(
-            apply_arguments.get(i.name) for i in self.obj.input_arg if i.name in apply_arguments
-        )
+            if "node_attrs" in meta._lvar_defaults_enabled:
+                # This should also reset the NodeDef's `obj`
+                res_var.op.node_def.attr = var()
+                res_var.op.reset()
+                res_var.reset()
 
-        node_attr = {a.name: apply_arguments.get(a.name, a) for a in self.obj.attr}
+        else:
+            #
+            # If we're here, that means we have to create the meta objects
+            # manually.
+            #
 
-        op_name = op_kwargs.get("name", self.obj.name)
+            op_input_args = tuple(
+                apply_arguments.get(i.name) for i in self.obj.input_arg if i.name in apply_arguments
+            )
 
-        node_def = TFlowMetaNodeDef(self.obj.name, op_name, node_attr)
+            if "node_attrs" not in meta._lvar_defaults_enabled:
+                node_attr = {a.name: apply_arguments.get(a.name, a) for a in self.obj.attr}
+            else:
+                node_attr = var()
 
-        op_mt = TFlowMetaOp(self, node_def, op_input_args)
+            op_name = op_kwargs.get(
+                "name", self.obj.name if "names" not in meta._lvar_defaults_enabled else var()
+            )
 
-        res_var = op_mt.default_output
+            node_def = TFlowMetaNodeDef(self.obj.name, op_name, node_attr)
+
+            op_mt = TFlowMetaOp(self, node_def, op_input_args)
+
+            res_var = op_mt.default_output
 
         return res_var
 
@@ -517,16 +557,26 @@ class TFlowMetaOp(TFlowMetaSymbol):
         if getattr(self, "_outputs", None) is not None:
             return self._outputs
 
-        if (
-            isvar(self.op_def)
-            or isvar(self.inputs)
-            or isvar(self.node_def)
-            or isvar(self.node_def.attr)
-        ):
+        if isvar(self.op_def):
             self._outputs = var()
         else:
 
-            apply_arguments = self.op_def.input_args(*self.inputs, **self.node_def.attr)
+            if isvar(self.node_def) or isvar(getattr(self.node_def, "attr")):
+                node_attr = {}
+            else:
+                node_attr = self.node_def.attr
+
+            if isvar(self.inputs):
+                inputs = (None,) * len(self.op_def._apply_func_sig.parameters)
+                apply_defaults = False
+            else:
+                inputs = self.inputs
+                apply_defaults = True
+
+            apply_arguments = self.op_def.input_args(
+                *inputs, apply_defaults=apply_defaults, **node_attr
+            )
+
             out_types_mt = self.op_def.out_meta_types(
                 inputs=apply_arguments, node_def=self.node_def
             )
@@ -551,7 +601,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
 
         mt_outs = self.outputs
 
-        if len(mt_outs) == 1:
+        if isinstance(mt_outs, Sequence) and len(mt_outs) == 1:
             out_var = mt_outs[0]
         else:
             out_var = mt_outs

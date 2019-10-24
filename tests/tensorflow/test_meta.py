@@ -14,7 +14,7 @@ from tensorflow_probability import distributions as tfd
 
 from unification import var, isvar
 
-from symbolic_pymc.meta import MetaSymbol
+from symbolic_pymc.meta import MetaSymbol, disable_auto_reification, enable_lvar_defaults
 from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaTensorShape,
                                            TFlowMetaOp,
@@ -228,6 +228,13 @@ def test_meta_lvars():
     mo_mt = TFlowMetaOp(var(), var(), var(), var())
     assert all(isvar(getattr(mo_mt, s)) for s in mo_mt.__all_props__)
 
+    mo_mt = TFlowMetaOp(var(), var(), var())
+    assert isvar(mo_mt.op_def)
+    assert isvar(mo_mt.outputs)
+
+    mo_mt = TFlowMetaOp(mt.Add, var(), var())
+    assert len(mo_mt.outputs) == 1
+
     ts_mt = TFlowMetaTensorShape(var())
     assert all(isvar(getattr(ts_mt, s)) for s in ts_mt.__all_props__)
 
@@ -285,6 +292,13 @@ def test_meta_multi_output():
 
     assert d.op.outputs == (d, U, V)
     assert d.op.default_output is d.op.outputs
+
+    tf.compat.v1.disable_eager_execution()
+
+    X_mt = mt(np.eye(2))
+    d, U, V = mt.linalg.svd(X_mt)
+    d.value_index = var()
+    assert isinstance(d.reify(), TFlowMetaTensor)
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
@@ -515,3 +529,35 @@ def test_tensor_ops():
         abs_mt = abs(x_mt)
         assert abs_mt.name == abs_tf.name
         assert abs_mt.op.type == abs_tf.op.type
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
+def test_global_options():
+
+    with tf.Graph().as_default():
+        x_mt = mt.Placeholder('float')
+        assert isinstance(x_mt.obj, tf.Tensor)
+        assert x_mt.name == 'Placeholder:0'
+
+    with tf.Graph().as_default(), disable_auto_reification():
+        y_mt = mt.Placeholder('float')
+        assert y_mt.obj is None
+        assert y_mt.name == 'Placeholder:0'
+        assert isinstance(y_mt.op.node_def.attr, dict)
+
+    with tf.Graph().as_default(), enable_lvar_defaults('names', 'node_attrs'):
+        # This *will* auto-reify and have base versions of `names` and `attrs`;
+        # however, it will replace those with lvars.
+        z_mt = mt.Placeholder('float')
+        assert z_mt.obj is None
+        assert isvar(z_mt.name)
+        assert isvar(z_mt.op.node_def.attr)
+
+    with tf.Graph().as_default(), disable_auto_reification(), enable_lvar_defaults('names', 'node_attrs'):
+        # This will *not* auto-reify and simply create the object from scratch with meta types
+        # and the appropriate/desired logic variables.
+        z_mt = mt.Placeholder('float')
+        assert z_mt.obj is None
+        assert isvar(z_mt.name)
+        assert isvar(z_mt.op.node_def.attr)

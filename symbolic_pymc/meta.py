@@ -5,6 +5,7 @@ import reprlib
 from itertools import chain
 from functools import partial
 from collections import OrderedDict
+from contextlib import contextmanager
 from collections.abc import Iterator, Mapping
 
 from unification import isvar, Var
@@ -21,6 +22,46 @@ meta_repr.maxother = 100
 meta_repr.print_obj = False
 
 metatize_cache = {}
+
+_auto_reification_disabled = False
+_lvar_defaults_enabled = set()
+
+
+@contextmanager
+def disable_auto_reification():
+    """Stop meta objects from automatically reifying themselves in order to determine unspecified properties."""
+    global _auto_reification_disabled
+    _current_value = _auto_reification_disabled
+    _auto_reification_disabled = True
+    try:
+        yield
+    finally:
+        _auto_reification_disabled = _current_value
+
+
+@contextmanager
+def enable_lvar_defaults(*types):
+    """Use logic variables instead of guessed/inferred values during meta object creation.
+
+    This is useful for handling unexpected values--created by default or behind
+    the scenes--in backend base objects (e.g. default names, TF NodeDef
+    attributes, etc.).  By using logic variables instead, it's much easier to
+    create meta object "patterns" when certain types of exactness aren't
+    necessary.
+
+    Parameters
+    ----------
+      types: collection of str
+        String names for the types we want to make default to logic variables.
+        Currently allowed values are "names" and "node_attrs" (for TensorFlow).
+    """
+    global _lvar_defaults_enabled
+    _current_value = _lvar_defaults_enabled
+    _lvar_defaults_enabled = set(types)
+    try:
+        yield
+    finally:
+        _lvar_defaults_enabled = _current_value
 
 
 def metatize(obj):
@@ -107,6 +148,12 @@ class MetaSymbolType(abc.ABCMeta):
 
         if clsdict["__volatile_slots__"]:
 
+            def reset(self):
+                for s in self.__volatile_slots__:
+                    object.__setattr__(self, s, None)
+
+            clsdict["reset"] = reset
+
             def __setattr__(self, attr, obj):
                 """If a slot value is changed, reset cached slots."""
 
@@ -121,8 +168,7 @@ class MetaSymbolType(abc.ABCMeta):
                     # Are we setting it to a new value?
                     and getattr(self, attr) is not obj
                 ):
-                    for s in self.__volatile_slots__:
-                        object.__setattr__(self, s, None)
+                    self.reset()
 
                 object.__setattr__(self, attr, obj)
 
@@ -150,6 +196,8 @@ class MetaSymbolType(abc.ABCMeta):
                 if getattr(self, "_hash", None) is not None:
                     return self._hash
 
+                # TODO: We could also descend into `__props__` and reset their
+                # `_hash` values, as well.
                 object.__setattr__(self, "_hash", _orig_hash(self))
 
                 return self._hash
