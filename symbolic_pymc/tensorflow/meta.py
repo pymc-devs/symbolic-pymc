@@ -690,6 +690,43 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
 
         return self
 
+    def __truediv__(self, y):
+        # TODO: TF performs some dtype logic (using `dtype.base_dtype`) and casting here.
+        return mt.realdiv(self, y, name="truediv")
+
+    def __rtruediv__(self, x):
+        # TODO: TF performs some dtype logic (using `dtype.base_dtype`) and casting here.
+        return mt.realdiv(x, self, name="truediv")
+
+    def __add__(self, y):
+        # TODO: If `self.dtype == tf.dtypes.string`, use `mt.add`
+        return mt.addv2(self, y, name="add")
+
+    def __radd__(self, x):
+        # TODO: If `x.dtype == tf.dtypes.string`, use `mt.add`
+        return mt.addv2(x, self, name="add")
+
+    def __sub__(self, y):
+        return mt.sub(self, y, name="sub")
+
+    def __rsub__(self, x):
+        return mt.sub(x, self, name="sub")
+
+    def __mul__(self, y):
+        return mt.mul(self, y, name="mul")
+
+    def __rmul__(self, x):
+        return mt.mul(x, self, name="mul")
+
+    def __abs__(self):
+        return mt.abs(self, name="Abs")
+
+    def __pow__(self, y):
+        return mt.pow(self, y, name="pow")
+
+    def __neg__(self):
+        return mt.neg(self, name="Neg")
+
 
 class TFlowMetaTensorShape(TFlowMetaSymbol):
     base = tf.TensorShape
