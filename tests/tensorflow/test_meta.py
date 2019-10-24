@@ -456,3 +456,62 @@ def test_opdef_func():
 
     with tf.compat.v1.Session() as sess:
         assert sum_tf.eval() == np.r_[3]
+
+
+@pytest.mark.usefixtures("run_with_tensorflow")
+@run_in_graph_mode
+def test_tensor_ops():
+
+    with tf.Graph().as_default():
+        x_tf = tf.compat.v1.placeholder('float')
+        y_tf = tf.compat.v1.placeholder('float')
+
+        mul_tf = x_tf * y_tf
+        rmul_tf = 1.0 * x_tf
+        div_tf = x_tf / y_tf
+        rdiv_tf = 1.0 / y_tf
+        add_tf = x_tf + y_tf
+        radd_tf = 1.0 + y_tf
+        sub_tf = x_tf - y_tf
+        rsub_tf = 1.0 - y_tf
+        pow_tf = x_tf**y_tf
+        neg_tf = -x_tf
+        abs_tf = abs(x_tf)
+
+    with tf.Graph().as_default():
+        x_mt = mt.Placeholder('float')
+        y_mt = mt.Placeholder('float')
+
+        mul_mt = x_mt * y_mt
+        assert mul_mt.name == mul_tf.name
+        assert mul_mt.op.type == mul_tf.op.type
+        rmul_mt = 1.0 * x_mt
+        assert rmul_mt.name == rmul_tf.name
+        assert rmul_mt.op.type == rmul_tf.op.type
+        div_mt = x_mt / y_mt
+        assert div_mt.name == div_tf.name
+        assert div_mt.op.type == div_tf.op.type
+        rdiv_mt = 1.0 / y_mt
+        assert rdiv_mt.name == rdiv_tf.name
+        assert rdiv_mt.op.type == rdiv_tf.op.type
+        add_mt = x_mt + y_mt
+        assert add_mt.name == add_tf.name
+        assert add_mt.op.type == add_tf.op.type
+        radd_mt = 1.0 + y_mt
+        assert radd_mt.name == radd_tf.name
+        assert radd_mt.op.type == radd_tf.op.type
+        sub_mt = x_mt - y_mt
+        assert sub_mt.name == sub_tf.name
+        assert sub_mt.op.type == sub_tf.op.type
+        rsub_mt = 1.0 - y_mt
+        assert rsub_mt.name == rsub_tf.name
+        assert rsub_mt.op.type == rsub_tf.op.type
+        pow_mt = x_mt**y_mt
+        assert pow_mt.name == pow_tf.name
+        assert pow_mt.op.type == pow_tf.op.type
+        neg_mt = -x_mt
+        assert neg_mt.name == neg_tf.name
+        assert neg_mt.op.type == neg_tf.op.type
+        abs_mt = abs(x_mt)
+        assert abs_mt.name == abs_tf.name
+        assert abs_mt.op.type == abs_tf.op.type
