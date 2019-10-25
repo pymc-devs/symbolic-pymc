@@ -235,7 +235,7 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
         """Return a list of tuples containing object types and corresponding dtypes for the outputs of this OpDef."""
 
         def _convert_outputs(o):
-            if o.type_attr == "T" and hasattr(node_def, "attr"):
+            if o.type_attr == "T" and isinstance(getattr(node_def, "attr", None), dict):
                 return (TFlowMetaTensor, node_def.attr.get("T", var()))
             elif o.type_attr == "dtype" and inputs:
                 return (TFlowMetaTensor, inputs.get("dtype", var()))
@@ -323,9 +323,10 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
             else:
                 node_attr = var()
 
-            op_name = op_kwargs.get(
-                "name", self.obj.name if "names" not in meta._lvar_defaults_enabled else var()
-            )
+            if "names" not in meta._lvar_defaults_enabled:
+                op_name = op_kwargs.get("name", self.obj.name)
+            else:
+                op_name = var()
 
             node_def = TFlowMetaNodeDef(self.obj.name, op_name, node_attr)
 
@@ -561,7 +562,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
             self._outputs = var()
         else:
 
-            if isvar(self.node_def) or isvar(getattr(self.node_def, "attr")):
+            if isvar(self.node_def) or not isinstance(getattr(self.node_def, "attr", None), dict):
                 node_attr = {}
             else:
                 node_attr = self.node_def.attr
@@ -613,24 +614,23 @@ class TFlowMetaOp(TFlowMetaSymbol):
         if self.obj and not isinstance(self.obj, Var):
             return self.obj
 
-        # tt_op = self.op.reify()
-        # if not self.is_meta(tt_op):
+        if isvar(self.inputs):
+            return self
+
         op_inputs, op_inputs_unreified = meta_reify_iter(self.inputs)
 
-        if isvar(self.node_def):
+        node_attr = getattr(self.node_def, "attr", None)
+
+        if node_attr is None or isvar(node_attr):
             return self
 
         op_attrs, op_attrs_unreified = meta_reify_iter(
             # Only use NodeDef attrs that appear in the OpDef's call signature.
             # Other NodeDef attrs, like dtype and shape, can be computed.
-            {
-                k: v
-                for k, v in self.node_def.attr.items()
-                if k in self.op_def._apply_func_sig.parameters
-            }
+            {k: v for k, v in node_attr.items() if k in self.op_def._apply_func_sig.parameters}
         )
 
-        if not (op_inputs_unreified or op_attrs_unreified or MetaSymbol.is_meta(self.name)):
+        if not (op_inputs_unreified or op_attrs_unreified or isvar(self.name)):
 
             # We have to use a primitive string or TF will complain.
             name = self.name
