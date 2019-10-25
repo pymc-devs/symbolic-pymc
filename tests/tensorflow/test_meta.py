@@ -224,6 +224,8 @@ def test_meta_lvars():
 
     nd_mt = TFlowMetaNodeDef(var(), var(), var())
     assert all(isvar(getattr(nd_mt, s)) for s in nd_mt.__all_props__)
+    # TODO: Figure out how we want this to work.
+    # assert isinstance(nd_mt.reify(), TFlowMetaNodeDef)
 
     mo_mt = TFlowMetaOp(var(), var(), var(), var())
     assert all(isvar(getattr(mo_mt, s)) for s in mo_mt.__all_props__)
@@ -234,14 +236,21 @@ def test_meta_lvars():
 
     mo_mt = TFlowMetaOp(mt.Add, var(), var())
     assert len(mo_mt.outputs) == 1
+    assert isinstance(mo_mt.reify(), TFlowMetaOp)
 
     ts_mt = TFlowMetaTensorShape(var())
     assert all(isvar(getattr(ts_mt, s)) for s in ts_mt.__all_props__)
+    assert isinstance(ts_mt.reify(), TFlowMetaTensorShape)
 
     assert isvar(ts_mt.as_list())
 
     tn_mt = TFlowMetaTensor(var(), var(), var())
     assert all(isvar(getattr(tn_mt, s)) for s in tn_mt.__all_props__)
+    assert isinstance(tn_mt.reify(), TFlowMetaTensor)
+
+    mo_mt = TFlowMetaOp(mt.Add, [tn_mt, tn_mt], var())
+    assert len(mo_mt.outputs) == 1
+    assert isinstance(mo_mt.reify(), TFlowMetaOp)
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
@@ -554,10 +563,19 @@ def test_global_options():
         assert isvar(z_mt.name)
         assert isvar(z_mt.op.node_def.attr)
 
-    with tf.Graph().as_default(), disable_auto_reification(), enable_lvar_defaults('names', 'node_attrs'):
+    with disable_auto_reification(), enable_lvar_defaults('names', 'node_attrs'):
         # This will *not* auto-reify and simply create the object from scratch with meta types
         # and the appropriate/desired logic variables.
         z_mt = mt.Placeholder('float')
         assert z_mt.obj is None
         assert isvar(z_mt.name)
         assert isvar(z_mt.op.node_def.attr)
+
+    with tf.Graph().as_default(), enable_lvar_defaults('names', 'node_attrs'):
+        y_mt = mt.Placeholder('float') + mt.Placeholder('float')
+        assert isvar(y_mt.name)
+        assert isvar(y_mt.op.inputs[0].name)
+        assert isvar(y_mt.op.inputs[1].name)
+        assert isvar(y_mt.op.node_def.attr)
+        assert isvar(y_mt.op.inputs[0].op.node_def.attr)
+        assert isvar(y_mt.op.inputs[1].op.node_def.attr)
