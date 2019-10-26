@@ -407,7 +407,7 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
     def _metatize(cls, obj):
         res = super()._metatize(obj)
 
-        if "node_attrs" in meta._lvar_defaults_enabled:
+        if obj.op != "Const" and "node_attrs" in meta._lvar_defaults_enabled:
             res.attr = var()
 
         if "names" in meta._lvar_defaults_enabled:
