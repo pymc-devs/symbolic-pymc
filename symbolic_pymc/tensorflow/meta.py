@@ -189,6 +189,23 @@ load_dispatcher()
 class TFlowMetaSymbol(MetaSymbol):
     __slots__ = ()
 
+    @classmethod
+    def _metatize(cls, obj):
+
+        res = super()._metatize(obj)
+        res.validate_objs()
+
+        return res
+
+    def validate_objs(self):
+        # If there is no base object associated with the inputs, then we can't
+        # trust a base object associated with this object (e.g. for the case in
+        # which metatize altered a property in an input).
+        for prop in self.rands():
+            if isinstance(prop, MetaSymbol) and prop.obj is None:
+                self.reset()
+                break
+
 
 class OpDefFactoryType(MetaSymbolType):
     __opdefs__ = {}
@@ -501,8 +518,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
         ]
         res = cls(*new_args, obj=obj)
 
-        if meta._lvar_defaults_enabled.issuperset(["node_attrs", "names"]):
-            res.reset()
+        res.validate_objs()
 
         return res
 
@@ -688,13 +704,8 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
     @classmethod
     @cachedmethod(lambda cls: tf_metatize_cache)
     def _metatize(cls, obj):
-
-        res = super()._metatize(obj)
-
-        if meta._lvar_defaults_enabled.issuperset(["node_attrs", "names"]):
-            res.reset()
-
-        return res
+        """Cache Tensors specifically."""
+        return super()._metatize(obj)
 
     def __init__(self, op, value_index, dtype, obj=None):
         self.op = metatize(op)

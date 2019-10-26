@@ -593,3 +593,8 @@ def test_global_options():
         assert isvar(b_mt.name)
         assert isvar(b_mt.op.node_def.attr)
         assert b_mt.op.inputs[1] is a_mt
+
+    # Make sure we clear out the `.obj` so that the names won't mismatch
+    with tf.Graph().as_default(), enable_lvar_defaults('names'):
+        a_mt = mt(1.0)
+        assert isvar(a_mt.name)
