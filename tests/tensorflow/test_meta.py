@@ -579,3 +579,17 @@ def test_global_options():
         assert isvar(y_mt.op.node_def.attr)
         assert isvar(y_mt.op.inputs[0].op.node_def.attr)
         assert isvar(y_mt.op.inputs[1].op.node_def.attr)
+
+    with tf.Graph().as_default() as test_graph:
+        a_mt = mt(2.0)
+        assert a_mt.obj is not None
+
+    with test_graph.as_default(), enable_lvar_defaults('names', 'node_attrs'):
+        a_new_mt = mt(a_mt)
+        assert a_new_mt is a_mt
+
+        b_mt = 1.0 * a_mt
+        assert a_mt.obj is not None
+        assert isvar(b_mt.name)
+        assert isvar(b_mt.op.node_def.attr)
+        assert b_mt.op.inputs[1] is a_mt
