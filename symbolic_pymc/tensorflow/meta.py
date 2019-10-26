@@ -43,6 +43,14 @@ tf_metatize_cache = Cache(50)
 
 
 class MetaOpDefLibrary(object):
+    """A singleton-like object that holds correspondences between TF Python API functions and the `OpDef`s they construct.
+
+    It provides a map of `OpDef` names (lower-cased) to the Python API
+    functions in `tensorflow.raw_ops`, as well as `inspect.Signature` objects
+    for said functions so that default values and lists of arguments (keywords
+    included) can be more easily used.
+
+    """
 
     lower_op_name_to_raw = {
         op_name.lower(): op_name
@@ -130,6 +138,12 @@ class MetaOpDefLibrary(object):
 
     @classmethod
     def get_op_info(cls, opdef):
+        """Return the TF Python API function signature for a given `OpDef`.
+
+        Parameter
+        ---------
+           opdef: str or `OpDef` object (meta or base)
+        """
         if isinstance(opdef, str):
             opdef_name = opdef
             opdef = op_def_registry.get(opdef_name)
@@ -289,7 +303,14 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
         return op_args.arguments
 
     def __call__(self, *args, **kwargs):
-        """Create the meta object(s) resulting from an application of this `OpDef`'s implied `Operation`."""
+        """Create the meta object(s) using the TF Python API's operator functions.
+
+        Each meta `OpDef` is associated with a TF Python function
+        (`self._apply_func`) that is used to construct its `Operation`s.
+
+        See `TFlowMetaTensor.operator` and `TFlowMetaTensor.operator`.
+
+        """
 
         apply_arguments = self.input_args(*args, **kwargs)
 
@@ -385,8 +406,7 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
         if not (type(self) == type(other)):
             return False
 
-        if not (self.base == other.base):
-            return False
+        assert self.base == other.base
 
         return self.obj.name == other.obj.name
 
@@ -745,28 +765,44 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
 
     @property
     def operator(self):
+        """Return the meta OpDef for this tensor.
+
+        Since meta OpDefs are callable (and dispatch to the corresponding TF
+        Python API function), this object called with arguments provided by
+        `TFlowMetaTensor.inputs` recreates the underlying tensor using the TF
+        Python interface.  This approach has advantages over the purely
+        graph-level approach to constructing meta objects, because--when all
+        arguments are reifiable--it allows us to use purely TF means to
+        construct a meta object (i.e. by first constructing the base object and
+        then "metatizing" it).
+
+        Meta objects produced this way result in less unknown information
+        (e.g. dtypes and shapes) and have the same default values as their base
+        object counterparts (e.g. `Operator` names and `NodeDef.attr` values).
+        """
         if self.op is not None and not isvar(self.op):
             return self.op.op_def
 
     @property
     def inputs(self):
-        """Return the tensor's inputs/rands.
+        """Return the inputs necessary to recreate this object using its TF Python API function.
 
-        NOTE: These inputs differ from `self.op.inputs` in that they contain
-        the `node_def` parameters, as well.
-        In other words, these can be used to recreate this object (per
-        the meta object spec).
+        These inputs differ from `self.op.inputs` primarily in that they
+        contain the `node_def` parameters as keywords (e.g. to Python API
+        functions like `tf.add`).
+
+        See `TFlowMetaTensor.operator` for more information.
         """
         # TODO: In keeping with our desire to return logic variables in cases
         # where params aren't given/inferred, we could return something like
         # `cons(var(), var())` here (although that wouldn't be necessarily imply
         # that the result is a proper list/tuple).
-        if self.op is not None and not isvar(self.op):
-            input_args = self.op.op_def.input_args(
-                *self.op.inputs,
-                name=self.op.name if not isvar(self.op.name) else None,
-                **self.op.node_def.attr,
-            )
+        if self.op is not None and not isvar(self.op) and not isvar(self.op.inputs):
+            if not isvar(self.op.node_def) and not isvar(self.op.node_def.attr):
+                attr = self.op.node_def.attr
+            else:
+                attr = {}
+            input_args = self.op.op_def.input_args(*self.op.inputs, name=self.op.name, **attr)
             return tuple(input_args.values())
 
     def reify(self):
