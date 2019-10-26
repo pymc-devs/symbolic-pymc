@@ -12,6 +12,8 @@ from collections import OrderedDict, Sequence
 
 from functools import partial
 
+from cachetools import cachedmethod, Cache
+
 from unification import Var, var, isvar
 
 from google.protobuf.message import Message
@@ -36,6 +38,8 @@ from ..meta import (
 )
 
 from .. import meta
+
+tf_metatize_cache = Cache(50)
 
 
 class MetaOpDefLibrary(object):
@@ -147,26 +151,17 @@ op_def_lib = MetaOpDefLibrary()
 
 def _metatize_tf_object(obj):
     try:
-        obj = tf.convert_to_tensor(obj)
+        tf_obj = tf.convert_to_tensor(obj)
     except (TypeError, ValueError):
         raise ValueError("Could not find a TensorFlow MetaSymbol class for {obj}")
 
-    if isinstance(obj, tf.Tensor):
-        try:
-            obj.op
-        except AttributeError:
-            raise AttributeError(
-                f"TensorFlow Operation not available; "
-                "try recreating the object with eager-mode disabled"
-                " (e.g. within `tensorflow.python.eager.context.graph_mode`)"
-            )
-
-    return _metatize(obj)
+    return _metatize(tf_obj)
 
 
 def load_dispatcher():
     """Set/override dispatcher to default to TF objects."""
 
+    from tensorflow.python.framework.ops import EagerTensor
     from tensorflow.python.ops.gen_linalg_ops import _SvdOutput
 
     def _metatize_tf_svd(obj):
@@ -174,6 +169,16 @@ def load_dispatcher():
         return _metatize(tuple(obj))
 
     _metatize.add((_SvdOutput,), _metatize_tf_svd)
+
+    def _metatize_tf_eager(obj):
+        """Catch eager tensor metatize issues early."""
+        raise AttributeError(
+            f"TensorFlow Operation not available; "
+            "try recreating the object with eager-mode disabled"
+            " (e.g. within `tensorflow.python.eager.context.graph_mode`)"
+        )
+
+    _metatize.add((EagerTensor,), _metatize_tf_eager)
 
     _metatize.add((object,), _metatize_tf_object)
 
@@ -269,16 +274,14 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
     def __call__(self, *args, **kwargs):
         """Create the meta object(s) resulting from an application of this `OpDef`'s implied `Operation`."""
 
+        apply_arguments = self.input_args(*args, **kwargs)
+
         if not meta._auto_reification_disabled:
-            op_args, op_args_unreified = meta_reify_iter(args)
-            op_kwargs, op_kwargs_unreified = meta_reify_iter(kwargs)
+            op_args, op_args_unreified = meta_reify_iter(apply_arguments)
         else:
-            op_args, op_args_unreified = args, True
-            op_kwargs, op_kwargs_unreified = kwargs, True
+            op_args, op_args_unreified = apply_arguments, True
 
-        apply_arguments = self.input_args(*op_args, **op_kwargs)
-
-        if not (op_args_unreified or op_kwargs_unreified):
+        if not op_args_unreified:
 
             # them into meta objects.  Doing so will yield information we
             # wouldn't be able to produce otherwise (e.g. shape info).
@@ -289,11 +292,22 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
             # the TF-`Operation` inferred values (e.g. shapes, dtypes, etc.)
 
             # We have to use a primitive string or TF will complain.
-            name = apply_arguments.get("name", None)
+            name = op_args.get("name", None)
             if name is not None:
-                apply_arguments["name"] = str(name)
+                op_args["name"] = str(name)
 
-            tf_out = self._apply_func(**apply_arguments)
+            tf_out = self._apply_func(**op_args)
+
+            # Ensure that the original meta objects will result
+            # from the following `metatize`
+            tf_metatize_cache.update(
+                {
+                    k: v
+                    for k, v in zip(op_args.values(), apply_arguments.values())
+                    if isinstance(k, tf.Tensor)
+                }
+            )
+
             res_var = metatize(tf_out)
 
             if "names" in meta._lvar_defaults_enabled:
@@ -324,7 +338,7 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
                 node_attr = var()
 
             if "names" not in meta._lvar_defaults_enabled:
-                op_name = op_kwargs.get("name", self.obj.name)
+                op_name = kwargs.get("name", self.obj.name)
             else:
                 op_name = var()
 
@@ -371,6 +385,18 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
 
     base = NodeDef
     __slots__ = ["op", "name", "attr", "_frozen_attr"]
+
+    @classmethod
+    def _metatize(cls, obj):
+        res = super()._metatize(obj)
+
+        if "node_attrs" in meta._lvar_defaults_enabled:
+            res.attr = var()
+
+        if "names" in meta._lvar_defaults_enabled:
+            res.name = var()
+
+        return res
 
     @classmethod
     def _protobuf_convert(cls, k, v):
@@ -473,7 +499,12 @@ class TFlowMetaOp(TFlowMetaSymbol):
         new_args = [
             getattr(obj, s) if s != "inputs" else new_input for s in getattr(cls, "__props__", [])
         ]
-        return cls(*new_args, obj=obj)
+        res = cls(*new_args, obj=obj)
+
+        if meta._lvar_defaults_enabled.issuperset(["node_attrs", "names"]):
+            res.reset()
+
+        return res
 
     def __init__(self, op_def, node_def, inputs, outputs=None, obj=None):
         """Create a TensorFlow meta `Operation`.
@@ -654,6 +685,17 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
     base = tf.Tensor
     __slots__ = ("op", "value_index", "dtype", "_shape", "_name")
 
+    @classmethod
+    @cachedmethod(lambda cls: tf_metatize_cache)
+    def _metatize(cls, obj):
+
+        res = super()._metatize(obj)
+
+        if meta._lvar_defaults_enabled.issuperset(["node_attrs", "names"]):
+            res.reset()
+
+        return res
+
     def __init__(self, op, value_index, dtype, obj=None):
         self.op = metatize(op)
         # TODO: Sync this value with `op.node_def.attr['dtype']` and/or
@@ -679,12 +721,13 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
         if getattr(self, "_name", None):
             return self._name
 
-        if self.obj is not None and not isinstance(self.obj, Var):
-            name = self.obj.name
-        elif isinstance(getattr(self.op, "name", None), str) and not isvar(self.value_index):
+        if isinstance(getattr(self.op, "name", None), str) and not isvar(self.value_index):
             name = f"{self.op.name}:{self.value_index}"
         else:
             name = var()
+
+        if self.obj is not None and not isinstance(self.obj, Var):
+            assert name == self.obj.name
 
         self._name = name
         return self._name
