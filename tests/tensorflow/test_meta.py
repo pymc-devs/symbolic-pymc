@@ -64,6 +64,9 @@ def test_meta_eager():
 @run_in_graph_mode
 def test_meta_basic():
 
+    assert mt.Add == mt.Add
+    assert mt.Add != mt.Sub
+
     var_mt = TFlowMetaTensor(var(), var(), var())
     # It should generate a logic variable for the name and use from here on.
     var_name = var_mt.name
@@ -248,9 +251,10 @@ def test_meta_lvars():
     assert all(isvar(getattr(tn_mt, s)) for s in tn_mt.__all_props__)
     assert isinstance(tn_mt.reify(), TFlowMetaTensor)
 
-    mo_mt = TFlowMetaOp(mt.Add, [tn_mt, tn_mt], var())
+    mo_mt = TFlowMetaOp(mt.Add, var(), [tn_mt, var('a')])
     assert len(mo_mt.outputs) == 1
     assert isinstance(mo_mt.reify(), TFlowMetaOp)
+    assert mo_mt.outputs[0].inputs == (tn_mt, var('a'), mo_mt.name)
 
 
 @pytest.mark.usefixtures("run_with_tensorflow")
@@ -593,3 +597,12 @@ def test_global_options():
         assert isvar(b_mt.name)
         assert isvar(b_mt.op.node_def.attr)
         assert b_mt.op.inputs[1] is a_mt
+
+        # `NodeDef.attr` for constants should not be turned into lvars
+        assert not isvar(b_mt.op.inputs[0].op.node_def.attr)
+        assert not isvar(b_mt.op.inputs[1].op.node_def.attr)
+
+    # Make sure we clear out the `.obj` so that the names won't mismatch
+    with tf.Graph().as_default(), enable_lvar_defaults('names'):
+        a_mt = mt(1.0)
+        assert isvar(a_mt.name)
