@@ -14,7 +14,6 @@ from symbolic_pymc.tensorflow.printing import tf_dprint
 from tests.tensorflow import run_in_graph_mode
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 def test_eager_mode():
 
     assert tf.executing_eagerly()
@@ -31,7 +30,6 @@ def test_eager_mode():
         tf_dprint(X_tf)
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_ascii_printing():
     """Make sure we can ascii/text print a TF graph."""
@@ -65,7 +63,6 @@ def test_ascii_printing():
     assert std_out.getvalue() == expected_out.lstrip()
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_unknown_shape():
     """Make sure we can ascii/text print a TF graph with unknown shapes."""

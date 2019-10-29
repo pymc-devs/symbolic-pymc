@@ -1,6 +1,9 @@
 import pytest
 
-from symbolic_pymc.meta import MetaSymbol, MetaOp
+import numpy as np
+
+from symbolic_pymc.utils import HashableNDArray
+from symbolic_pymc.meta import MetaSymbol, MetaOp, metatize
 
 
 class SomeOp(object):
@@ -154,3 +157,15 @@ def test_meta_pretty():
     some_mt.field1.field2 = SomeMetaSymbol(SomeType(5, 6))
 
     assert pretty_mod.pretty(some_mt) == 'SomeMetaSymbol(\n  field1=SomeMetaSymbol(field1=1, field2=SomeMetaSymbol(field1=1, field2=2)),\n  field2=2)'
+
+
+def test_metatize():
+    x_mt = metatize(np.r_[1, 2, 3])
+    assert isinstance(x_mt, HashableNDArray)
+
+    y_mt = metatize(np.r_[1, 2, 3, 4])
+    assert isinstance(y_mt, HashableNDArray)
+
+    assert x_mt != y_mt
+
+    assert x_mt != 1

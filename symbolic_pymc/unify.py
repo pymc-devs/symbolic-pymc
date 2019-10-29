@@ -1,5 +1,3 @@
-import numpy as np
-
 from functools import wraps
 from operator import itemgetter
 
@@ -8,10 +6,9 @@ from cons.core import _cdr
 from kanren.term import term, operator, arguments
 
 from unification.more import unify
-from unification.core import reify, _unify, _reify, Var, walk, assoc, isvar
+from unification.core import reify, _unify, _reify, Var, isvar
 
 from .meta import MetaSymbol, MetaVariable
-from .utils import _check_eq
 
 from .etuple import etuple, ExpressionTuple
 
@@ -44,33 +41,6 @@ def debug_unify(enable=True):  # pragma: no cover
     else:
         _unify.funcs = {sig: getattr(f, "__wrapped__", f) for sig, f in _unify.funcs.items()}
         _unify._cache.clear()
-
-
-_base_unify = unify.dispatch(object, object, dict)
-
-
-def unify_numpy(u, v, s):
-    """Handle NumPy arrays in a special way to avoid warnings/exceptions."""
-    u = walk(u, s)
-    v = walk(v, s)
-
-    if u is v:
-        return s
-    if isvar(u):
-        return assoc(s, u, v)
-    if isvar(v):
-        return assoc(s, v, u)
-
-    if isinstance(u, np.ndarray) or isinstance(v, np.ndarray):
-        if np.array_equal(v, u):
-            return s
-    elif u == v:
-        return s
-
-    return _unify(u, v, s)
-
-
-unify.add((object, object, dict), unify_numpy)
 
 
 def unify_MetaSymbol(u, v, s):
@@ -243,7 +213,7 @@ def _reify_ExpressionTuple(t, s):
 
     """
     res = tuple(reify(iter(t), s))
-    t_chg = [_check_eq(a, b) for a, b in zip(t, res) if not isvar(a) and not isvar(b)]
+    t_chg = tuple(a == b for a, b in zip(t, res) if not isvar(a) and not isvar(b))
 
     if all(t_chg):
         if len(t_chg) == len(t):

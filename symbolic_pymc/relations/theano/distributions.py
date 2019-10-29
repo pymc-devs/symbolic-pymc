@@ -10,6 +10,7 @@ from unification.utils import transitive_get as walk
 
 from .. import concat
 from ...etuple import etuple
+from ...utils import HashableNDArray
 from ...theano.meta import TheanoMetaConstant, mt
 
 from kanren.facts import Relation
@@ -61,18 +62,18 @@ def constant_neq(lvar, val):
     Scalar values are broadcast across arrays.
     """
 
-    def _goal(s):
+    if isinstance(val, np.ndarray):
+        val = val.view(HashableNDArray)
+
+    def constant_neq_goal(s):
         lvar_val = walk(lvar, s)
         if isinstance(lvar_val, (tt.Constant, TheanoMetaConstant)):
-            data = lvar_val.data
-            if (isinstance(val, np.ndarray) and not np.array_equal(data, val)) or not all(
-                np.atleast_1d(data) == val
-            ):
+            if lvar_val.data != val:
                 yield s
         else:
             yield s
 
-    return _goal
+    return constant_neq_goal
 
 
 def scale_loc_transform(in_expr, out_expr):

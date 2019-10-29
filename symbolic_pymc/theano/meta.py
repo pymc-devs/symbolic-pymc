@@ -23,21 +23,35 @@ from ..meta import (
     _metatize,
 )
 
+from .. import meta
+
+from ..utils import HashableNDArray
+
 
 def _metatize_theano_object(obj):
     try:
         obj = tt.as_tensor_variable(obj)
     except (ValueError, tt.AsTensorError):
-        raise ValueError("Could not find a MetaSymbol class for {}".format(obj))
+        raise ValueError("Error converting {} to a Theano tensor.".format(obj))
+    except AssertionError:
+        # This is a work-around for a Theano bug; specifically,
+        # an assert statement in `theano.scalar.basic` that unnecessarily
+        # requires the object type be exclusively an ndarray or memmap.
+        # See https://github.com/Theano/Theano/pull/6727
+        obj = tt.as_tensor_variable(np.asarray(obj))
+
     return _metatize(obj)
 
 
 def load_dispatcher():
     """Set/override dispatcher to default to TF objects."""
-    _metatize.add((object,), _metatize_theano_object)
+    meta._metatize.add((object,), _metatize_theano_object)
+    meta._metatize.add((HashableNDArray,), _metatize_theano_object)
 
+    for new_cls in TheanoMetaSymbol.base_subclasses():
+        meta._metatize.add((new_cls.base,), new_cls._metatize)
 
-load_dispatcher()
+    return meta._metatize
 
 
 class TheanoMetaSymbol(MetaSymbol):
@@ -202,7 +216,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
             # XXX: We don't have a higher-order meta object model, so being
             # wrong about the exact type of output variable will cause
             # problems.
-            out_meta_type, = self.out_meta_types(op_args)
+            (out_meta_type,) = self.out_meta_types(op_args)
             res_var = out_meta_type(ttype, res_apply, index, name)
             res_var._obj = var()
 
@@ -451,27 +465,8 @@ class TheanoMetaConstant(TheanoMetaVariable):
         return res
 
     def __init__(self, type, data, name=None, obj=None):
-        self.data = data
+        self.data = data if not isinstance(data, np.ndarray) else data.view(HashableNDArray)
         super().__init__(type, None, None, name, obj=obj)
-
-    def __eq__(self, other):
-        if self is other:
-            return True
-
-        if type(self) != type(other):
-            return False
-
-        if all(
-            (s.tostring() if isinstance(s, np.ndarray) else s)
-            == (o.tostring() if isinstance(o, np.ndarray) else o)
-            for s, o in zip(self.rands(), other.rands())
-        ):
-            return True
-
-        return False
-
-    def __hash__(self):
-        return hash(v.tostring() if isinstance(v, np.ndarray) else v for v in self.rands())
 
 
 class TheanoMetaTensorConstant(TheanoMetaConstant):
@@ -606,7 +601,9 @@ class TheanoMetaAccessor(object):
 
 mt = TheanoMetaAccessor()
 
-mt.dot = metatize(tt.basic._dot)
+_metatize = load_dispatcher()
+
+mt.dot = _metatize(tt.basic._dot)
 
 
 #
