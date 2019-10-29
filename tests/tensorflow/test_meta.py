@@ -14,6 +14,7 @@ from tensorflow_probability import distributions as tfd
 
 from unification import var, isvar
 
+from symbolic_pymc.utils import HashableNDArray
 from symbolic_pymc.meta import MetaSymbol, disable_auto_reification, enable_lvar_defaults
 from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaTensorShape,
@@ -27,7 +28,6 @@ from tests.tensorflow import run_in_graph_mode
 from tests.tensorflow.utils import assert_ops_equal
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 def test_meta_helper():
     """Make sure the helper/namespace emulator can find `OpDef`s and create their meta objects."""
     assert isinstance(mt.add, TFlowMetaOpDef)
@@ -38,7 +38,6 @@ def test_meta_helper():
     assert mt.RandomStandardNormal.obj.name == 'RandomStandardNormal'
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 def test_meta_eager():
 
     assert tf.executing_eagerly()
@@ -60,7 +59,6 @@ def test_meta_eager():
         _ = mt(X_tf)
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_meta_basic():
 
@@ -194,7 +192,6 @@ def test_meta_basic():
         assert isvar(log_mt.name)
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_meta_Op():
 
@@ -221,7 +218,6 @@ def test_meta_Op():
     assert MetaSymbol.is_meta(test_op.outputs[0])
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 def test_meta_lvars():
     """Make sure we can use lvars as values."""
 
@@ -257,7 +253,6 @@ def test_meta_lvars():
     assert mo_mt.outputs[0].inputs == (tn_mt, var('a'), mo_mt.name)
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_meta_hashing():
     """Make sure we can hash meta graphs."""
@@ -273,7 +268,6 @@ def test_meta_hashing():
     assert isinstance(hash(add_mt), int)
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_meta_compare():
     """Make objects compare correctly."""
@@ -292,7 +286,6 @@ def test_meta_compare():
     assert const_mt != a_tf
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_meta_multi_output():
     """Make sure we can handle TF `Operation`s that output more than on tensor."""
@@ -314,7 +307,6 @@ def test_meta_multi_output():
     assert isinstance(d.reify(), TFlowMetaTensor)
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_meta_reify():
     a_mt = mt(tf.compat.v1.placeholder('float64', name='a', shape=[1, 2]))
@@ -338,7 +330,6 @@ def test_meta_reify():
     assert add_tf.shape.as_list() == [1, 2]
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_meta_distributions():
     N = 100
@@ -373,7 +364,6 @@ def test_meta_distributions():
     assert_ops_equal(Y_mt, Y_mt_tf)
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_inputs_remapping():
     t1 = [[1, 2, 3], [4, 5, 6]]
@@ -390,7 +380,6 @@ def test_inputs_remapping():
     assert z_mt.inputs[1].obj == z.op.inputs[2]
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 def test_opdef_sig():
     """Make sure we can construct an `inspect.Signature` object for a protobuf OpDef when its corresponding function isn't present in `tf.raw_ops`."""
     from tensorflow.core.framework import op_def_pb2
@@ -431,7 +420,6 @@ def test_opdef_sig():
     assert opdef_sig.parameters['name'].default is None
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_nodedef():
     X = np.random.normal(0, 1, (10, 10))
@@ -465,7 +453,6 @@ def test_nodedef():
     assert y_test_mt == y_test_new_mt
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_metatize():
     class CustomClass(object):
@@ -474,8 +461,14 @@ def test_metatize():
     with pytest.raises(ValueError):
         mt(CustomClass())
 
+    x_tf = tf.convert_to_tensor(np.r_[1, 2, 3])
+    x_mt = mt(x_tf)
+    assert isinstance(x_mt.op.node_def.attr['value'], HashableNDArray)
 
-@pytest.mark.usefixtures("run_with_tensorflow")
+    x_mt = mt(np.r_[1, 2, 3])
+    assert isinstance(x_mt.op.node_def.attr['value'], HashableNDArray)
+
+
 @run_in_graph_mode
 def test_opdef_func():
     sum_mt = mt.Sum([[1, 2]], [1])
@@ -485,7 +478,6 @@ def test_opdef_func():
         assert sum_tf.eval() == np.r_[3]
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_tensor_ops():
 
@@ -544,7 +536,6 @@ def test_tensor_ops():
         assert abs_mt.op.type == abs_tf.op.type
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_global_options():
 

@@ -2,6 +2,9 @@ import abc
 import types
 import reprlib
 
+import numpy as np
+
+from copy import deepcopy
 from itertools import chain
 from functools import partial
 from collections import OrderedDict
@@ -10,7 +13,7 @@ from collections.abc import Iterator, Mapping
 
 from unification import isvar, Var
 
-from .utils import _check_eq
+from .utils import HashableNDArray
 
 from multipledispatch import dispatch
 
@@ -87,6 +90,18 @@ def _metatize_set_tuple(obj):
 def _metatize_list(obj):
     """Convert elements of an iterable to meta objects."""
     return type(obj)([metatize(o) for o in obj])
+
+
+@_metatize.register(np.ndarray)
+def _metatize_ndarray(obj):
+    """Convert Numpy ndarrays into hashable objects."""
+    return metatize(obj.view(HashableNDArray))
+
+
+@_metatize.register(HashableNDArray)
+def _metatize_HashableNDArray(obj):
+    """Fallback case for converted Numpy ndarrays."""
+    return obj
 
 
 @_metatize.register(Iterator)
@@ -183,9 +198,6 @@ class MetaSymbolType(abc.ABCMeta):
 
         new_cls = super().__new__(cls, name, bases, clsdict)
 
-        if isinstance(new_cls.base, type):
-            _metatize.add((new_cls.base,), new_cls._metatize)
-
         # Wrap the class implementation of `__hash__` with this value-caching
         # code.
         if "_hash" in clsdict["__volatile_slots__"]:
@@ -226,12 +238,11 @@ class MetaSymbol(metaclass=MetaSymbolType):
         return object.__getattribute__(self, "_obj")
 
     @classmethod
-    def base_classes(cls, mro_order=True):
-        res = tuple(c.base for c in cls.__subclasses__())
-        if hasattr(cls, "base"):
-            res = (cls.base,) + res
-        sorted(res, key=lambda c: len(c.mro()), reverse=mro_order)
-        return res
+    def base_subclasses(cls):
+        for subclass in cls.__subclasses__():
+            yield from subclass.base_subclasses()
+            if isinstance(subclass.base, type):
+                yield subclass
 
     @classmethod
     def is_meta(cls, obj):
@@ -294,7 +305,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
         assert self.base == other.base
 
         if self.rands():
-            return all(_check_eq(s, o) for s, o in zip(self.rands(), other.rands()))
+            return all(s == o for s, o in zip(self.rands(), other.rands()))
         else:
             return NotImplemented
 
@@ -459,3 +470,6 @@ def _metatize_type(obj_type):
 
         if obj_cls is not None:
             return obj_cls
+
+
+base_metatize = deepcopy(_metatize)

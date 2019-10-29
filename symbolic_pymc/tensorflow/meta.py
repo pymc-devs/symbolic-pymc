@@ -1,8 +1,6 @@
 import types
 import inspect
 
-import numpy as np
-
 import tensorflow as tf
 import tensorflow_probability as tfp
 
@@ -38,6 +36,9 @@ from ..meta import (
 )
 
 from .. import meta
+
+from ..utils import HashableNDArray
+
 
 tf_metatize_cache = Cache(50)
 
@@ -167,7 +168,7 @@ def _metatize_tf_object(obj):
     try:
         tf_obj = tf.convert_to_tensor(obj)
     except (TypeError, ValueError):
-        raise ValueError("Could not find a TensorFlow MetaSymbol class for {obj}")
+        raise ValueError(f"Error converting {obj} to a TensorFlow tensor.")
 
     return _metatize(tf_obj)
 
@@ -180,9 +181,9 @@ def load_dispatcher():
 
     def _metatize_tf_svd(obj):
         """Turn a TensorFlow `Svd` object/tuple into a standard tuple."""
-        return _metatize(tuple(obj))
+        return meta._metatize(tuple(obj))
 
-    _metatize.add((_SvdOutput,), _metatize_tf_svd)
+    meta._metatize.add((_SvdOutput,), _metatize_tf_svd)
 
     def _metatize_tf_eager(obj):
         """Catch eager tensor metatize issues early."""
@@ -192,12 +193,17 @@ def load_dispatcher():
             " (e.g. within `tensorflow.python.eager.context.graph_mode`)"
         )
 
-    _metatize.add((EagerTensor,), _metatize_tf_eager)
+    meta._metatize.add((EagerTensor,), _metatize_tf_eager)
 
-    _metatize.add((object,), _metatize_tf_object)
+    meta._metatize.add((object,), _metatize_tf_object)
+    meta._metatize.add((HashableNDArray,), _metatize_tf_object)
 
+    for new_cls in TFlowMetaSymbol.base_subclasses():
+        meta._metatize.add((new_cls.base,), new_cls._metatize)
 
-load_dispatcher()
+    meta._metatize.add((TFlowMetaOpDef.base,), TFlowMetaOpDef._metatize)
+
+    return meta._metatize
 
 
 class TFlowMetaSymbol(MetaSymbol):
@@ -451,7 +457,7 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
         elif k == "T":
             return tf.as_dtype(v.type).name
         elif k == "value":
-            return tensor_util.MakeNdarray(v.tensor)
+            return tensor_util.MakeNdarray(v.tensor).view(HashableNDArray)
         else:
             # Consider only the narrow case where a single object is converted
             # (e.g. a Python builtin type under `v.b`, `v.f`, etc.)
@@ -492,9 +498,7 @@ class TFlowMetaNodeDef(TFlowMetaSymbol):
         if isvar(self.attr):
             self._frozen_attr = self.attr
         else:
-            self._frozen_attr = frozenset(
-                (k, v.tostring() if isinstance(v, np.ndarray) else v) for k, v in self.attr.items()
-            )
+            self._frozen_attr = frozenset(self.attr.items())
         return self._frozen_attr
 
     def __eq__(self, other):
@@ -993,3 +997,5 @@ class TFlowMetaAccessor(object):
 
 
 mt = TFlowMetaAccessor()
+
+load_dispatcher()

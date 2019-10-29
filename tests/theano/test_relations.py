@@ -7,14 +7,14 @@ import theano.tensor as tt
 from functools import partial
 from unification import var
 
-from kanren import run
+from kanren import run, eq
 
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.random_variables import (observed, NormalRV,
                                                    HalfCauchyRV)
 from symbolic_pymc.relations.graph import reduceo
 from symbolic_pymc.relations.theano import non_obs_graph_applyo
-from symbolic_pymc.relations.theano.distributions import scale_loc_transform
+from symbolic_pymc.relations.theano.distributions import scale_loc_transform, constant_neq
 
 
 def non_obs_fixedp_graph_applyo(r, x, y):
@@ -82,3 +82,13 @@ def test_pymc_normals():
     assert b_std_norm_opt.owner.op == NormalRV
     assert b_std_norm_opt.owner.inputs[0].data == 0.0
     assert b_std_norm_opt.owner.inputs[1].data == 1.0
+
+
+def test_distributions():
+    res = run(0, var('q'), eq(var('q'), mt(1)), constant_neq(var('q'), np.array(1.)))
+
+    assert not res
+
+    res = run(0, var('q'), eq(var('q'), mt(2)), constant_neq(var('q'), np.array(1.)))
+
+    assert res

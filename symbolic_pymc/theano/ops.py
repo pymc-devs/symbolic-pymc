@@ -168,7 +168,7 @@ class RandomVariable(tt.gof.Op):
 
         # _, out_bcasts, bcastd_inputs = tt.add.get_output_info(tt.DimShuffle, *dist_params)
 
-        bcast_ind, = out_bcasts
+        (bcast_ind,) = out_bcasts
         ndim_ind = len(bcast_ind)
         shape_ind = bcastd_inputs[0].shape
 
@@ -226,7 +226,7 @@ class RandomVariable(tt.gof.Op):
                     s_x, s_idx = s.owner.inputs
                     s_idx = tt.get_scalar_constant_value(s_idx)
                     if isinstance(s_x.owner.op, tt.Shape):
-                        x_obj, = s_x.owner.inputs
+                        (x_obj,) = s_x.owner.inputs
                         s_val = x_obj.type.broadcastable[s_idx]
                     else:
                         # TODO: Could go for an existing broadcastable here,

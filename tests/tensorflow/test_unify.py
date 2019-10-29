@@ -11,7 +11,6 @@ from tests.tensorflow import run_in_graph_mode
 from tests.tensorflow.utils import assert_ops_equal
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_etuple_term():
 
@@ -54,7 +53,6 @@ def test_etuple_term():
     assert e2_et[0] == mt.add
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_basic_unify_reify():
     # Test reification with manually constructed replacements
@@ -87,7 +85,6 @@ def test_basic_unify_reify():
     assert reify(test_expr, s_test) == meta_expected_res
 
 
-@pytest.mark.usefixtures("run_with_tensorflow")
 @run_in_graph_mode
 def test_sexp_unify_reify():
     """Make sure we can unify and reify etuples/S-exps."""
