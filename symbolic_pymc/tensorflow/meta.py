@@ -210,6 +210,9 @@ def load_dispatcher():
 
     meta._metatize.add((TFlowMetaOpDef.base,), TFlowMetaOpDef._metatize)
 
+    # Apply TF-specific `kanren` settings
+    from ..relations import tensorflow
+
     return meta._metatize
 
 

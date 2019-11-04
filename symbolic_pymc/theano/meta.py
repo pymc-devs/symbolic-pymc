@@ -9,9 +9,6 @@ from functools import partial, wraps
 
 from unification import var, isvar, Var
 
-from kanren.facts import fact
-from kanren.assoccomm import commutative, associative
-
 from .ops import RandomVariable
 from ..meta import (
     MetaSymbol,
@@ -50,6 +47,9 @@ def load_dispatcher():
 
     for new_cls in TheanoMetaSymbol.base_subclasses():
         meta._metatize.add((new_cls.base,), new_cls._metatize)
+
+    # Apply TF-specific `kanren` settings
+    from ..relations import theano
 
     return meta._metatize
 
@@ -641,8 +641,3 @@ def mt_diag(v, k=0):
 
 
 mt.diag = mt_diag
-
-fact(commutative, mt.add)
-fact(commutative, mt.mul)
-fact(associative, mt.add)
-fact(associative, mt.mul)
