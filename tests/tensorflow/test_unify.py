@@ -3,12 +3,25 @@ import pytest
 import tensorflow as tf
 
 from unification import unify, reify, var
+from kanren.term import term, operator, arguments
 
-from symbolic_pymc.tensorflow.meta import (mt, TFlowMetaTensorShape)
+from symbolic_pymc.tensorflow.meta import (mt, TFlowMetaOperator, TFlowMetaTensor, TFlowMetaNodeDef)
 from symbolic_pymc.etuple import (ExpressionTuple, etuple, etuplize)
 
 from tests.tensorflow import run_in_graph_mode
 from tests.tensorflow.utils import assert_ops_equal
+
+
+@run_in_graph_mode
+def test_operator():
+    s = unify(TFlowMetaOperator(var('a'), var('b')), mt.add)
+
+    assert s[var('a')] == mt.add.op_def
+    assert s[var('b')] == mt.add.node_def
+
+    add_mt = reify(TFlowMetaOperator(var('a'), var('b')), s)
+
+    assert add_mt == mt.add
 
 
 @run_in_graph_mode
@@ -25,33 +38,78 @@ def test_etuple_term():
     assert isinstance(a_reified, tf.Tensor)
     assert a_reified.shape.dims is None
 
-    test_e = etuplize(a_mt, shallow=False)
-    assert test_e[0] == mt.placeholder
-    assert test_e[1] == tf.float64
-    assert isinstance(test_e[2], ExpressionTuple)
-    assert test_e[2][0].base == tf.TensorShape
-    assert test_e[2][1] is None
+    with pytest.raises(TypeError):
+        etuplize(a_mt.op.op_def)
 
-    test_e = etuplize(a_mt, shallow=True)
-    assert test_e[0] == mt.placeholder
-    assert test_e[1] == tf.float64
-    assert isinstance(test_e[2], TFlowMetaTensorShape)
-    assert test_e[2] is a_mt.op.node_def.attr['shape']
+    a_nd_e = etuplize(a_mt.op.node_def, shallow=False)
+    assert a_nd_e[0] is TFlowMetaNodeDef
+    assert a_nd_e[1] == a_mt.op.node_def.op
+    assert a_nd_e[2] == a_mt.op.node_def.name
+    assert a_nd_e[3] == a_mt.op.node_def.attr
+
+    # A deep etuplization
+    test_e = etuplize(a_mt, shallow=False)
+    assert len(test_e) == 1
+    assert len(test_e[0]) == 3
+    assert test_e[0][0] is TFlowMetaOperator
+    assert test_e[0][1] is a_mt.op.op_def
+    assert test_e[0][2] == a_nd_e
+
+    assert test_e.eval_obj is a_mt
 
     test_e._eval_obj = ExpressionTuple.null
     with tf.Graph().as_default():
         a_evaled = test_e.eval_obj
-    assert all([a == b for a, b in zip(a_evaled.rands(), a_mt.rands())])
+    assert a_evaled == a_mt
+
+    # A shallow etuplization
+    test_e = etuplize(a_mt, shallow=True)
+    assert len(test_e) == 1
+    assert isinstance(test_e[0], TFlowMetaOperator)
+    assert test_e[0].op_def is a_mt.op.op_def
+    assert test_e[0].node_def is a_mt.op.node_def
+
+    assert test_e.eval_obj is a_mt
+
+    test_e._eval_obj = ExpressionTuple.null
+    with tf.Graph().as_default():
+        a_evaled = test_e.eval_obj
+    assert a_evaled == a_mt
 
     a_reified = a_evaled.reify()
     assert isinstance(a_reified, tf.Tensor)
     assert a_reified.shape.dims is None
 
-    e2 = mt.add(a, b)
-    e2_et = etuplize(e2)
-    assert isinstance(e2_et, ExpressionTuple)
-    assert e2_et[0] == mt.add
+    # Now, consider a meta graph with operator arguments
+    add_mt = mt.AddV2(a, b)
+    add_et = etuplize(add_mt, shallow=True)
+    assert isinstance(add_et, ExpressionTuple)
+    assert add_et[0].op_def == mt.AddV2.op_def
 
+    # Check `kanren`'s term framework
+    assert isinstance(operator(add_mt), TFlowMetaOperator)
+    assert arguments(add_mt) == add_mt.op.inputs
+
+    assert operator(add_mt)(*arguments(add_mt)) == add_mt
+
+    assert isinstance(add_et[0], TFlowMetaOperator)
+    assert add_et[1:] == add_mt.op.inputs
+    assert operator(add_mt)(*arguments(add_mt)) == add_mt
+
+    assert term(operator(add_mt), arguments(add_mt)) == add_mt
+
+    # Make sure things work with logic variables
+    add_lvar_mt = TFlowMetaTensor(var(), var(), [1, 2])
+
+    # TODO FIXME: This is bad
+    assert operator(add_lvar_mt) is None
+    # assert operator(add_lvar_mt) == add_lvar_mt.op
+    # TODO FIXME: Same here
+    assert arguments(add_lvar_mt) is None
+    # assert arguments(add_lvar_mt) == add_lvar_mt.inputs
+
+    # TODO FIXME: Because of the above two, this errs
+    # add_lvar_et = etuplize(add_lvar_mt)
 
 @run_in_graph_mode
 def test_basic_unify_reify():
@@ -98,29 +156,29 @@ def test_sexp_unify_reify():
 
     z = tf.matmul(A, tf.add(x, y))
 
-    z_sexp = etuplize(z)
+    z_sexp = etuplize(z, shallow=False)
 
     # Let's just be sure that the original TF objects are preserved
     assert z_sexp[1].eval_obj.reify() == A
     assert z_sexp[2][1].eval_obj.reify() == x
     assert z_sexp[2][2].eval_obj.reify() == y
 
-    dis_pat = etuple(mt.matmul, var('A'),
-                     etuple(mt.add, var('b'), var('c'), var()),
-                     # Some op parameters we can ignore...
-                     var(), var(), var())
+    dis_pat = etuple(etuple(TFlowMetaOperator, mt.matmul.op_def, var()),
+                     var('A'),
+                     etuple(etuple(TFlowMetaOperator, mt.add.op_def, var()),
+                            var('x'), var('y')))
 
     s = unify(dis_pat, z_sexp, {})
 
-    assert s[var('A')] == z_sexp[1]
-    assert s[var('b')] == z_sexp[2][1]
-    assert s[var('c')] == z_sexp[2][2]
+    assert s[var('A')].eval_obj == mt(A)
+    assert s[var('x')].eval_obj == mt(x)
+    assert s[var('y')].eval_obj == mt(y)
 
     # Now, we construct a graph that reflects the distributive property and
     # reify with the substitutions from the un-distributed form
     out_pat = etuple(mt.add,
-                     etuple(mt.matmul, var('A'), var('b')),
-                     etuple(mt.matmul, var('A'), var('c')))
+                     etuple(mt.matmul, var('A'), var('x')),
+                     etuple(mt.matmul, var('A'), var('y')))
     z_dist = reify(out_pat, s)
 
     # Evaluate the tuple-expression and get a meta object/graph
@@ -129,6 +187,8 @@ def test_sexp_unify_reify():
     # If all the logic variables were reified, we should be able to
     # further reify the meta graph and get a concrete TF graph
     z_dist_tf = z_dist_mt.reify()
+
+    assert isinstance(z_dist_tf, tf.Tensor)
 
     # Check the first part of `A . x + A . y` (i.e. `A . x`)
     assert z_dist_tf.op.inputs[0].op.inputs[0] == A

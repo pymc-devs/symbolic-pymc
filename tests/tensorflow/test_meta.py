@@ -21,6 +21,7 @@ from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaOp,
                                            TFlowMetaOpDef,
                                            TFlowMetaNodeDef,
+                                           TFlowMetaOperator,
                                            MetaOpDefLibrary,
                                            mt)
 
@@ -28,14 +29,30 @@ from tests.tensorflow import run_in_graph_mode
 from tests.tensorflow.utils import assert_ops_equal
 
 
-def test_meta_helper():
-    """Make sure the helper/namespace emulator can find `OpDef`s and create their meta objects."""
-    assert isinstance(mt.add, TFlowMetaOpDef)
-    assert mt.add.obj.name == 'Add'
-    assert isinstance(mt.matmul, TFlowMetaOpDef)
-    assert mt.matmul.obj.name == 'MatMul'
-    assert isinstance(mt.RandomStandardNormal, TFlowMetaOpDef)
-    assert mt.RandomStandardNormal.obj.name == 'RandomStandardNormal'
+def test_meta_helpers():
+    """Make sure the helper/namespace emulator can find `OpDef`s and create their meta objects.
+
+    Also, check the basics of `TFlowMetaOperator`.
+    """
+    assert isinstance(mt.add, TFlowMetaOperator)
+    assert mt.add.node_def is None
+    assert mt.add.op_def.obj.name == 'Add'
+    assert mt.add.reify() is mt.add
+
+    assert isinstance(mt.matmul, TFlowMetaOperator)
+    assert mt.matmul.op_def.obj.name == 'MatMul'
+
+    assert isinstance(mt.RandomStandardNormal, TFlowMetaOperator)
+    assert mt.RandomStandardNormal.op_def.obj.name == 'RandomStandardNormal'
+
+    svd_mt = TFlowMetaOperator(mt.svd.op_def,
+                               TFlowMetaNodeDef('Svd', 'my_svd', {'compute_uv': True, 'full_matrices': False}))
+    assert len(svd_mt(var())) == 3
+
+    lvar_op_mt = TFlowMetaOperator(var(), var())
+    assert isvar(lvar_op_mt(var()))
+    assert lvar_op_mt.output_meta_types() is None
+    assert lvar_op_mt.op_args_to_operation_inputs({}) is None
 
 
 def test_meta_eager():
@@ -64,6 +81,8 @@ def test_meta_basic():
 
     assert mt.Add == mt.Add
     assert mt.Add != mt.Sub
+    assert mt.Add.op_def == mt.Add.op_def
+    assert mt.Add.op_def != mt.Sub.op_def
 
     var_mt = TFlowMetaTensor(var(), var(), var())
     # It should generate a logic variable for the name and use from here on.
@@ -85,7 +104,7 @@ def test_meta_basic():
     # we need to do this in a new graph to make sure that their auto-generated
     # names are consistent throughout runs.
     with tf.Graph().as_default() as test_graph:
-        test_op = TFlowMetaOp(mt.Add, TFlowMetaNodeDef('Add', 'Add', {}), [1, 0])
+        test_op = TFlowMetaOp(mt.Add.op_def, TFlowMetaNodeDef('Add', 'Add', {}), [1, 0])
 
         # This tensor has an "unknown"/logic variable output index and dtype, but,
         # since the operator fully specifies it, reification should still work.
@@ -199,10 +218,14 @@ def test_meta_Op():
     t2_tf = tf.convert_to_tensor([[7, 8, 9], [10, 11, 12]])
     test_out_tf = tf.concat([t1_tf, t2_tf], 0)
 
+    # Just make sure it doesn't raise and exception
+    mt.ConcatV2.op_def.validate_objs()
+    assert mt.ConcatV2.op_def.reify() == test_out_tf.op.op_def
+
     # TODO: Without explicit conversion, each element within these arrays gets
     # converted to a `Tensor` by `metatize`.  That doesn't seem very
     # reasonable.  Likewise, the `0` gets converted, but it probably shouldn't be.
-    test_op = TFlowMetaOp(mt.Concat, var(), [[t1_tf, t2_tf], 0])
+    test_op = TFlowMetaOp(mt.Concat.op_def, var(), [[t1_tf, t2_tf], 0])
 
     assert isvar(test_op.name)
 
@@ -210,12 +233,51 @@ def test_meta_Op():
     assert isinstance(test_op.inputs, tuple)
     assert isinstance(test_op.inputs[0], tuple)
 
-    test_op = TFlowMetaOp(mt.Concat, var(), [[t1_tf, t2_tf], 0], outputs=[test_out_tf])
+    test_op = TFlowMetaOp(mt.Concat.op_def, var(), [[t1_tf, t2_tf], 0],
+                          # This tensor isn't actually consistent with the
+                          # OpDef we're using (i.e. Concat != ConcatV2)!
+                          outputs=[test_out_tf])
 
     # NodeDef is a logic variable, so this shouldn't actually reify.
     assert MetaSymbol.is_meta(test_op.reify())
     assert isinstance(test_op.outputs, tuple)
     assert MetaSymbol.is_meta(test_op.outputs[0])
+
+
+@run_in_graph_mode
+def test_meta_dtype_inference():
+
+    one_int_mt = mt(1)
+    res = mt.add.output_meta_types({'x': one_int_mt})
+    assert res[0][0] == TFlowMetaTensor
+    assert res[0][1] == tf.int32
+
+    one_flt_mt = mt(1.0)
+    res = mt.add.output_meta_types({'y': one_flt_mt})
+    assert res[0][0] == TFlowMetaTensor
+    assert res[0][1] == tf.float32
+
+    res = mt.add.output_meta_types({'T': tf.int32})
+    assert res[0][0] == TFlowMetaTensor
+    assert res[0][1] == tf.int32
+
+    add_mt = TFlowMetaOperator(mt.add.op_def,
+                               TFlowMetaNodeDef('Add', 'my_add', {'T': 1}))
+    res = add_mt.output_meta_types()
+    assert res[0][0] == TFlowMetaTensor
+    assert res[0][1] == tf.float32
+
+    with pytest.raises(AssertionError):
+        # These integer types conflict with the NodeDef type in our operator,
+        # `add_mt`.
+        add_mt(1, 2)
+
+    res = mt.cast.output_meta_types({'dtype': 'blah'})
+    assert res[0][0] == TFlowMetaTensor
+    assert isvar(res[0][1])
+
+    res = mt.placeholder.output_meta_types({'dtype': 'blah'})
+    assert isvar(res[0][1])
 
 
 def test_meta_lvars():
@@ -233,7 +295,7 @@ def test_meta_lvars():
     assert isvar(mo_mt.op_def)
     assert isvar(mo_mt.outputs)
 
-    mo_mt = TFlowMetaOp(mt.Add, var(), var())
+    mo_mt = TFlowMetaOp(mt.Add.op_def, var(), var())
     assert len(mo_mt.outputs) == 1
     assert isinstance(mo_mt.reify(), TFlowMetaOp)
 
@@ -247,10 +309,13 @@ def test_meta_lvars():
     assert all(isvar(getattr(tn_mt, s)) for s in tn_mt.__all_props__)
     assert isinstance(tn_mt.reify(), TFlowMetaTensor)
 
-    mo_mt = TFlowMetaOp(mt.Add, var(), [tn_mt, var('a')])
+    with pytest.raises(NotImplementedError):
+        tn_mt.base_arguments
+
+    mo_mt = TFlowMetaOp(mt.Add.op_def, var(), [tn_mt, var('a')])
     assert len(mo_mt.outputs) == 1
     assert isinstance(mo_mt.reify(), TFlowMetaOp)
-    assert mo_mt.outputs[0].inputs == (tn_mt, var('a'), mo_mt.name)
+    assert mo_mt.outputs[0].base_arguments == (tn_mt, var('a'))
 
 
 @run_in_graph_mode
@@ -374,10 +439,10 @@ def test_inputs_remapping():
 
     # Even though we gave it unhashable arguments, the operator should've
     # converted them
-    assert isinstance(z_mt.inputs[0], tuple)
-    assert z_mt.inputs[0][0].obj == z.op.inputs[0]
-    assert z_mt.inputs[0][1].obj == z.op.inputs[1]
-    assert z_mt.inputs[1].obj == z.op.inputs[2]
+    assert isinstance(z_mt.base_arguments[0], tuple)
+    assert z_mt.base_arguments[0][0].obj == z.op.inputs[0]
+    assert z_mt.base_arguments[0][1].obj == z.op.inputs[1]
+    assert z_mt.base_arguments[1].obj == z.op.inputs[2]
 
 
 def test_opdef_sig():
@@ -439,18 +504,29 @@ def test_nodedef():
     # we won't be able to reconstruct corresponding meta Ops using their meta
     # OpDefs and inputs.
     x_test = tf.constant([1.8, 2.2], dtype=tf.float32)
-    y_test = tf.dtypes.cast(x_test, dtype=tf.int32, name="y")
-    y_test_mt = mt(y_test)
+
+    with tf.Graph().as_default():
+        y_test = tf.dtypes.cast(x_test, tf.int32, name="y")
+        y_test_mt = mt(y_test)
 
     # `ytest_mt.inputs` should have two `.attr` values that are Python
     # primitives (i.e. int and bool); these shouldn't get metatized and break
     # our ability to reconstruct the object from its rator + rands.
-    y_test_new_mt = y_test_mt.op.op_def(*y_test_mt.inputs)
+    y_test_new_mt = TFlowMetaOperator(y_test_mt.op.op_def, y_test_mt.op.node_def)(*y_test_mt.base_arguments)
 
-    # We're changing this simply so we can use ==
+    # We're changing this so we can use ==
+    assert y_test_new_mt.op.node_def.name.startswith('y')
     y_test_new_mt.op.node_def.name = 'y'
 
     assert y_test_mt == y_test_new_mt
+
+    with tf.Graph().as_default():
+        z_test_mt = mt.cast(x_test, tf.int32, name="y")
+
+    assert z_test_mt.op.node_def.name.startswith('y')
+    z_test_mt.op.node_def.name = 'y'
+
+    assert z_test_mt == y_test_mt
 
 
 @run_in_graph_mode

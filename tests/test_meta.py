@@ -38,7 +38,7 @@ class SomeMetaOp(MetaOp):
     __slots__ = ()
     base = SomeOp
 
-    def out_meta_types(self):
+    def output_meta_types(self):
         return [SomeMetaSymbol]
 
     def __call__(self, *args, **kwargs):
@@ -139,7 +139,6 @@ def test_meta_pretty():
     from symbolic_pymc.meta import meta_repr
 
     some_mt = SomeMetaSymbol()
-
     assert pretty_mod.pretty(some_mt) == 'SomeMetaSymbol(field1=1, field2=2)'
 
     meta_repr.print_obj = True
@@ -157,6 +156,9 @@ def test_meta_pretty():
     some_mt.field1.field2 = SomeMetaSymbol(SomeType(5, 6))
 
     assert pretty_mod.pretty(some_mt) == 'SomeMetaSymbol(\n  field1=SomeMetaSymbol(field1=1, field2=SomeMetaSymbol(field1=1, field2=2)),\n  field2=2)'
+
+    some_op_mt = SomeMetaOp()
+    assert pretty_mod.pretty(some_op_mt) == 'SomeMetaOp()'
 
 
 def test_metatize():

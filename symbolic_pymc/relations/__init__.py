@@ -7,7 +7,7 @@ from kanren.goals import goalify
 from kanren.term import term, operator, arguments
 from kanren.goals import conso
 
-from ..etuple import etuplize, ExpressionTuple
+from ..etuple import etuplize
 
 
 # Hierarchical models that we recognize.

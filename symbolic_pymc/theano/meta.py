@@ -103,7 +103,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
     `Op.make_node`'s arguments aren't one-to-one with the expected `Apply` node
     inputs.  See `MetaOp.__call__` for more details.
 
-    Also, make sure to override `Op.out_meta_types` and make it return the
+    Also, make sure to override `Op.output_meta_types` and make it return the
     expected meta variable types, if it isn't the default: `TheanoMetaTensorVariable`.
     """
 
@@ -129,7 +129,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
         self._op_sig = inspect.signature(obj.make_node)
         super().__init__(obj=obj)
 
-    def out_meta_types(self, inputs=None):
+    def output_meta_types(self, inputs=None):
         """Return the types of meta variables this `Op` is expected to produce given the inputs.
 
         The default is `TheanoMetaTensorVariable` (corresponding to
@@ -216,7 +216,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
             # XXX: We don't have a higher-order meta object model, so being
             # wrong about the exact type of output variable will cause
             # problems.
-            (out_meta_type,) = self.out_meta_types(op_args)
+            (out_meta_type,) = self.output_meta_types(op_args)
             res_var = out_meta_type(ttype, res_apply, index, name)
             res_var._obj = var()
 
@@ -342,14 +342,18 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
         super().__init__(obj=obj)
 
     @property
-    def operator(self):
+    def base_operator(self):
         if self.owner is not None:
             return self.owner.op
+        # else:
+        #     return type(self)
 
     @property
-    def inputs(self):
+    def base_arguments(self):
         if self.owner is not None:
             return self.owner.inputs
+        # else:
+        #     return self.rands
 
     def reify(self):
         if self.obj and not isinstance(self.obj, Var):
@@ -361,7 +365,7 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
         # Having an `owner` causes issues (e.g. being consistent about
         # other, unrelated outputs of an `Apply` node), and, in this case,
         # the `Apply` node that owns this variable needs to construct it.
-        reified_rands, any_unreified = meta_reify_iter(self.rands())
+        reified_rands, any_unreified = meta_reify_iter(self.rands)
         tt_apply = self.owner.obj
 
         if tt_apply and not isvar(tt_apply):

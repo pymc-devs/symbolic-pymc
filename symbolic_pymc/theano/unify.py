@@ -10,7 +10,7 @@ from ..etuple import ExpressionTuple, etuplize
 from .meta import TheanoMetaSymbol
 
 
-tt_class_abstractions = tuple(c.base for c in TheanoMetaSymbol.__subclasses__())
+tt_class_abstractions = tuple(c.base for c in TheanoMetaSymbol.base_subclasses())
 
 _unify.add(
     (TheanoMetaSymbol, tt_class_abstractions, dict),

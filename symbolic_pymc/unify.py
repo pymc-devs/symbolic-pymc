@@ -92,7 +92,11 @@ def _reify_MetaSymbol(o, s):
         # below.
         obj = None
 
-    rands = o.rands()
+    try:
+        rands = o.rands
+    except NotImplementedError:
+        return o
+
     new_rands = reify(rands, s)
 
     if rands == new_rands:
@@ -120,40 +124,13 @@ _cdr.add((ExpressionTuple,), itemgetter(slice(1, None)))
 
 
 def operator_MetaSymbol(x):
+    """Return the operator/head/CAR of a meta symbol."""
     return type(x)
 
 
 def operator_MetaVariable(x):
-    """Get a tuple of the arguments used to construct this meta object.
-
-    This function applies a special consideration for Theano `Variable`s:
-
-    If the `Variable` has a non-`None` `owner` attribute, then we use the
-    `owner`'s `op` and `inputs` to construct an expression-tuple that should
-    (when evaluated) produce said `Variable`.
-
-    Otherwise, we generate an expression-tuple for the graph representing the
-    output of whatever `Apply` node (plus `Op`) would've produced said
-    `Variable`.
-
-    Graphically, the complete expressions resulting from the former and the
-    later, respectively, are as follows:
-
-      a + b => etuple(mt.add, a, b)
-
-      a + b => etuple(mt.TensorVariable,
-                      type,
-                      mt.Apply(op=mt.add, inputs=[a, b]),
-                      index
-
-    XXX: To achieve the more succinct former representation, we assume that
-    `owner.op(owner.inputs)` is consistent, of course.
-
-    """
-    x_op = x.operator
-    if x_op is not None:
-        return x_op
-    return operator_MetaSymbol(x)
+    """Return the operator/head/CAR of a meta variable."""
+    return x.base_operator
 
 
 operator.add((MetaSymbol,), operator_MetaSymbol)
@@ -162,9 +139,7 @@ operator.add((ExpressionTuple,), itemgetter(0))
 
 
 def arguments_MetaSymbol(x):
-    """Get a tuple of the arguments used to construct this meta object.
-
-    In other words, produce an expression-tuple/`etuple`'s `cdr`/tail.
+    """Return the arguments/tail/CDR of a meta symbol.
 
     We build the full `etuple` for the argument, then return the
     `cdr`/tail, so that the original object is retained when/if the
@@ -172,23 +147,19 @@ def arguments_MetaSymbol(x):
     `term`).
 
     """
-    x_e = etuple(type(x), *x.rands(), eval_obj=x)
+    x_e = etuple(type(x), *x.rands, eval_obj=x)
     return x_e[1:]
 
 
 def arguments_MetaVariable(x):
-    """Get a tuple of the arguments used to construct this meta object.
+    """Return the arguments/tail/CDR of a variable object.
 
-    See the special considerations for `TensorVariable`s described in
-    `operator_MetaVariable`.
-
+    See `arguments_MetaSymbol`
     """
-    x_op = x.operator
+    x_op = x.base_operator
     if x_op is not None:
-        x_e = etuple(x_op, *x.inputs, eval_obj=x)
+        x_e = etuple(x_op, *x.base_arguments, eval_obj=x)
         return x_e[1:]
-
-    return arguments_MetaSymbol(x)
 
 
 arguments.add((MetaSymbol,), arguments_MetaSymbol)

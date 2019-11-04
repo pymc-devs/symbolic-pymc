@@ -239,6 +239,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
 
     @classmethod
     def base_subclasses(cls):
+        """Return all meta symbols with valid, implemented bases (i.e. base property is a type object)."""
         for subclass in cls.__subclasses__():
             yield from subclass.base_subclasses()
             if isinstance(subclass.base, type):
@@ -252,12 +253,18 @@ class MetaSymbol(metaclass=MetaSymbolType):
         assert obj is None or isvar(obj) or isinstance(obj, self.base)
         self._obj = obj
 
+    @property
     def rands(self):
         """Get a tuple of the meta object's operator parameters (i.e. "rands")."""
         if getattr(self, "_rands", None) is not None:
             return self._rands
 
-        self._rands = tuple(getattr(self, s) for s in getattr(self, "__all_props__", ()))
+        all_props = getattr(self, "__all_props__", None)
+
+        if all_props:
+            self._rands = tuple(getattr(self, s) for s in all_props)
+        else:
+            raise NotImplementedError()
 
         return self._rands
 
@@ -282,7 +289,7 @@ class MetaSymbol(metaclass=MetaSymbolType):
         if self.obj is not None and not isinstance(self.obj, Var):
             return self.obj
         else:
-            reified_rands, any_unreified = meta_reify_iter(self.rands())
+            reified_rands, any_unreified = meta_reify_iter(self.rands)
 
             # If not all the rands reified, then create another meta
             # object--albeit one with potentially more non-`None` `obj` fields.
@@ -304,8 +311,13 @@ class MetaSymbol(metaclass=MetaSymbolType):
 
         assert self.base == other.base
 
-        if self.rands():
-            return all(s == o for s, o in zip(self.rands(), other.rands()))
+        try:
+            rands = self.rands
+        except NotImplementedError:
+            rands = None
+
+        if rands:
+            return all(s == o for s, o in zip(self.rands, other.rands))
         else:
             return NotImplemented
 
@@ -315,16 +327,19 @@ class MetaSymbol(metaclass=MetaSymbolType):
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.base, self.rands()))
+        return hash((self.base, self.rands))
 
     def __str__(self):
         return self.__repr__(show_obj=False, _repr=str)
 
     def __repr__(self, show_obj=True, _repr=meta_repr.repr):
-        rands = self.rands()
+        try:
+            rands = self.rands
+        except NotImplementedError:
+            rands = None
 
         if rands:
-            args = _repr(self.rands())[1:-1]
+            args = _repr(self.rands)[1:-1]
         else:
             args = ""
 
@@ -344,8 +359,13 @@ class MetaSymbol(metaclass=MetaSymbolType):
             with p.group(2, f"{self.__class__.__name__}(", ")"):
                 p.breakable(sep="")
                 idx = None
-                if hasattr(self, "__all_props__"):
-                    for idx, (name, item) in enumerate(zip(self.__all_props__, self.rands())):
+                try:
+                    rands = self.rands
+                except NotImplementedError:
+                    rands = None
+
+                if rands:
+                    for idx, (name, item) in enumerate(zip(self.__all_props__, rands)):
                         if idx:
                             p.text(",")
                             p.breakable()
@@ -386,7 +406,7 @@ class MetaOp(MetaSymbol):
         super().__init__(*args, **kwargs)
 
     @abc.abstractmethod
-    def out_meta_types(self, inputs=None):
+    def output_meta_types(self, inputs=None):
         """Return the types of meta variables this `Op` is expected to produce given the inputs."""
         raise NotImplementedError()
 
@@ -411,18 +431,22 @@ class MetaVariable(MetaSymbol):
 
     @property
     @abc.abstractmethod
-    def operator(self):
-        """Return a meta object representing an operator, if any, capable of producing this variable.
+    def base_operator(self):
+        """Return a meta object representing a base-level operator.
 
         It should be callable with all inputs necessary to reproduce this
-        tensor given by `MetaVariable.inputs`.
+        tensor given by `self.base_arguments`.
         """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
-    def inputs(self):
-        """Return the inputs necessary for `MetaVariable.operator` to produced this variable, if any."""
+    def base_arguments(self):
+        """Return the base-level arguments.
+
+        These arguments used in conjunction with the callable
+        `self.base_operator` should re-produce this variable.
+        """
         raise NotImplementedError()
 
 
@@ -431,7 +455,12 @@ def _find_meta_type(obj_type, meta_abs_type):
     obj_cls = None
     while True:
         try:
-            obj_cls = next(filter(lambda t: issubclass(obj_type, t.base), cls.__subclasses__()))
+            obj_cls = next(
+                filter(
+                    lambda t: isinstance(t.base, type) and issubclass(obj_type, t.base),
+                    cls.__subclasses__(),
+                )
+            )
         except StopIteration:
             # The current class is the best fit.
             if cls.base == obj_type:

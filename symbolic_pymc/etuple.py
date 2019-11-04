@@ -5,7 +5,7 @@ import toolz
 
 from collections import Sequence
 
-from cons.core import ConsPair
+from cons.core import ConsPair, ConsNull
 
 from multipledispatch import dispatch
 
@@ -112,6 +112,8 @@ class ExpressionTuple(Sequence):
             evaled_kwargs = arg_grps.get(True, [])
 
             op = self._tuple[0]
+            op = getattr(op, "eval_obj", op)
+
             try:
                 op_sig = inspect.signature(op)
             except ValueError:
@@ -234,6 +236,8 @@ def etuplize(x, shallow=False, return_bad_args=False):
     """
     if isinstance(x, ExpressionTuple):
         return x
+    elif x is not None and isinstance(x, (ConsNull, ConsPair)):
+        return etuple(*x)
 
     try:
         # This can throw an `IndexError` if `x` is an empty
@@ -242,24 +246,22 @@ def etuplize(x, shallow=False, return_bad_args=False):
         args = arguments(x)
     except (IndexError, NotImplementedError):
         op = None
-        args = x
+        args = None
 
-    if not isinstance(args, ConsPair):
+    if not callable(op) or not isinstance(args, (ConsNull, ConsPair)):
         if return_bad_args:
             return x
         else:
             raise TypeError(f"x is neither a non-str Sequence nor term: {type(x)}")
 
-    # Not everything in a list/tuple should be considered an expression.
-    if not callable(op):
-        return etuple(*x)
-
     if shallow:
+        et_op = op
         et_args = args
     else:
+        et_op = etuplize(op, return_bad_args=True)
         et_args = tuple(etuplize(a, return_bad_args=True) for a in args)
 
-    res = etuple(op, *et_args, eval_obj=x)
+    res = etuple(et_op, *et_args, eval_obj=x)
     return res
 
 
