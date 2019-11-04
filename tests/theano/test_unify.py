@@ -85,17 +85,18 @@ def test_etuple_term():
 
     assert isinstance(e2_et, ExpressionTuple)
 
-    e2_et_expect = etuple(
-        mt.add,
-        etuple(mt.TensorVariable,
-               etuple(mt.TensorType,
-                      'float64', (False,), None),
-               None, None, None),
-        etuple(mt.TensorVariable,
-               etuple(mt.TensorType,
-                      'float64', (False,), None),
-               None, None, None),
-    )
+    # e2_et_expect = etuple(
+    #     mt.add,
+    #     etuple(mt.TensorVariable,
+    #            etuple(mt.TensorType,
+    #                   'float64', (False,), None),
+    #            None, None, None),
+    #     etuple(mt.TensorVariable,
+    #            etuple(mt.TensorType,
+    #                   'float64', (False,), None),
+    #            None, None, None),
+    # )
+    e2_et_expect = etuple(mt.add, e2.base_arguments[0], e2.base_arguments[1])
     assert e2_et == e2_et_expect
     assert e2_et.eval_obj is e2
 

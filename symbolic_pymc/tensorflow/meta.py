@@ -71,7 +71,7 @@ class MetaOpDefLibrary(object):
         Annotations are include so that one can partially verify arguments.
         """
         input_args = OrderedDict([(a.name, a.type or a.type_attr) for a in opdef.input_arg])
-        attrs = OrderedDict([(a.name, a.type) for a in opdef.attr])
+        attrs = OrderedDict([(a.name, a) for a in opdef.attr])
 
         params = OrderedDict()
         if opdef_py_func:
@@ -79,29 +79,32 @@ class MetaOpDefLibrary(object):
             # Those functions have only the necessary `input_arg`s and
             # `attr` inputs as arguments.
             opdef_func_sig = Signature.from_callable(opdef_py_func)
+            params = opdef_func_sig.parameters
 
-            for name, param in opdef_func_sig.parameters.items():
-                # We make positional parameters permissible (since the
-                # functions in `tf.raw_ops` are keyword-only), and we use the
-                # `tf.raw_ops` arguments to determine the *actual* required
-                # arguments (because `OpDef`'s `input_arg`s and `attrs` aren't
-                # exactly clear about that).
-                if name in input_args:
-                    new_default = Parameter.empty
-                    new_annotation = input_args[name]
-                else:
-                    new_default = None
-                    new_annotation = attrs.get(name, None)
-
-                new_param = param.replace(
-                    kind=Parameter.POSITIONAL_OR_KEYWORD,
-                    default=new_default,
-                    annotation=new_annotation,
-                )
-                params[name] = new_param
+            # for name, param in opdef_func_sig.parameters.items():
+            #     # We make positional parameters permissible (since the
+            #     # functions in `tf.raw_ops` are keyword-only), and we use the
+            #     # `tf.raw_ops` arguments to determine the *actual* required
+            #     # arguments (because `OpDef`'s `input_arg`s and `attrs` aren't
+            #     # exactly clear about that).
+            #     if name in input_args:
+            #         new_default = Parameter.empty
+            #         new_annotation = input_args[name]
+            #     else:
+            #         new_default = None
+            #         new_annotation = attrs.get(name, None)
+            #         if new_annotation is not None:
+            #             new_annotation = new_annotation.type
+            #
+            #     new_param = param.replace(
+            #         kind=Parameter.POSITIONAL_OR_KEYWORD,
+            #         default=new_default,
+            #         annotation=new_annotation,
+            #     )
+            #     params[name] = new_param
 
         else:
-            # We're crafting the Operation from a low-level via `apply_op`.
+            # We're crafting the Operation at a low-level via `apply_op`.
             opdef_py_func = partial(op_def_lib.apply_op, opdef.name)
 
             for i_name, i_type in input_args.items():
@@ -110,21 +113,25 @@ class MetaOpDefLibrary(object):
 
             # These are the ambiguities we're attempting to overcome
             # with the `tf.raw_ops` functions above.
-            for a_name, a_type in attrs.items():
+            for a_name, a_value in attrs.items():
 
-                if a_name == "T":
+                # TODO: Check
+                if a_value.type == "type":
                     # This is a type value that will most likely be inferred
                     # from/by the inputs.
                     # TODO: We could check for an `allowed_values` attribute.
                     continue
 
+                default_value = Parameter.empty
+                # if a_value.HasField('default_value'):
+                #     # TODO: Check `a_value.type` and extract Python value.
+                #     default_value = a_value.default_value
+
                 p = Parameter(
                     a_name,
                     Parameter.POSITIONAL_OR_KEYWORD,
-                    # TODO: We could use the `default_value`
-                    # attribute.
-                    default=Parameter.empty,
-                    annotation=a_type,
+                    default=default_value,
+                    annotation=a_value.type,
                 )
                 params[a_name] = p
 
@@ -203,6 +210,9 @@ def load_dispatcher():
 
     meta._metatize.add((TFlowMetaOpDef.base,), TFlowMetaOpDef._metatize)
 
+    # Apply TF-specific `kanren` settings
+    from ..relations import tensorflow
+
     return meta._metatize
 
 
@@ -221,7 +231,12 @@ class TFlowMetaSymbol(MetaSymbol):
         # If there is no base object associated with the inputs, then we can't
         # trust a base object associated with this object (e.g. for the case in
         # which metatize altered a property in an input).
-        for prop in self.rands():
+        try:
+            rands = self.rands
+        except NotImplementedError:
+            return
+
+        for prop in rands:
             if isinstance(prop, MetaSymbol) and prop.obj is None:
                 self.reset()
                 break
@@ -248,7 +263,7 @@ class OpDefFactoryType(MetaSymbolType):
         return opdef
 
 
-class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
+class TFlowMetaOpDef(TFlowMetaSymbol, metaclass=OpDefFactoryType):
     """A meta `OpDef`.
 
     This is like an `Op` node in Theano.
@@ -267,132 +282,15 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
     """
 
     base = OpDef
-    __slots__ = ["_apply_func_sig", "_apply_func"]
+    __slots__ = ("_attr",)
 
     def __init__(self, obj=None):
         super().__init__(obj=obj)
-        self._apply_func_sig, self._apply_func = op_def_lib.get_op_info(obj)
+        self._attr = {o.name: o for o in obj.attr}
 
-    def out_meta_types(self, inputs=None, node_def=None):
-        """Return a list of tuples containing object types and corresponding dtypes for the outputs of this OpDef."""
-
-        def _convert_outputs(o):
-            if o.type_attr == "T" and isinstance(getattr(node_def, "attr", None), dict):
-                return (TFlowMetaTensor, node_def.attr.get("T", var()))
-            elif o.type_attr == "dtype" and inputs:
-                return (TFlowMetaTensor, inputs.get("dtype", var()))
-            else:
-                return (TFlowMetaTensor, var())
-
-        # TODO: We also have permissible dtype information from objects in the
-        # array `self.obj.attr` under the field `allowed_values`.
-
-        out_meta_types = tuple(_convert_outputs(o) for o in self.obj.output_arg)
-
-        return out_meta_types
-
-    def input_args(self, *args, apply_defaults=True, **kwargs):
-        """Return a list of arguments for this OpDef's 'apply function'."""
-        kwargs = OrderedDict(
-            (k, v)
-            for k, v in kwargs.items()
-            # Filter out the optional keyword arguments so they we only pass
-            # expected arguments to the `OpDef`'s apply function.
-            if k in self._apply_func_sig.parameters
-        )
-
-        op_args = self._apply_func_sig.bind(*args, **kwargs)
-
-        if apply_defaults:
-            op_args.apply_defaults()
-
-        return op_args.arguments
-
-    def __call__(self, *args, **kwargs):
-        """Create the meta object(s) using the TF Python API's operator functions.
-
-        Each meta `OpDef` is associated with a TF Python function
-        (`self._apply_func`) that is used to construct its `Operation`s.
-
-        See `TFlowMetaTensor.operator` and `TFlowMetaTensor.operator`.
-
-        """
-
-        apply_arguments = self.input_args(*args, **kwargs)
-
-        if not meta._auto_reification_disabled:
-            op_args, op_args_unreified = meta_reify_iter(apply_arguments)
-        else:
-            op_args, op_args_unreified = apply_arguments, True
-
-        if not op_args_unreified:
-
-            # them into meta objects.  Doing so will yield information we
-            # wouldn't be able to produce otherwise (e.g. shape info).
-
-            # TODO: We could make this action/approach configurable (i.e.
-            # do not perform intermediate/"eager" object construction).
-            # Especially, when/if we're comfortable with our ability to infer
-            # the TF-`Operation` inferred values (e.g. shapes, dtypes, etc.)
-
-            # We have to use a primitive string or TF will complain.
-            name = op_args.get("name", None)
-            if name is not None:
-                op_args["name"] = str(name)
-
-            tf_out = self._apply_func(**op_args)
-
-            # Ensure that the original meta objects will result
-            # from the following `metatize`
-            tf_metatize_cache.update(
-                {
-                    k: v
-                    for k, v in zip(op_args.values(), apply_arguments.values())
-                    if isinstance(k, tf.Tensor)
-                }
-            )
-
-            res_var = metatize(tf_out)
-
-            if "names" in meta._lvar_defaults_enabled:
-                # This should also reset the NodeDef's `obj`
-                res_var.op.node_def.name = var()
-                res_var.op.reset()
-                res_var.reset()
-
-            if "node_attrs" in meta._lvar_defaults_enabled:
-                # This should also reset the NodeDef's `obj`
-                res_var.op.node_def.attr = var()
-                res_var.op.reset()
-                res_var.reset()
-
-        else:
-            #
-            # If we're here, that means we have to create the meta objects
-            # manually.
-            #
-
-            op_input_args = tuple(
-                apply_arguments.get(i.name) for i in self.obj.input_arg if i.name in apply_arguments
-            )
-
-            if "node_attrs" not in meta._lvar_defaults_enabled:
-                node_attr = {a.name: apply_arguments.get(a.name, a) for a in self.obj.attr}
-            else:
-                node_attr = var()
-
-            if "names" not in meta._lvar_defaults_enabled:
-                op_name = kwargs.get("name", self.obj.name)
-            else:
-                op_name = var()
-
-            node_def = TFlowMetaNodeDef(self.obj.name, op_name, node_attr)
-
-            op_mt = TFlowMetaOp(self, node_def, op_input_args)
-
-            res_var = op_mt.default_output
-
-        return res_var
+    @property
+    def attr(self):
+        return self._attr
 
     def __str__(self):
         return f"{self.__class__.__name__}({self.obj.name})"
@@ -418,6 +316,9 @@ class TFlowMetaOpDef(MetaOp, metaclass=OpDefFactoryType):
 
     def __hash__(self):
         return hash((self.base, self.obj.name))
+
+    def reify(self):
+        return self.obj
 
 
 class TFlowMetaNodeDef(TFlowMetaSymbol):
@@ -617,15 +518,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
 
     @property
     def outputs(self):
-        """Compute meta object outputs for this meta `Operation`.
-
-        If the outputs were specified during construction of this meta
-        `Operation`, then those outputs are always returned.
-
-        NOTE: These values are dynamically computed, but they could be cached.
-        One of the reasons that they're dynamically computed: as constituent
-        meta elements are unified, we may obtain more information about the
-        """
+        """Compute outputs for this meta `Operation`."""
         if getattr(self, "_outputs", None) is not None:
             return self._outputs
 
@@ -638,20 +531,22 @@ class TFlowMetaOp(TFlowMetaSymbol):
             else:
                 node_attr = self.node_def.attr
 
+            operator = TFlowMetaOperator(self.op_def, self.node_def)
+
             if isvar(self.inputs):
-                inputs = (None,) * len(self.op_def._apply_func_sig.parameters)
+                inputs = (None,) * len(operator._apply_func_sig.parameters)
                 apply_defaults = False
             else:
                 inputs = self.inputs
                 apply_defaults = True
 
-            apply_arguments = self.op_def.input_args(
+            apply_arguments = operator.input_args(
                 *inputs, apply_defaults=apply_defaults, **node_attr
             )
 
-            out_types_mt = self.op_def.out_meta_types(
-                inputs=apply_arguments, node_def=self.node_def
-            )
+            # TODO: The above could probably be simplified into a
+            # NodeDef-from-input-args function.
+            out_types_mt = operator.output_meta_types(inputs=apply_arguments)
 
             mt_outs = tuple(
                 o_type(self, i, o_dtype) for i, (o_type, o_dtype) in enumerate(out_types_mt)
@@ -695,21 +590,18 @@ class TFlowMetaOp(TFlowMetaSymbol):
         if node_attr is None or isvar(node_attr):
             return self
 
+        operator = TFlowMetaOperator(self.op_def, self.node_def)
+
         op_attrs, op_attrs_unreified = meta_reify_iter(
             # Only use NodeDef attrs that appear in the OpDef's call signature.
             # Other NodeDef attrs, like dtype and shape, can be computed.
-            {k: v for k, v in node_attr.items() if k in self.op_def._apply_func_sig.parameters}
+            {k: v for k, v in node_attr.items() if k in operator._apply_func_sig.parameters}
         )
 
         if not (op_inputs_unreified or op_attrs_unreified or isvar(self.name)):
 
-            # We have to use a primitive string or TF will complain.
-            name = self.name
-            if self.name is not None:
-                name = str(name)
-
-            apply_arguments = self.op_def.input_args(*op_inputs, name=name, **op_attrs)
-            tf_out = self.op_def._apply_func(**apply_arguments)
+            apply_arguments = operator.input_args(*op_inputs, name=self.name, **op_attrs)
+            tf_out = operator._apply_func(**apply_arguments)
             op_tf = tf_out.op
 
             # TODO: Update NodeDef attrs?
@@ -723,7 +615,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
 
 class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
     base = tf.Tensor
-    __slots__ = ("op", "value_index", "dtype", "_shape", "_name")
+    __slots__ = ("op", "value_index", "dtype", "_shape", "_name", "_operator")
 
     @classmethod
     @cachedmethod(lambda cls: tf_metatize_cache)
@@ -768,46 +660,28 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
         return self._name
 
     @property
-    def operator(self):
-        """Return the meta OpDef for this tensor.
+    def base_operator(self):
+        if getattr(self, "_operator", None):
+            return self._operator
 
-        Since meta OpDefs are callable (and dispatch to the corresponding TF
-        Python API function), this object called with arguments provided by
-        `TFlowMetaTensor.inputs` recreates the underlying tensor using the TF
-        Python interface.  This approach has advantages over the purely
-        graph-level approach to constructing meta objects, because--when all
-        arguments are reifiable--it allows us to use purely TF means to
-        construct a meta object (i.e. by first constructing the base object and
-        then "metatizing" it).
+        if isvar(self.op):
+            # TODO:
+            # self._operator = TFlowMetaOperator(self.op.op_def, self.op.node_def)
+            return None
+        else:
+            self._operator = TFlowMetaOperator(self.op.op_def, self.op.node_def)
 
-        Meta objects produced this way result in less unknown information
-        (e.g. dtypes and shapes) and have the same default values as their base
-        object counterparts (e.g. `Operator` names and `NodeDef.attr` values).
-        """
-        if self.op is not None and not isvar(self.op):
-            return self.op.op_def
+        return self._operator
 
     @property
-    def inputs(self):
-        """Return the inputs necessary to recreate this object using its TF Python API function.
-
-        These inputs differ from `self.op.inputs` primarily in that they
-        contain the `node_def` parameters as keywords (e.g. to Python API
-        functions like `tf.add`).
-
-        See `TFlowMetaTensor.operator` for more information.
-        """
+    def base_arguments(self):
         # TODO: In keeping with our desire to return logic variables in cases
         # where params aren't given/inferred, we could return something like
         # `cons(var(), var())` here (although that wouldn't be necessarily imply
         # that the result is a proper list/tuple).
-        if self.op is not None and not isvar(self.op) and not isvar(self.op.inputs):
-            if not isvar(self.op.node_def) and not isvar(self.op.node_def.attr):
-                attr = self.op.node_def.attr
-            else:
-                attr = {}
-            input_args = self.op.op_def.input_args(*self.op.inputs, name=self.op.name, **attr)
-            return tuple(input_args.values())
+        if not isvar(self.op):
+            return self.op.inputs
+        raise NotImplementedError()
 
     def reify(self):
         if self.obj is not None and not isinstance(self.obj, Var):
@@ -913,6 +787,281 @@ class TFlowMetaTensorShape(TFlowMetaSymbol):
         return hash((self.base, self.dims))
 
 
+class TFlowMetaOperator(TFlowMetaSymbol, MetaOp):
+    """A class that implements the notion of an operator on top of TensorFlow's OpDef and NodeDef objects.
+
+    With this abstraction, we can better model operators by distinguishing
+    parameterized operators and their respective parameter values from the
+    operator's inputs, which may have similar properties across the entire
+    family of operators (i.e. across all parameter values).
+
+    For example, addition is commutative in its arguments, so modeling addition
+    as an operator parameterized on dtypes and/or names, we may want to
+    preserve the distinction of the operators inputs and its parameterized
+    values so that we can implement commutativity exclusively on the
+    non-dtype/name inputs.
+    """
+
+    base = None
+    __slots__ = ("op_def", "node_def", "_apply_func_sig", "_apply_func")
+
+    def __init__(self, op_def, node_def=None, obj=None):
+        assert obj is None
+        super().__init__(None)
+
+        self.op_def = op_def
+        if not isvar(self.op_def):
+            self._apply_func_sig, self._apply_func = op_def_lib.get_op_info(self.op_def.obj)
+        else:
+            self._apply_func_sig, self._apply_func = None, None
+
+        self.node_def = node_def
+
+    def reify(self):
+        return self
+
+    def output_meta_types(self, inputs=None):
+        """Return a list of tuples containing object types and corresponding dtypes for the outputs of this OpDef.
+
+        This work is done in
+        https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/framework/op_def_library.py#L337.
+        Would be very nice if the dtype inference and/or `NodeDef` generation
+        was abstracted-out from that function.
+        """
+
+        if isvar(self.op_def):
+            return None
+
+        type_map = {k: None for k, v in self.op_def.attr.items() if v.type == "type"}
+
+        input_type_map = {i.name: i.type_attr for i in self.op_def.obj.input_arg}
+
+        if inputs:
+            # Infer/verify types from inputs
+            for i_name, i_value in inputs.items():
+                type_name = input_type_map.get(i_name, None)
+
+                if type_name is None:
+                    continue
+
+                i_dtype = getattr(i_value, "dtype", None)
+
+                dtype = type_map[type_name]
+
+                if i_dtype is not None and not isvar(i_dtype):
+                    if dtype is None or isvar(dtype):
+                        # The input dtype is more informative, so use it.
+                        type_map[type_name] = i_dtype
+                    else:
+                        # They're both informative and should be the same
+                        assert dtype == i_dtype
+
+        def infer_output_types(o):
+            """Get dtypes for specific outputs using known dtype info and API inputs."""
+            # Get the explicit type from a `NodeDef` attribute.
+            type_name = o.type_attr
+
+            # Existing dtype value
+            dtype = type_map[type_name]
+            # New value
+            _dtype = None
+
+            # The information could be in the `NodeDef`
+            if isinstance(getattr(self.node_def, "attr", None), dict):
+                _dtype = self.node_def.attr.get(type_name)
+
+            # It could also be in the inputs (i.e. when called via the API
+            # route)
+            # TODO: If it's in the inputs, we should just create the
+            # corresponding `NodeDef`.
+            if inputs and type_name in inputs:
+                _dtype = inputs.get(type_name)
+
+            if _dtype is None:
+                _dtype = var()
+
+            if not isvar(_dtype):
+                try:
+                    _dtype = tf.dtypes.as_dtype(_dtype).base_dtype
+                except TypeError:
+                    _dtype = var()
+
+            # Make sure dtypes derived from `NodeDef` info and API inputs are
+            # consistent.
+            if dtype is None or isvar(dtype):
+                # Newly inferred dtype is at least as informative as the
+                # current one
+                dtype = _dtype
+                type_map[type_name] = dtype
+            elif _dtype is None or isvar(_dtype):
+                # Newly inferred dtype is less informative
+                pass
+            else:
+                assert dtype == _dtype
+
+            return (TFlowMetaTensor, dtype)
+
+        # TODO: We could update missing dtype information in input meta
+        # types and `NodeDef`s.
+
+        # TODO: We also have permissible dtype information from objects in the
+        # array `self.obj.attr` under the field `allowed_values`.
+
+        return tuple(infer_output_types(o) for o in self.op_def.obj.output_arg)
+
+    def input_args(self, *args, apply_defaults=True, **kwargs):
+        """Make args and kwargs conform to an OpDef's "apply function" arguments.
+
+        In order to do this, we effectively need to map `OpDef` and `NodeDef`
+        values to `tf.raw_ops.*` function arguments (i.e. the reverse of what
+        `op_def_library._apply_op_helper` does).
+
+        Returns an `OrderedDict`.
+
+        """
+        kwargs = OrderedDict(
+            (k, v)
+            for k, v in kwargs.items()
+            # Filter out the optional keyword arguments so they we only pass
+            # expected arguments to the `OpDef`'s apply function.
+            if k in self._apply_func_sig.parameters
+        )
+
+        op_args = self._apply_func_sig.bind_partial(*args, **kwargs)
+
+        if apply_defaults:
+            op_args.apply_defaults()
+
+        return op_args.arguments
+
+    def __api_call__(self, *args, **kwargs):
+        """Create the meta object(s) using the TF Python API's operator functions.
+
+        Each meta `OpDef` is associated with a TF Python function
+        (`self._apply_func`) that is used to construct its `Operation`s.
+
+        See `TFlowMetaTensor.operator` and `TFlowMetaTensor.operator`.
+
+        """
+
+        apply_arguments = self.input_args(*args, **kwargs)
+
+        if not meta._auto_reification_disabled:
+            op_args, op_args_unreified = meta_reify_iter(apply_arguments)
+        else:
+            op_args, op_args_unreified = apply_arguments, True
+
+        if not op_args_unreified:
+
+            res_var = None
+            # name = op_args.get("name", None)
+            #
+            # if name is not None:
+            #     #
+            #     # An operation with this name might already exist in the graph
+            #     #
+            #
+            #     from tensorflow.python.framework import ops
+            #
+            #     try:
+            #         this_op = ops.get_default_graph().get_operation_by_name(name)
+            #     except KeyError:
+            #         pass
+            #     else:
+            #         # TODO: Make sure the existing `Operation` matches our arguments
+            #         assert this_op.type == self.op_def.obj.name
+            #
+            #         this_op = mt(this_op)
+            #         op_inputs, op_node_def = self.op_args_to_operation_inputs(op_args)
+            #         assert op_inputs == this_op.inputs
+            #         assert op_node_def == this_op.node_def
+            #         res_var = this_op.default_output
+
+            if res_var is None:
+                #
+                # We create the `Operation` in the graph
+                #
+
+                tf_out = self._apply_func(**op_args)
+
+                # Ensure that the original meta objects will be available
+                # for use in the `metatize` that follows
+                tf_metatize_cache.update(
+                    {
+                        k: v
+                        for k, v in zip(op_args.values(), apply_arguments.values())
+                        if isinstance(k, tf.Tensor)
+                    }
+                )
+
+                res_var = metatize(tf_out)
+
+            if "names" in meta._lvar_defaults_enabled:
+                # This should also reset the NodeDef's `obj`
+                res_var.op.node_def.name = var()
+                res_var.op.reset()
+                res_var.reset()
+
+            if "node_attrs" in meta._lvar_defaults_enabled:
+                # This should also reset the NodeDef's `obj`
+                res_var.op.node_def.attr = var()
+                res_var.op.reset()
+                res_var.reset()
+        else:
+            #
+            # If we're here, we have to create the meta objects manually.
+            #
+
+            op_input_args, node_def = self.op_args_to_operation_inputs(apply_arguments)
+
+            op_mt = TFlowMetaOp(self.op_def, node_def, op_input_args)
+
+            res_var = op_mt.default_output
+
+        return res_var
+
+    def op_args_to_operation_inputs(self, apply_arguments):
+        """Map an `OpDef`'s "apply function" arguments to `Operation` inputs and a meta `NodeDef`."""
+
+        if isvar(self.op_def):
+            return None
+
+        op_def_tf = self.op_def.obj
+
+        op_inputs = tuple(
+            apply_arguments.get(i.name) for i in op_def_tf.input_arg if i.name in apply_arguments
+        )
+
+        # TODO: Include inferred attr values (e.g. dtypes).
+        if "node_attrs" not in meta._lvar_defaults_enabled:
+            node_attr = {a.name: apply_arguments.get(a.name, a) for a in op_def_tf.attr}
+        else:
+            node_attr = var()
+
+        if "names" not in meta._lvar_defaults_enabled:
+            op_name = apply_arguments.get("name", op_def_tf.name) or op_def_tf.name
+        else:
+            op_name = var()
+
+        node_def = TFlowMetaNodeDef(op_def_tf.name, op_name, node_attr)
+
+        return op_inputs, node_def
+
+    def __call__(self, *inputs, **kwargs):
+
+        if self.node_def is not None:
+            op = TFlowMetaOp(self.op_def, self.node_def, inputs)
+
+            res = op.default_output
+
+            if isvar(res):
+                return op.outputs
+            else:
+                return res
+        else:
+            return self.__api_call__(*inputs, **kwargs)
+
+
 class TFlowMetaAccessor(object):
     """An accessor object that simplifies the use of meta objects.
 
@@ -934,13 +1083,13 @@ class TFlowMetaAccessor(object):
         return metatize(x)
 
     @classmethod
-    def find_opdef(cls, name):
-        """Attempt to create a meta `OpDef` for a given TF function/`Operation` name."""
+    def find_operator(cls, name):
+        """Attempt to create a meta operator for a given TF function/`Operation` name."""
         raw_op_name = op_def_lib.lower_op_name_to_raw.get(name.lower(), name)
         op_def = op_def_registry.get(raw_op_name)
 
         if op_def is not None:
-            meta_obj = TFlowMetaOpDef(obj=op_def)
+            meta_obj = TFlowMetaOperator(TFlowMetaOpDef(obj=op_def), None)
             return meta_obj
 
         return None
@@ -962,7 +1111,7 @@ class TFlowMetaAccessor(object):
             # We assume that the user requested an `Operation`
             # constructor/helper.  Return the meta `OpDef`, because
             # it implements a constructor/helper-like `__call__`.
-            meta_obj = self.find_opdef(obj)
+            meta_obj = self.find_operator(obj)
 
             # if meta_obj is None:
             #     # It's a function, so let's provide a wrapper that converts
@@ -984,9 +1133,11 @@ class TFlowMetaAccessor(object):
 
             if meta_obj is None:
                 # Last resort
-                meta_obj = self.find_opdef(obj)
+                meta_obj = self.find_operator(obj)
 
-        if isinstance(meta_obj, (MetaSymbol, MetaSymbolType, types.FunctionType)):
+        if isinstance(
+            meta_obj, (MetaSymbol, MetaSymbolType, TFlowMetaOperator, types.FunctionType)
+        ):
             setattr(self, obj, meta_obj)
             return getattr(self, obj)
         elif isinstance(meta_obj, TFlowMetaAccessor):

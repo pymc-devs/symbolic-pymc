@@ -4,11 +4,20 @@ from unification import var
 
 from kanren import eq
 from kanren.core import lall
+from kanren.facts import fact
+from kanren.assoccomm import commutative, associative
+
 
 from .linalg import buildo
 from ..graph import graph_applyo, seq_apply_anyo
 from ...etuple import etuplize, etuple
 from ...theano.meta import mt
+
+
+fact(commutative, mt.add)
+fact(commutative, mt.mul)
+fact(associative, mt.add)
+fact(associative, mt.mul)
 
 
 def tt_graph_applyo(relation, a, b, preprocess_graph=partial(etuplize, shallow=True)):

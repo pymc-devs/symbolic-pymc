@@ -42,11 +42,17 @@ def meta_parts_unequal(x, y, pdb=False):  # pragma: no cover
             print("unequal bases")
             res = (x.base, y.base)
         else:
-            for a, b in zip(x.rands(), y.rands()):
-                z = meta_parts_unequal(a, b, pdb=pdb)
-                if z is not None:
-                    res = z
-                    break
+            try:
+                x_rands = x.rands
+                y_rands = y.rands
+            except NotImplementedError:
+                pass
+            else:
+                for a, b in zip(x_rands, y_rands):
+                    z = meta_parts_unequal(a, b, pdb=pdb)
+                    if z is not None:
+                        res = z
+                        break
     elif isinstance(x, (tuple, list)):
         for a, b in zip(x, y):
             z = meta_parts_unequal(a, b, pdb=pdb)
