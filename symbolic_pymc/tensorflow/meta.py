@@ -16,11 +16,15 @@ from unification import Var, var, isvar
 
 from google.protobuf.message import Message
 
-from tensorflow.python.framework import tensor_util, op_def_registry, op_def_library, tensor_shape
+from tensorflow.python.framework import (
+    tensor_util,
+    op_def_registry,
+    op_def_library,
+    tensor_shape,
+    ops,
+)
 from tensorflow.core.framework.op_def_pb2 import OpDef
 from tensorflow.core.framework.node_def_pb2 import NodeDef
-
-# from tensorflow.core.framework.tensor_shape_pb2 import TensorShapeProto
 
 from tensorflow_probability import distributions as tfd
 
@@ -30,6 +34,7 @@ from ..meta import (
     MetaSymbolType,
     MetaOp,
     MetaVariable,
+    MetaReificationError,
     meta_reify_iter,
     _metatize,
     metatize,
@@ -61,8 +66,27 @@ class MetaOpDefLibrary(object):
     opdef_signatures = {}
 
     @classmethod
-    def apply_op(cls, *args, **kwargs):
-        return op_def_library.apply_op(*args, **kwargs)
+    def get_op_info(cls, opdef):
+        """Return the TF Python API function signature for a given `OpDef`.
+
+        Parameter
+        ---------
+           opdef: str or `OpDef` object (meta or base)
+        """
+        if isinstance(opdef, str):
+            opdef_name = opdef
+            opdef = op_def_registry.get(opdef_name)
+        else:
+            opdef_name = opdef.name
+
+        opdef_sig = cls.opdef_signatures.get(opdef_name, None)
+
+        if opdef_sig is None and opdef is not None:
+            opdef_func = getattr(tf.raw_ops, opdef.name, None)
+            opdef_sig = cls.make_opdef_sig(opdef, opdef_func)
+            cls.opdef_signatures[opdef.name] = opdef_sig
+
+        return opdef_sig
 
     @classmethod
     def make_opdef_sig(cls, opdef, opdef_py_func=None):
@@ -70,42 +94,25 @@ class MetaOpDefLibrary(object):
 
         Annotations are include so that one can partially verify arguments.
         """
-        input_args = OrderedDict([(a.name, a.type or a.type_attr) for a in opdef.input_arg])
-        attrs = OrderedDict([(a.name, a) for a in opdef.attr])
-
-        params = OrderedDict()
         if opdef_py_func:
+            #
             # We assume we're dealing with a function from `tf.raw_ops`.
-            # Those functions have only the necessary `input_arg`s and
-            # `attr` inputs as arguments.
+            # Those functions have only the necessary `input_arg`s and `attr`
+            # inputs as arguments.
+            #
             opdef_func_sig = Signature.from_callable(opdef_py_func)
             params = opdef_func_sig.parameters
 
-            # for name, param in opdef_func_sig.parameters.items():
-            #     # We make positional parameters permissible (since the
-            #     # functions in `tf.raw_ops` are keyword-only), and we use the
-            #     # `tf.raw_ops` arguments to determine the *actual* required
-            #     # arguments (because `OpDef`'s `input_arg`s and `attrs` aren't
-            #     # exactly clear about that).
-            #     if name in input_args:
-            #         new_default = Parameter.empty
-            #         new_annotation = input_args[name]
-            #     else:
-            #         new_default = None
-            #         new_annotation = attrs.get(name, None)
-            #         if new_annotation is not None:
-            #             new_annotation = new_annotation.type
-            #
-            #     new_param = param.replace(
-            #         kind=Parameter.POSITIONAL_OR_KEYWORD,
-            #         default=new_default,
-            #         annotation=new_annotation,
-            #     )
-            #     params[name] = new_param
-
         else:
-            # We're crafting the Operation at a low-level via `apply_op`.
-            opdef_py_func = partial(op_def_lib.apply_op, opdef.name)
+            #
+            # We're crafting an `Operation` at a low-level via `apply_op`
+            # (like the functions in `tf.raw_ops` do)
+            #
+            input_args = OrderedDict([(a.name, a.type or a.type_attr) for a in opdef.input_arg])
+            attrs = OrderedDict([(a.name, a) for a in opdef.attr])
+            params = OrderedDict()
+
+            opdef_py_func = partial(op_def_library.apply_op, opdef.name)
 
             for i_name, i_type in input_args.items():
                 p = Parameter(i_name, Parameter.POSITIONAL_OR_KEYWORD, annotation=i_type)
@@ -144,29 +151,6 @@ class MetaOpDefLibrary(object):
         )
         return opdef_sig, opdef_py_func
 
-    @classmethod
-    def get_op_info(cls, opdef):
-        """Return the TF Python API function signature for a given `OpDef`.
-
-        Parameter
-        ---------
-           opdef: str or `OpDef` object (meta or base)
-        """
-        if isinstance(opdef, str):
-            opdef_name = opdef
-            opdef = op_def_registry.get(opdef_name)
-        else:
-            opdef_name = opdef.name
-
-        opdef_sig = cls.opdef_signatures.get(opdef_name, None)
-
-        if opdef_sig is None and opdef is not None:
-            opdef_func = getattr(tf.raw_ops, opdef.name, None)
-            opdef_sig = cls.make_opdef_sig(opdef, opdef_func)
-            cls.opdef_signatures[opdef.name] = cls.make_opdef_sig(opdef, opdef_func)
-
-        return opdef_sig
-
 
 op_def_lib = MetaOpDefLibrary()
 
@@ -183,7 +167,6 @@ def _metatize_tf_object(obj):
 def load_dispatcher():
     """Set/override dispatcher to default to TF objects."""
 
-    from tensorflow.python.framework.ops import EagerTensor
     from tensorflow.python.ops.gen_linalg_ops import _SvdOutput
 
     def _metatize_tf_svd(obj):
@@ -200,7 +183,7 @@ def load_dispatcher():
             " (e.g. within `tensorflow.python.eager.context.graph_mode`)"
         )
 
-    meta._metatize.add((EagerTensor,), _metatize_tf_eager)
+    meta._metatize.add((ops.EagerTensor,), _metatize_tf_eager)
 
     meta._metatize.add((object,), _metatize_tf_object)
     meta._metatize.add((HashableNDArray,), _metatize_tf_object)
@@ -599,12 +582,30 @@ class TFlowMetaOp(TFlowMetaSymbol):
         )
 
         if not (op_inputs_unreified or op_attrs_unreified or isvar(self.name)):
-
-            apply_arguments = operator.input_args(*op_inputs, name=self.name, **op_attrs)
-            tf_out = operator._apply_func(**apply_arguments)
-            op_tf = tf_out.op
-
-            # TODO: Update NodeDef attrs?
+            #
+            # An operation with this name might already exist in the graph
+            #
+            try:
+                existing_op = ops.get_default_graph().get_operation_by_name(self.name)
+            except KeyError:
+                #
+                # There is no such `Operation`, so we attempt to create it
+                #
+                apply_arguments = operator.input_args(*op_inputs, name=self.name, **op_attrs)
+                tf_out = operator._apply_func(**apply_arguments)
+                op_tf = tf_out.op
+            else:
+                #
+                # An `Operation` with this name exists, let's make sure it's
+                # equivalent to this meta `Operation`
+                #
+                if self != mt(existing_op):
+                    raise MetaReificationError(
+                        f"An Operation with the name {self.name}"
+                        " already exists in the graph and is not"
+                        " equal to this meta object."
+                    )
+                op_tf = existing_op
 
             assert op_tf is not None
             self._obj = op_tf
@@ -1148,5 +1149,6 @@ class TFlowMetaAccessor(object):
 
 
 mt = TFlowMetaAccessor()
+
 
 load_dispatcher()

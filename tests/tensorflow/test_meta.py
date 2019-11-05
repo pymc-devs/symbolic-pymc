@@ -15,7 +15,8 @@ from tensorflow_probability import distributions as tfd
 from unification import var, isvar
 
 from symbolic_pymc.utils import HashableNDArray
-from symbolic_pymc.meta import MetaSymbol, disable_auto_reification, enable_lvar_defaults
+from symbolic_pymc.meta import (MetaSymbol, disable_auto_reification,
+                                enable_lvar_defaults)
 from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaTensorShape,
                                            TFlowMetaOp,
@@ -23,6 +24,7 @@ from symbolic_pymc.tensorflow.meta import (TFlowMetaTensor,
                                            TFlowMetaNodeDef,
                                            TFlowMetaOperator,
                                            MetaOpDefLibrary,
+                                           MetaReificationError,
                                            mt)
 
 from tests.tensorflow import run_in_graph_mode
@@ -212,7 +214,7 @@ def test_meta_basic():
 
 
 @run_in_graph_mode
-def test_meta_Op():
+def test_meta_operation():
 
     t1_tf = tf.convert_to_tensor([[1, 2, 3], [4, 5, 6]])
     t2_tf = tf.convert_to_tensor([[7, 8, 9], [10, 11, 12]])
@@ -673,3 +675,38 @@ def test_global_options():
     with tf.Graph().as_default(), enable_lvar_defaults('names'):
         a_mt = mt(1.0)
         assert isvar(a_mt.name)
+
+
+@run_in_graph_mode
+def test_meta_existing_names():
+
+    with tf.Graph().as_default():
+        one_mt = mt(1)
+        assert one_mt.op.name == 'Const'
+
+        # Clear-out the associated base variable
+        orig_one_tf = one_mt._obj
+        one_mt.reset()
+        one_mt.op.reset()
+        assert one_mt.obj is None
+        assert one_mt.op.obj is None
+
+        # Attempt to reify to a base variable
+        one_tf = one_mt.reify()
+        assert one_tf.op.name == 'Const'
+        # Make sure it's the first base variable we created
+        assert orig_one_tf is one_tf
+
+        two_mt = mt(2)
+        two_mt.op.node_def.name = 'Const'
+
+        # TODO FIXME: We shouldn't have to do this manually after changing a
+        # dependency.
+        two_mt.reset()
+        two_mt.op.reset()
+        assert two_mt.obj is None
+        assert two_mt.op.obj is None
+        assert two_mt.op.name == 'Const'
+
+        with pytest.raises(MetaReificationError):
+            two_mt.reify()
