@@ -139,6 +139,12 @@ def meta_reify_iter(rands):
     return type(rands)(reified_rands), any_unreified
 
 
+class MetaReificationError(Exception):
+    """An exception type for errors encountered during the creation of base objects from meta objects."""
+
+    pass
+
+
 class MetaSymbolType(abc.ABCMeta):
     def __new__(cls, name, bases, clsdict):
 
