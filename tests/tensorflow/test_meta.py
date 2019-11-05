@@ -678,6 +678,21 @@ def test_global_options():
 
 
 @run_in_graph_mode
+def test_meta_const():
+    """Make sure we can create a Const tensor by hand."""
+
+    with tf.Graph().as_default():
+        one_mt = mt.const(1, 'int32', 'Const')
+
+    with tf.Graph().as_default():
+        another_one_mt = mt(1)
+
+    assert one_mt == another_one_mt
+    assert isinstance(one_mt.reify(), tf.Tensor)
+    assert one_mt.reify().op.type == 'Const'
+
+
+@run_in_graph_mode
 def test_meta_existing_names():
 
     with tf.Graph().as_default():

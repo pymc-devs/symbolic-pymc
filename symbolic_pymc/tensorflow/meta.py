@@ -65,6 +65,20 @@ class MetaOpDefLibrary(object):
     }
     opdef_signatures = {}
 
+    def __init__(self):
+        #
+        # We need this in order to construct "Const" tensors directly, since
+        # the "value" attr in a meta `NodeDef` is just a NumPy array and not
+        # the `TensorProto` expected by `raw_ops.Const`.
+        #
+        def mt_const(value, dtype, name=None):
+            return tf.raw_ops.Const(
+                value=tensor_util.make_tensor_proto(value), dtype=dtype, name=name
+            )
+
+        opdef = op_def_registry.get("Const")
+        self.opdef_signatures[opdef.name] = self.make_opdef_sig(opdef, mt_const)
+
     @classmethod
     def get_op_info(cls, opdef):
         """Return the TF Python API function signature for a given `OpDef`.
