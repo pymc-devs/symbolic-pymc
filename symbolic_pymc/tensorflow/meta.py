@@ -820,15 +820,34 @@ class TFlowMetaOperator(TFlowMetaSymbol, MetaOp):
     base = None
     __slots__ = ("op_def", "node_def", "_apply_func_sig", "_apply_func")
 
+    @classmethod
+    def get_metaopdef(cls, name):
+        """Obtain a MetaOpDef for a given string name.
+
+        This is more flexible because it ignores things like string case
+        (when the non-`raw_ops` name differs from the TF user-level API).
+        """
+        raw_op_name = op_def_lib.lower_op_name_to_raw.get(name.lower(), name)
+        op_def = op_def_registry.get(raw_op_name)
+        if op_def is not None:
+            return TFlowMetaOpDef(obj=op_def)
+
     def __init__(self, op_def, node_def=None, obj=None):
         assert obj is None
         super().__init__(None)
 
         self.op_def = op_def
-        if not isvar(self.op_def):
-            self._apply_func_sig, self._apply_func = op_def_lib.get_op_info(self.op_def.obj)
-        else:
+
+        if isinstance(self.op_def, str):
+            self.op_def = self.get_metaopdef(self.op_def)
+
+        if self.op_def is None:
+            raise ValueError(f"Could not find an OpDef for {op_def}")
+
+        if isvar(self.op_def):
             self._apply_func_sig, self._apply_func = None, None
+        else:
+            self._apply_func_sig, self._apply_func = op_def_lib.get_op_info(self.op_def.obj)
 
         self.node_def = node_def
 
@@ -1097,18 +1116,6 @@ class TFlowMetaAccessor(object):
     def __call__(self, x):
         return metatize(x)
 
-    @classmethod
-    def find_operator(cls, name):
-        """Attempt to create a meta operator for a given TF function/`Operation` name."""
-        raw_op_name = op_def_lib.lower_op_name_to_raw.get(name.lower(), name)
-        op_def = op_def_registry.get(raw_op_name)
-
-        if op_def is not None:
-            meta_obj = TFlowMetaOperator(TFlowMetaOpDef(obj=op_def), None)
-            return meta_obj
-
-        return None
-
     def __getattr__(self, obj):
 
         ns_obj = next((getattr(ns, obj) for ns in self.namespaces if hasattr(ns, obj)), None)
@@ -1122,13 +1129,23 @@ class TFlowMetaAccessor(object):
                 if ns_obj is None:
                     ns_obj = f_back.f_globals.get(obj)
 
-        if isinstance(ns_obj, (types.FunctionType, partial)):
-            # We assume that the user requested an `Operation`
-            # constructor/helper.  Return the meta `OpDef`, because
-            # it implements a constructor/helper-like `__call__`.
-            meta_obj = self.find_operator(obj)
+        if isinstance(ns_obj, types.ModuleType):
+            # It's a sub-module, so let's create another
+            # `TheanoMetaAccessor` and check within there.
+            meta_obj = TFlowMetaAccessor(namespace=ns_obj)
+        else:
 
-            # if meta_obj is None:
+            # Check for a an OpDef first
+            meta_obj = TFlowMetaOperator.get_metaopdef(obj)
+
+            if meta_obj is not None:
+                # We assume that the user requested an `Operation`
+                # constructor/helper.  Return the meta `OpDef`, because
+                # it implements a constructor/helper-like `__call__`.
+                if meta_obj is not None:
+                    meta_obj = TFlowMetaOperator(meta_obj, None)
+
+            # elif isinstance(ns_obj, (types.FunctionType, partial)):
             #     # It's a function, so let's provide a wrapper that converts
             #     # to-and-from theano and meta objects.
             #     @wraps(ns_obj)
@@ -1137,19 +1154,12 @@ class TFlowMetaAccessor(object):
             #         res = ns_obj(*args, **kwargs)
             #         return metatize(res)
 
-        elif isinstance(ns_obj, types.ModuleType):
-            # It's a sub-module, so let's create another
-            # `TheanoMetaAccessor` and check within there.
-            meta_obj = TFlowMetaAccessor(namespace=ns_obj)
-        else:
+            else:
+                # Hopefully, it's convertible to a meta object...
+                meta_obj = metatize(ns_obj)
 
-            # Hopefully, it's convertible to a meta object...
-            meta_obj = metatize(ns_obj)
-
-            if meta_obj is None:
-                # Last resort
-                meta_obj = self.find_operator(obj)
-
+        # Finally, we store the result as a meta namespace attribute, or raise
+        # an exception.
         if isinstance(
             meta_obj, (MetaSymbol, MetaSymbolType, TFlowMetaOperator, types.FunctionType)
         ):
