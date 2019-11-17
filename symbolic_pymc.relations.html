@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>symbolic_pymc.relations package &#8212; Symbolic PyMC  documentation</title>
+    <link rel="stylesheet" href="_static/semantic-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/default.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/highlight.min.js"></script>
+    <script type="text/javascript" src="_static/semantic.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+<script>hljs.initHighlightingOnLoad();</script>
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+
+
+  </head><body>
+<div class="ui vertical center aligned">
+
+    <div class="ui container">
+        <div class="ui large secondary pointing menu">
+            <a class="item" href="/">
+                <img class="ui bottom aligned tiny image" src="https://cdn.rawgit.com/pymc-devs/pymc3/master/docs/logos/svg/PyMC3_banner.svg" />
+            </a>
+            
+            <div class="right menu">
+                <div class="item">
+                    <form class="ui icon input" action="search.html" method="get">
+                        <input type="text" placeholder="Search..." name="q" />
+                        <i class="search link icon"></i>
+                    </form>
+                </div>
+                <a class="item" href="https://github.com/pymc-devs/symbolic_pymc"><i class="github blue icon large"></i></a>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<div class="ui container" role="main">
+    
+
+    <div class="ui vertical segment">
+        
+  <div class="section" id="symbolic-pymc-relations-package">
+<h1>symbolic_pymc.relations package<a class="headerlink" href="#symbolic-pymc-relations-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="symbolic_pymc.relations.tensorflow.html">symbolic_pymc.relations.tensorflow package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.tensorflow.html#module-symbolic_pymc.relations.tensorflow">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="symbolic_pymc.relations.theano.html">symbolic_pymc.relations.theano package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.theano.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.theano.html#module-symbolic_pymc.relations.theano.conjugates">symbolic_pymc.relations.theano.conjugates module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.theano.html#module-symbolic_pymc.relations.theano.distributions">symbolic_pymc.relations.theano.distributions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.theano.html#module-symbolic_pymc.relations.theano.linalg">symbolic_pymc.relations.theano.linalg module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.theano.html#module-symbolic_pymc.relations.theano">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-symbolic_pymc.relations.graph">
+<span id="symbolic-pymc-relations-graph-module"></span><h2>symbolic_pymc.relations.graph module<a class="headerlink" href="#module-symbolic_pymc.relations.graph" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="symbolic_pymc.relations.graph.graph_applyo">
+<code class="sig-prename descclassname">symbolic_pymc.relations.graph.</code><code class="sig-name descname">graph_applyo</code><span class="sig-paren">(</span><em class="sig-param">relation</em>, <em class="sig-param">in_graph</em>, <em class="sig-param">out_graph</em>, <em class="sig-param">preprocess_graph=functools.partial(&lt;dispatched etuplize&gt;</em>, <em class="sig-param">shallow=True</em>, <em class="sig-param">return_bad_args=True)</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.graph.graph_applyo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply a relation to a graph and its subgraphs.</p>
+<dl class="simple">
+<dt>relation: callable</dt><dd><p>A relation to apply on a graph and its subgraphs.</p>
+</dd>
+<dt>in_graph: object</dt><dd><p>The graph for which the left-hand side of a binary relation holds.</p>
+</dd>
+<dt>out_graph: object</dt><dd><p>The graph for which the right-hand side of a binary relation holds.</p>
+</dd>
+<dt>preprocess_graph: callable (optional)</dt><dd><p>A unary function that produces an iterable upon which <cite>seq_apply_anyo</cite>
+can be applied in order to traverse a graph’s subgraphs.  The default
+function converts the graph to expression-tuple form.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.graph.reduceo">
+<code class="sig-prename descclassname">symbolic_pymc.relations.graph.</code><code class="sig-name descname">reduceo</code><span class="sig-paren">(</span><em class="sig-param">relation</em>, <em class="sig-param">in_term</em>, <em class="sig-param">out_term</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.graph.reduceo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Relate a term and the fixed-point of that term under a given relation.</p>
+<p>This includes the “identity” relation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.graph.seq_apply_anyo">
+<code class="sig-prename descclassname">symbolic_pymc.relations.graph.</code><code class="sig-name descname">seq_apply_anyo</code><span class="sig-paren">(</span><em class="sig-param">relation</em>, <em class="sig-param">l_in</em>, <em class="sig-param">l_out</em>, <em class="sig-param">null_type=False</em>, <em class="sig-param">skip_op=True</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.graph.seq_apply_anyo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply a relation to at least one pair of corresponding elements in two sequences.</p>
+<dl class="simple">
+<dt>null_type: optional</dt><dd><p>An object that’s a valid cdr for the collection type desired.  If
+<cite>False</cite> (i.e. the default value), the cdr will be inferred from the
+inputs, or defaults to an empty list.</p>
+</dd>
+<dt>skip_op: boolean (optional)</dt><dd><p>When both inputs are <cite>etuple`s and this value is `True</cite>, the relation
+will not be applied to the operators (i.e. the cars) of the inputs.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-symbolic_pymc.relations">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-symbolic_pymc.relations" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="symbolic_pymc.relations.buildo">
+<code class="sig-prename descclassname">symbolic_pymc.relations.</code><code class="sig-name descname">buildo</code><span class="sig-paren">(</span><em class="sig-param">op</em>, <em class="sig-param">args</em>, <em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.buildo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+    </div>
+</div>
+<div class="ui vertical footer segment">
+    <div class="ui center aligned container">
+        <a href="https://github.com/pymc-devs/symbolic_pymc"><i class="github icon large"></i></a>
+        <a href="https://twitter.com/pymc_devs"><i class="twitter icon large"></i></a>
+        <a href="https://discourse.pymc.io/"><i class="discourse icon large"></i></a>
+    </div>
+    <div class="ui center aligned container">
+        <p>
+            &copy; Copyright 2019, PyMC developers.
+        </p>
+        <p>
+            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.2.0.<br />
+        </p>
+    </div>
+</div>
+  </body>
+</html>

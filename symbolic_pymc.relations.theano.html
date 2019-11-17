@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>symbolic_pymc.relations.theano package &#8212; Symbolic PyMC  documentation</title>
+    <link rel="stylesheet" href="_static/semantic-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/default.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/highlight.min.js"></script>
+    <script type="text/javascript" src="_static/semantic.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+<script>hljs.initHighlightingOnLoad();</script>
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+
+
+  </head><body>
+<div class="ui vertical center aligned">
+
+    <div class="ui container">
+        <div class="ui large secondary pointing menu">
+            <a class="item" href="/">
+                <img class="ui bottom aligned tiny image" src="https://cdn.rawgit.com/pymc-devs/pymc3/master/docs/logos/svg/PyMC3_banner.svg" />
+            </a>
+            
+            <div class="right menu">
+                <div class="item">
+                    <form class="ui icon input" action="search.html" method="get">
+                        <input type="text" placeholder="Search..." name="q" />
+                        <i class="search link icon"></i>
+                    </form>
+                </div>
+                <a class="item" href="https://github.com/pymc-devs/symbolic_pymc"><i class="github blue icon large"></i></a>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<div class="ui container" role="main">
+    
+
+    <div class="ui vertical segment">
+        
+  <div class="section" id="symbolic-pymc-relations-theano-package">
+<h1>symbolic_pymc.relations.theano package<a class="headerlink" href="#symbolic-pymc-relations-theano-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-symbolic_pymc.relations.theano.conjugates">
+<span id="symbolic-pymc-relations-theano-conjugates-module"></span><h2>symbolic_pymc.relations.theano.conjugates module<a class="headerlink" href="#module-symbolic_pymc.relations.theano.conjugates" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-symbolic_pymc.relations.theano.distributions">
+<span id="symbolic-pymc-relations-theano-distributions-module"></span><h2>symbolic_pymc.relations.theano.distributions module<a class="headerlink" href="#module-symbolic_pymc.relations.theano.distributions" title="Permalink to this headline">¶</a></h2>
+<p>Relations pertaining to probability distributions.</p>
+<dl class="function">
+<dt id="symbolic_pymc.relations.theano.distributions.constant_neq">
+<code class="sig-prename descclassname">symbolic_pymc.relations.theano.distributions.</code><code class="sig-name descname">constant_neq</code><span class="sig-paren">(</span><em class="sig-param">lvar</em>, <em class="sig-param">val</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.distributions.constant_neq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assert that a constant graph variable is not equal to a specific value.</p>
+<p>Scalar values are broadcast across arrays.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.theano.distributions.scale_loc_transform">
+<code class="sig-prename descclassname">symbolic_pymc.relations.theano.distributions.</code><code class="sig-name descname">scale_loc_transform</code><span class="sig-paren">(</span><em class="sig-param">in_expr</em>, <em class="sig-param">out_expr</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.distributions.scale_loc_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create relations for lifting and sinking scale and location parameters of distributions.</p>
+<p>I.e. f(a + b*x) -&gt; a + b * f(x)</p>
+<p>For example, <cite>in_expr</cite>: f(a + b*x) == <cite>out_expr</cite>: a + b * f(x).</p>
+<p>TODO: Match larger distribution families and perform transforms from there.</p>
+<p>XXX: PyMC3 rescaling issue (?) doesn’t allow us to take the more general
+approach, which involves separate scale and location rewrites.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-symbolic_pymc.relations.theano.linalg">
+<span id="symbolic-pymc-relations-theano-linalg-module"></span><h2>symbolic_pymc.relations.theano.linalg module<a class="headerlink" href="#module-symbolic_pymc.relations.theano.linalg" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="symbolic_pymc.relations.theano.linalg.normal_normal_regression">
+<code class="sig-prename descclassname">symbolic_pymc.relations.theano.linalg.</code><code class="sig-name descname">normal_normal_regression</code><span class="sig-paren">(</span><em class="sig-param">Y</em>, <em class="sig-param">X</em>, <em class="sig-param">beta</em>, <em class="sig-param">Y_args_tail=None</em>, <em class="sig-param">beta_args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.linalg.normal_normal_regression" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produce a relation for a normal-normal regression of the form <cite>Y ~ N(X * beta, sd**2)</cite>.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.theano.linalg.normal_qr_transform">
+<code class="sig-prename descclassname">symbolic_pymc.relations.theano.linalg.</code><code class="sig-name descname">normal_qr_transform</code><span class="sig-paren">(</span><em class="sig-param">in_expr</em>, <em class="sig-param">out_expr</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.linalg.normal_qr_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produce a relation for normal-normal regression and its QR-reduced form.</p>
+<p>TODO XXX: This isn’t entirely correct (e.g. it needs to also
+transform the variance terms), but it demonstrates all the requisite
+functionality for this kind of model reformulation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.theano.linalg.update_name_suffix">
+<code class="sig-prename descclassname">symbolic_pymc.relations.theano.linalg.</code><code class="sig-name descname">update_name_suffix</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">old_x</em>, <em class="sig-param">suffix</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.linalg.update_name_suffix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-symbolic_pymc.relations.theano">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-symbolic_pymc.relations.theano" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="symbolic_pymc.relations.theano.non_obs_graph_applyo">
+<code class="sig-prename descclassname">symbolic_pymc.relations.theano.</code><code class="sig-name descname">non_obs_graph_applyo</code><span class="sig-paren">(</span><em class="sig-param">relation</em>, <em class="sig-param">a</em>, <em class="sig-param">b</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.non_obs_graph_applyo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a goal that applies a relation to all nodes above an observed random variable.</p>
+<p>This is useful if you don’t want to apply relations to an observed random
+variable, but you do want to apply them to every term above one and
+ultimately reproduce the entire graph (observed RV included).</p>
+<dl class="simple">
+<dt>relation: function</dt><dd><p>A binary relation/goal constructor function</p>
+</dd>
+<dt>a: lvar or meta graph</dt><dd><p>The left-hand side of the relation.</p>
+</dd>
+<dt>b: lvar or meta graph</dt><dd><p>The right-hand side of the relation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.theano.tt_graph_applyo">
+<code class="sig-prename descclassname">symbolic_pymc.relations.theano.</code><code class="sig-name descname">tt_graph_applyo</code><span class="sig-paren">(</span><em class="sig-param">relation</em>, <em class="sig-param">a</em>, <em class="sig-param">b</em>, <em class="sig-param">preprocess_graph=functools.partial(&lt;dispatched etuplize&gt;</em>, <em class="sig-param">shallow=True)</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.tt_graph_applyo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a <cite>graph_applyo</cite> goal that judiciously expands a Theano meta graph.</p>
+<p>This essentially allows <cite>graph_applyo</cite> to walk a non-<cite>etuple</cite>/S-exp Theano
+meta graph.</p>
+<dl class="simple">
+<dt>relation: function</dt><dd><p>A binary relation/goal constructor function</p>
+</dd>
+<dt>a: lvar, meta graph, or etuple</dt><dd><p>The left-hand side of the relation.</p>
+</dd>
+<dt>b: lvar, meta graph, or etuple</dt><dd><p>The right-hand side of the relation</p>
+</dd>
+<dt>preprocess_graph: function</dt><dd><p>See <cite>graph_applyo</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+    </div>
+</div>
+<div class="ui vertical footer segment">
+    <div class="ui center aligned container">
+        <a href="https://github.com/pymc-devs/symbolic_pymc"><i class="github icon large"></i></a>
+        <a href="https://twitter.com/pymc_devs"><i class="twitter icon large"></i></a>
+        <a href="https://discourse.pymc.io/"><i class="discourse icon large"></i></a>
+    </div>
+    <div class="ui center aligned container">
+        <p>
+            &copy; Copyright 2019, PyMC developers.
+        </p>
+        <p>
+            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.2.0.<br />
+        </p>
+    </div>
+</div>
+  </body>
+</html>

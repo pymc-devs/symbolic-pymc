@@ -1,0 +1,343 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>symbolic_pymc package &#8212; Symbolic PyMC  documentation</title>
+    <link rel="stylesheet" href="_static/semantic-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/default.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/highlight.min.js"></script>
+    <script type="text/javascript" src="_static/semantic.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+<script>hljs.initHighlightingOnLoad();</script>
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+
+
+  </head><body>
+<div class="ui vertical center aligned">
+
+    <div class="ui container">
+        <div class="ui large secondary pointing menu">
+            <a class="item" href="/">
+                <img class="ui bottom aligned tiny image" src="https://cdn.rawgit.com/pymc-devs/pymc3/master/docs/logos/svg/PyMC3_banner.svg" />
+            </a>
+            
+            <div class="right menu">
+                <div class="item">
+                    <form class="ui icon input" action="search.html" method="get">
+                        <input type="text" placeholder="Search..." name="q" />
+                        <i class="search link icon"></i>
+                    </form>
+                </div>
+                <a class="item" href="https://github.com/pymc-devs/symbolic_pymc"><i class="github blue icon large"></i></a>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<div class="ui container" role="main">
+    
+
+    <div class="ui vertical segment">
+        
+  <div class="section" id="symbolic-pymc-package">
+<h1>symbolic_pymc package<a class="headerlink" href="#symbolic-pymc-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="symbolic_pymc.relations.html">symbolic_pymc.relations package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="symbolic_pymc.relations.tensorflow.html">symbolic_pymc.relations.tensorflow package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="symbolic_pymc.relations.tensorflow.html#module-symbolic_pymc.relations.tensorflow">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="symbolic_pymc.relations.theano.html">symbolic_pymc.relations.theano package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="symbolic_pymc.relations.theano.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="symbolic_pymc.relations.theano.html#module-symbolic_pymc.relations.theano.conjugates">symbolic_pymc.relations.theano.conjugates module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="symbolic_pymc.relations.theano.html#module-symbolic_pymc.relations.theano.distributions">symbolic_pymc.relations.theano.distributions module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="symbolic_pymc.relations.theano.html#module-symbolic_pymc.relations.theano.linalg">symbolic_pymc.relations.theano.linalg module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="symbolic_pymc.relations.theano.html#module-symbolic_pymc.relations.theano">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.html#module-symbolic_pymc.relations.graph">symbolic_pymc.relations.graph module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.html#module-symbolic_pymc.relations">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="symbolic_pymc.tensorflow.html">symbolic_pymc.tensorflow package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.tensorflow.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.meta">symbolic_pymc.tensorflow.meta module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.printing">symbolic_pymc.tensorflow.printing module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.unify">symbolic_pymc.tensorflow.unify module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="symbolic_pymc.theano.html">symbolic_pymc.theano package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.meta">symbolic_pymc.theano.meta module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.ops">symbolic_pymc.theano.ops module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.opt">symbolic_pymc.theano.opt module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.printing">symbolic_pymc.theano.printing module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.pymc3">symbolic_pymc.theano.pymc3 module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.random_variables">symbolic_pymc.theano.random_variables module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.unify">symbolic_pymc.theano.unify module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.utils">symbolic_pymc.theano.utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-symbolic_pymc.etuple">
+<span id="symbolic-pymc-etuple-module"></span><h2>symbolic_pymc.etuple module<a class="headerlink" href="#module-symbolic_pymc.etuple" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="symbolic_pymc.etuple.etuple">
+<code class="sig-prename descclassname">symbolic_pymc.etuple.</code><code class="sig-name descname">etuple</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.etuple.etuple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an ExpressionTuple from the argument list.</p>
+<dl class="simple">
+<dt>In other words:</dt><dd><p>etuple(1, 2, 3) == ExpressionTuple((1, 2, 3))</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-symbolic_pymc.meta">
+<span id="symbolic-pymc-meta-module"></span><h2>symbolic_pymc.meta module<a class="headerlink" href="#module-symbolic_pymc.meta" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="symbolic_pymc.meta.MetaOp">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.meta.</code><code class="sig-name descname">MetaOp</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.MetaOp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.meta.MetaSymbol" title="symbolic_pymc.meta.MetaSymbol"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.meta.MetaSymbol</span></code></a></p>
+<p>A meta object that represents a <cite>MetaVariable</cite>-producing operator.</p>
+<p>Also, make sure to override <cite>Op.out_meta_type</cite> and make it return the
+expected meta variable type, if it isn’t the default: <cite>MetaTensorVariable</cite>.</p>
+<p>In some cases, operators hold their own inputs and outputs
+(e.g. TensorFlow), and, in others, an intermediary “application” node holds
+that information.  This class leaves those details up to the
+implementation.</p>
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaOp.output_meta_types">
+<em class="property">abstract </em><code class="sig-name descname">output_meta_types</code><span class="sig-paren">(</span><em class="sig-param">inputs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.MetaOp.output_meta_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the types of meta variables this <cite>Op</cite> is expected to produce given the inputs.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaOp.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.MetaOp.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="symbolic_pymc.meta.MetaReificationError">
+<em class="property">exception </em><code class="sig-prename descclassname">symbolic_pymc.meta.</code><code class="sig-name descname">MetaReificationError</code><a class="headerlink" href="#symbolic_pymc.meta.MetaReificationError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>An exception type for errors encountered during the creation of base objects from meta objects.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.meta.MetaSymbol">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.meta.</code><code class="sig-name descname">MetaSymbol</code><span class="sig-paren">(</span><em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.MetaSymbol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Meta objects for unification and such.</p>
+<p>TODO: Should <cite>MetaSymbol.obj</cite> be an abstract property and a <cite>weakref</cite>?</p>
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaSymbol.base">
+<em class="property">abstract property </em><code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.meta.MetaSymbol.base" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the underlying (e.g. a theano/tensorflow) base type/rator for this meta object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaSymbol.base_subclasses">
+<em class="property">classmethod </em><code class="sig-name descname">base_subclasses</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.MetaSymbol.base_subclasses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all meta symbols with valid, implemented bases (i.e. base property is a type object).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaSymbol.is_meta">
+<em class="property">classmethod </em><code class="sig-name descname">is_meta</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.MetaSymbol.is_meta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaSymbol.obj">
+<em class="property">property </em><code class="sig-name descname">obj</code><a class="headerlink" href="#symbolic_pymc.meta.MetaSymbol.obj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaSymbol.rands">
+<em class="property">property </em><code class="sig-name descname">rands</code><a class="headerlink" href="#symbolic_pymc.meta.MetaSymbol.rands" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a tuple of the meta object’s operator parameters (i.e. “rands”).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaSymbol.reify">
+<code class="sig-name descname">reify</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.MetaSymbol.reify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempt to create a concrete base object from this meta object.</p>
+<p>During the process, dependent objects will need to be reified, which
+may result in updates to the object(s) being reified.</p>
+<p>For instance, if a meta tensor’s parent operator is fully reifiable to
+a base object, then the meta tensor’s dtype and shape may be fixed:
+e.g. a tensor corresponding to the output of a sum of two float64
+scalars is necessarily a float64 scalar.</p>
+<p>This function will set any unspecified properties (e.g. dtype and shape
+values for the previous example), mutating the object in-place when
+possible.  It will return a [refined/partially reified] meta object
+when it can’t fully reify to a base object (in which case, it will
+return the base object) or when partial reification results in a meta
+object from a subclass.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaSymbol.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.MetaSymbol.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.meta.MetaSymbolType">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.meta.</code><code class="sig-name descname">MetaSymbolType</code><a class="headerlink" href="#symbolic_pymc.meta.MetaSymbolType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABCMeta</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.meta.MetaVariable">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.meta.</code><code class="sig-name descname">MetaVariable</code><span class="sig-paren">(</span><em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.MetaVariable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.meta.MetaSymbol" title="symbolic_pymc.meta.MetaSymbol"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.meta.MetaSymbol</span></code></a></p>
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaVariable.base_arguments">
+<em class="property">abstract property </em><code class="sig-name descname">base_arguments</code><a class="headerlink" href="#symbolic_pymc.meta.MetaVariable.base_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the base-level arguments.</p>
+<p>These arguments used in conjunction with the callable
+<cite>self.base_operator</cite> should re-produce this variable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaVariable.base_operator">
+<em class="property">abstract property </em><code class="sig-name descname">base_operator</code><a class="headerlink" href="#symbolic_pymc.meta.MetaVariable.base_operator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a meta object representing a base-level operator.</p>
+<p>It should be callable with all inputs necessary to reproduce this
+tensor given by <cite>self.base_arguments</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.meta.MetaVariable.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.MetaVariable.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.meta.disable_auto_reification">
+<code class="sig-prename descclassname">symbolic_pymc.meta.</code><code class="sig-name descname">disable_auto_reification</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.disable_auto_reification" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop meta objects from automatically reifying themselves in order to determine unspecified properties.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.meta.enable_lvar_defaults">
+<code class="sig-prename descclassname">symbolic_pymc.meta.</code><code class="sig-name descname">enable_lvar_defaults</code><span class="sig-paren">(</span><em class="sig-param">*types</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.enable_lvar_defaults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use logic variables instead of guessed/inferred values during meta object creation.</p>
+<p>This is useful for handling unexpected values–created by default or behind
+the scenes–in backend base objects (e.g. default names, TF NodeDef
+attributes, etc.).  By using logic variables instead, it’s much easier to
+create meta object “patterns” when certain types of exactness aren’t
+necessary.</p>
+<blockquote>
+<div><dl class="simple">
+<dt>types: collection of str</dt><dd><p>String names for the types we want to make default to logic variables.
+Currently allowed values are “names” and “node_attrs” (for TensorFlow).</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.meta.meta_reify_iter">
+<code class="sig-prename descclassname">symbolic_pymc.meta.</code><code class="sig-name descname">meta_reify_iter</code><span class="sig-paren">(</span><em class="sig-param">rands</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.meta_reify_iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recursively reify an iterable object and return a boolean indicating the presence of un-reifiable objects, if any.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.meta.metatize">
+<code class="sig-prename descclassname">symbolic_pymc.meta.</code><code class="sig-name descname">metatize</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.meta.metatize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert object to base type then meta object.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-symbolic_pymc.unify">
+<span id="symbolic-pymc-unify-module"></span><h2>symbolic_pymc.unify module<a class="headerlink" href="#module-symbolic_pymc.unify" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="symbolic_pymc.unify.debug_unify">
+<code class="sig-prename descclassname">symbolic_pymc.unify.</code><code class="sig-name descname">debug_unify</code><span class="sig-paren">(</span><em class="sig-param">enable=True</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.unify.debug_unify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap unify functions so that they raise a <cite>UnificationFailure</cite> exception when unification fails.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-symbolic_pymc.utils">
+<span id="symbolic-pymc-utils-module"></span><h2>symbolic_pymc.utils module<a class="headerlink" href="#module-symbolic_pymc.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="symbolic_pymc.utils.HashableNDArray">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.utils.</code><code class="sig-name descname">HashableNDArray</code><a class="headerlink" href="#symbolic_pymc.utils.HashableNDArray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Hashable</span></code></p>
+<p>A subclass of Numpy’s ndarray that uses <cite>tostring</cite> hashing and <cite>array_equal</cite> equality testing.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">symbolic_pymc.utils</span> <span class="k">import</span> <span class="n">HashableNDArray</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_new</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">HashableNDArray</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">hash</span><span class="p">(</span><span class="n">x_new</span><span class="p">)</span> <span class="o">==</span> <span class="nb">hash</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">tostring</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">x_new</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.utils.meta_parts_unequal">
+<code class="sig-prename descclassname">symbolic_pymc.utils.</code><code class="sig-name descname">meta_parts_unequal</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">pdb=False</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.utils.meta_parts_unequal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Traverse meta objects and return the first pair of elements that are not equal.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-symbolic_pymc">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-symbolic_pymc" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+    </div>
+</div>
+<div class="ui vertical footer segment">
+    <div class="ui center aligned container">
+        <a href="https://github.com/pymc-devs/symbolic_pymc"><i class="github icon large"></i></a>
+        <a href="https://twitter.com/pymc_devs"><i class="twitter icon large"></i></a>
+        <a href="https://discourse.pymc.io/"><i class="discourse icon large"></i></a>
+    </div>
+    <div class="ui center aligned container">
+        <p>
+            &copy; Copyright 2019, PyMC developers.
+        </p>
+        <p>
+            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.2.0.<br />
+        </p>
+    </div>
+</div>
+  </body>
+</html>

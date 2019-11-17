@@ -1,0 +1,588 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>symbolic_pymc.tensorflow package &#8212; Symbolic PyMC  documentation</title>
+    <link rel="stylesheet" href="_static/semantic-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/default.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/highlight.min.js"></script>
+    <script type="text/javascript" src="_static/semantic.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+<script>hljs.initHighlightingOnLoad();</script>
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+
+
+  </head><body>
+<div class="ui vertical center aligned">
+
+    <div class="ui container">
+        <div class="ui large secondary pointing menu">
+            <a class="item" href="/">
+                <img class="ui bottom aligned tiny image" src="https://cdn.rawgit.com/pymc-devs/pymc3/master/docs/logos/svg/PyMC3_banner.svg" />
+            </a>
+            
+            <div class="right menu">
+                <div class="item">
+                    <form class="ui icon input" action="search.html" method="get">
+                        <input type="text" placeholder="Search..." name="q" />
+                        <i class="search link icon"></i>
+                    </form>
+                </div>
+                <a class="item" href="https://github.com/pymc-devs/symbolic_pymc"><i class="github blue icon large"></i></a>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<div class="ui container" role="main">
+    
+
+    <div class="ui vertical segment">
+        
+  <div class="section" id="symbolic-pymc-tensorflow-package">
+<h1>symbolic_pymc.tensorflow package<a class="headerlink" href="#symbolic-pymc-tensorflow-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-symbolic_pymc.tensorflow.meta">
+<span id="symbolic-pymc-tensorflow-meta-module"></span><h2>symbolic_pymc.tensorflow.meta module<a class="headerlink" href="#module-symbolic_pymc.tensorflow.meta" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="symbolic_pymc.tensorflow.meta.MetaOpDefLibrary">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.meta.</code><code class="sig-name descname">MetaOpDefLibrary</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.MetaOpDefLibrary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A singleton-like object that holds correspondences between TF Python API functions and the <a href="#id1"><span class="problematic" id="id2">`</span></a>OpDef`s they construct.</p>
+<p>It provides a map of <cite>OpDef</cite> names (lower-cased) to the Python API
+functions in <cite>tensorflow.raw_ops</cite>, as well as <cite>inspect.Signature</cite> objects
+for said functions so that default values and lists of arguments (keywords
+included) can be more easily used.</p>
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.get_op_info">
+<em class="property">classmethod </em><code class="sig-name descname">get_op_info</code><span class="sig-paren">(</span><em class="sig-param">opdef</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.get_op_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the TF Python API function signature for a given <cite>OpDef</cite>.</p>
+<blockquote>
+<div><p>opdef: str or <cite>OpDef</cite> object (meta or base)</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.lower_op_name_to_raw">
+<code class="sig-name descname">lower_op_name_to_raw</code><em class="property"> = {'abort': 'Abort', 'abs': 'Abs', 'accumulatenv2': 'AccumulateNV2', 'accumulatorapplygradient': 'AccumulatorApplyGradient', 'accumulatornumaccumulated': 'AccumulatorNumAccumulated', 'accumulatorsetglobalstep': 'AccumulatorSetGlobalStep', 'accumulatortakegradient': 'AccumulatorTakeGradient', 'acos': 'Acos', 'acosh': 'Acosh', 'add': 'Add', 'addmanysparsetotensorsmap': 'AddManySparseToTensorsMap', 'addn': 'AddN', 'addsparsetotensorsmap': 'AddSparseToTensorsMap', 'addv2': 'AddV2', 'adjustcontrast': 'AdjustContrast', 'adjustcontrastv2': 'AdjustContrastv2', 'adjusthue': 'AdjustHue', 'adjustsaturation': 'AdjustSaturation', 'all': 'All', 'allcandidatesampler': 'AllCandidateSampler', 'alltoall': 'AllToAll', 'angle': 'Angle', 'anonymousiterator': 'AnonymousIterator', 'anonymousiteratorv2': 'AnonymousIteratorV2', 'anonymousmemorycache': 'AnonymousMemoryCache', 'anonymousmultideviceiterator': 'AnonymousMultiDeviceIterator', 'anonymousrandomseedgenerator': 'AnonymousRandomSeedGenerator', 'any': 'Any', 'applyadadelta': 'ApplyAdadelta', 'applyadagrad': 'ApplyAdagrad', 'applyadagradda': 'ApplyAdagradDA', 'applyadagradv2': 'ApplyAdagradV2', 'applyadam': 'ApplyAdam', 'applyadamax': 'ApplyAdaMax', 'applyaddsign': 'ApplyAddSign', 'applycenteredrmsprop': 'ApplyCenteredRMSProp', 'applyftrl': 'ApplyFtrl', 'applyftrlv2': 'ApplyFtrlV2', 'applygradientdescent': 'ApplyGradientDescent', 'applymomentum': 'ApplyMomentum', 'applypowersign': 'ApplyPowerSign', 'applyproximaladagrad': 'ApplyProximalAdagrad', 'applyproximalgradientdescent': 'ApplyProximalGradientDescent', 'applyrmsprop': 'ApplyRMSProp', 'approximateequal': 'ApproximateEqual', 'argmax': 'ArgMax', 'argmin': 'ArgMin', 'asin': 'Asin', 'asinh': 'Asinh', 'assert': 'Assert', 'assertnextdataset': 'AssertNextDataset', 'assign': 'Assign', 'assignadd': 'AssignAdd', 'assignaddvariableop': 'AssignAddVariableOp', 'assignsub': 'AssignSub', 'assignsubvariableop': 'AssignSubVariableOp', 'assignvariableop': 'AssignVariableOp', 'asstring': 'AsString', 'atan': 'Atan', 'atan2': 'Atan2', 'atanh': 'Atanh', 'audiospectrogram': 'AudioSpectrogram', 'audiosummary': 'AudioSummary', 'audiosummaryv2': 'AudioSummaryV2', 'autosharddataset': 'AutoShardDataset', 'avgpool': 'AvgPool', 'avgpool3d': 'AvgPool3D', 'avgpool3dgrad': 'AvgPool3DGrad', 'avgpoolgrad': 'AvgPoolGrad', 'barrier': 'Barrier', 'barrierclose': 'BarrierClose', 'barrierincompletesize': 'BarrierIncompleteSize', 'barrierinsertmany': 'BarrierInsertMany', 'barrierreadysize': 'BarrierReadySize', 'barriertakemany': 'BarrierTakeMany', 'batch': 'Batch', 'batchcholesky': 'BatchCholesky', 'batchcholeskygrad': 'BatchCholeskyGrad', 'batchdataset': 'BatchDataset', 'batchdatasetv2': 'BatchDatasetV2', 'batchfft': 'BatchFFT', 'batchfft2d': 'BatchFFT2D', 'batchfft3d': 'BatchFFT3D', 'batchfunction': 'BatchFunction', 'batchifft': 'BatchIFFT', 'batchifft2d': 'BatchIFFT2D', 'batchifft3d': 'BatchIFFT3D', 'batchmatmul': 'BatchMatMul', 'batchmatmulv2': 'BatchMatMulV2', 'batchmatrixbandpart': 'BatchMatrixBandPart', 'batchmatrixdeterminant': 'BatchMatrixDeterminant', 'batchmatrixdiag': 'BatchMatrixDiag', 'batchmatrixdiagpart': 'BatchMatrixDiagPart', 'batchmatrixinverse': 'BatchMatrixInverse', 'batchmatrixsetdiag': 'BatchMatrixSetDiag', 'batchmatrixsolve': 'BatchMatrixSolve', 'batchmatrixsolvels': 'BatchMatrixSolveLs', 'batchmatrixtriangularsolve': 'BatchMatrixTriangularSolve', 'batchnormwithglobalnormalization': 'BatchNormWithGlobalNormalization', 'batchnormwithglobalnormalizationgrad': 'BatchNormWithGlobalNormalizationGrad', 'batchselfadjointeig': 'BatchSelfAdjointEig', 'batchselfadjointeigv2': 'BatchSelfAdjointEigV2', 'batchsvd': 'BatchSvd', 'batchtospace': 'BatchToSpace', 'batchtospacend': 'BatchToSpaceND', 'besseli0e': 'BesselI0e', 'besseli1e': 'BesselI1e', 'betainc': 'Betainc', 'biasadd': 'BiasAdd', 'biasaddgrad': 'BiasAddGrad', 'biasaddv1': 'BiasAddV1', 'bincount': 'Bincount', 'bitcast': 'Bitcast', 'bitwiseand': 'BitwiseAnd', 'bitwiseor': 'BitwiseOr', 'bitwisexor': 'BitwiseXor', 'blocklstm': 'BlockLSTM', 'blocklstmgrad': 'BlockLSTMGrad', 'blocklstmgradv2': 'BlockLSTMGradV2', 'blocklstmv2': 'BlockLSTMV2', 'boostedtreesaggregatestats': 'BoostedTreesAggregateStats', 'boostedtreesbucketize': 'BoostedTreesBucketize', 'boostedtreescalculatebestfeaturesplit': 'BoostedTreesCalculateBestFeatureSplit', 'boostedtreescalculatebestgainsperfeature': 'BoostedTreesCalculateBestGainsPerFeature', 'boostedtreescenterbias': 'BoostedTreesCenterBias', 'boostedtreescreateensemble': 'BoostedTreesCreateEnsemble', 'boostedtreescreatequantilestreamresource': 'BoostedTreesCreateQuantileStreamResource', 'boostedtreesdeserializeensemble': 'BoostedTreesDeserializeEnsemble', 'boostedtreesensembleresourcehandleop': 'BoostedTreesEnsembleResourceHandleOp', 'boostedtreesexampledebugoutputs': 'BoostedTreesExampleDebugOutputs', 'boostedtreesflushquantilesummaries': 'BoostedTreesFlushQuantileSummaries', 'boostedtreesgetensemblestates': 'BoostedTreesGetEnsembleStates', 'boostedtreesmakequantilesummaries': 'BoostedTreesMakeQuantileSummaries', 'boostedtreesmakestatssummary': 'BoostedTreesMakeStatsSummary', 'boostedtreespredict': 'BoostedTreesPredict', 'boostedtreesquantilestreamresourceaddsummaries': 'BoostedTreesQuantileStreamResourceAddSummaries', 'boostedtreesquantilestreamresourcedeserialize': 'BoostedTreesQuantileStreamResourceDeserialize', 'boostedtreesquantilestreamresourceflush': 'BoostedTreesQuantileStreamResourceFlush', 'boostedtreesquantilestreamresourcegetbucketboundaries': 'BoostedTreesQuantileStreamResourceGetBucketBoundaries', 'boostedtreesquantilestreamresourcehandleop': 'BoostedTreesQuantileStreamResourceHandleOp', 'boostedtreesserializeensemble': 'BoostedTreesSerializeEnsemble', 'boostedtreessparseaggregatestats': 'BoostedTreesSparseAggregateStats', 'boostedtreessparsecalculatebestfeaturesplit': 'BoostedTreesSparseCalculateBestFeatureSplit', 'boostedtreestrainingpredict': 'BoostedTreesTrainingPredict', 'boostedtreesupdateensemble': 'BoostedTreesUpdateEnsemble', 'boostedtreesupdateensemblev2': 'BoostedTreesUpdateEnsembleV2', 'broadcastargs': 'BroadcastArgs', 'broadcastgradientargs': 'BroadcastGradientArgs', 'broadcastto': 'BroadcastTo', 'bucketize': 'Bucketize', 'bytesproducedstatsdataset': 'BytesProducedStatsDataset', 'cachedataset': 'CacheDataset', 'cachedatasetv2': 'CacheDatasetV2', 'case': 'Case', 'cast': 'Cast', 'ceil': 'Ceil', 'checknumerics': 'CheckNumerics', 'cholesky': 'Cholesky', 'choleskygrad': 'CholeskyGrad', 'choosefastestbranchdataset': 'ChooseFastestBranchDataset', 'choosefastestdataset': 'ChooseFastestDataset', 'clipbyvalue': 'ClipByValue', 'closesummarywriter': 'CloseSummaryWriter', 'collectivebcastrecv': 'CollectiveBcastRecv', 'collectivebcastsend': 'CollectiveBcastSend', 'collectivegather': 'CollectiveGather', 'collectivepermute': 'CollectivePermute', 'collectivereduce': 'CollectiveReduce', 'combinednonmaxsuppression': 'CombinedNonMaxSuppression', 'compareandbitpack': 'CompareAndBitpack', 'complex': 'Complex', 'complexabs': 'ComplexAbs', 'computeaccidentalhits': 'ComputeAccidentalHits', 'concat': 'Concat', 'concatenatedataset': 'ConcatenateDataset', 'concatoffset': 'ConcatOffset', 'concatv2': 'ConcatV2', 'conditionalaccumulator': 'ConditionalAccumulator', 'configuredistributedtpu': 'ConfigureDistributedTPU', 'configuretpuembedding': 'ConfigureTPUEmbedding', 'conj': 'Conj', 'conjugatetranspose': 'ConjugateTranspose', 'const': 'Const', 'consumemutexlock': 'ConsumeMutexLock', 'controltrigger': 'ControlTrigger', 'conv2d': 'Conv2D', 'conv2dbackpropfilter': 'Conv2DBackpropFilter', 'conv2dbackpropinput': 'Conv2DBackpropInput', 'conv3d': 'Conv3D', 'conv3dbackpropfilter': 'Conv3DBackpropFilter', 'conv3dbackpropfilterv2': 'Conv3DBackpropFilterV2', 'conv3dbackpropinput': 'Conv3DBackpropInput', 'conv3dbackpropinputv2': 'Conv3DBackpropInputV2', 'cos': 'Cos', 'cosh': 'Cosh', 'countupto': 'CountUpTo', 'createsummarydbwriter': 'CreateSummaryDbWriter', 'createsummaryfilewriter': 'CreateSummaryFileWriter', 'cropandresize': 'CropAndResize', 'cropandresizegradboxes': 'CropAndResizeGradBoxes', 'cropandresizegradimage': 'CropAndResizeGradImage', 'cross': 'Cross', 'crossreplicasum': 'CrossReplicaSum', 'csvdataset': 'CSVDataset', 'ctcbeamsearchdecoder': 'CTCBeamSearchDecoder', 'ctcgreedydecoder': 'CTCGreedyDecoder', 'ctcloss': 'CTCLoss', 'cudnnrnn': 'CudnnRNN', 'cudnnrnnbackprop': 'CudnnRNNBackprop', 'cudnnrnnbackpropv2': 'CudnnRNNBackpropV2', 'cudnnrnnbackpropv3': 'CudnnRNNBackpropV3', 'cudnnrnncanonicaltoparams': 'CudnnRNNCanonicalToParams', 'cudnnrnncanonicaltoparamsv2': 'CudnnRNNCanonicalToParamsV2', 'cudnnrnnparamssize': 'CudnnRNNParamsSize', 'cudnnrnnparamstocanonical': 'CudnnRNNParamsToCanonical', 'cudnnrnnparamstocanonicalv2': 'CudnnRNNParamsToCanonicalV2', 'cudnnrnnv2': 'CudnnRNNV2', 'cudnnrnnv3': 'CudnnRNNV3', 'cumprod': 'Cumprod', 'cumsum': 'Cumsum', 'cumulativelogsumexp': 'CumulativeLogsumexp', 'dataformatdimmap': 'DataFormatDimMap', 'dataformatvecpermute': 'DataFormatVecPermute', 'datasetcardinality': 'DatasetCardinality', 'datasetfromgraph': 'DatasetFromGraph', 'datasettograph': 'DatasetToGraph', 'datasettosingleelement': 'DatasetToSingleElement', 'datasettotfrecord': 'DatasetToTFRecord', 'debuggradientidentity': 'DebugGradientIdentity', 'debuggradientrefidentity': 'DebugGradientRefIdentity', 'decodeandcropjpeg': 'DecodeAndCropJpeg', 'decodebase64': 'DecodeBase64', 'decodebmp': 'DecodeBmp', 'decodecompressed': 'DecodeCompressed', 'decodecsv': 'DecodeCSV', 'decodegif': 'DecodeGif', 'decodejpeg': 'DecodeJpeg', 'decodejsonexample': 'DecodeJSONExample', 'decodepaddedraw': 'DecodePaddedRaw', 'decodepng': 'DecodePng', 'decodeprotov2': 'DecodeProtoV2', 'decoderaw': 'DecodeRaw', 'decodewav': 'DecodeWav', 'deepcopy': 'DeepCopy', 'deleteiterator': 'DeleteIterator', 'deletememorycache': 'DeleteMemoryCache', 'deletemultideviceiterator': 'DeleteMultiDeviceIterator', 'deleterandomseedgenerator': 'DeleteRandomSeedGenerator', 'deletesessiontensor': 'DeleteSessionTensor', 'densetodensesetoperation': 'DenseToDenseSetOperation', 'densetosparsebatchdataset': 'DenseToSparseBatchDataset', 'densetosparsesetoperation': 'DenseToSparseSetOperation', 'depthtospace': 'DepthToSpace', 'depthwiseconv2dnative': 'DepthwiseConv2dNative', 'depthwiseconv2dnativebackpropfilter': 'DepthwiseConv2dNativeBackpropFilter', 'depthwiseconv2dnativebackpropinput': 'DepthwiseConv2dNativeBackpropInput', 'dequantize': 'Dequantize', 'deserializeiterator': 'DeserializeIterator', 'deserializemanysparse': 'DeserializeManySparse', 'deserializesparse': 'DeserializeSparse', 'destroyresourceop': 'DestroyResourceOp', 'destroytemporaryvariable': 'DestroyTemporaryVariable', 'diag': 'Diag', 'diagpart': 'DiagPart', 'digamma': 'Digamma', 'dilation2d': 'Dilation2D', 'dilation2dbackpropfilter': 'Dilation2DBackpropFilter', 'dilation2dbackpropinput': 'Dilation2DBackpropInput', 'directedinterleavedataset': 'DirectedInterleaveDataset', 'div': 'Div', 'divnonan': 'DivNoNan', 'drawboundingboxes': 'DrawBoundingBoxes', 'drawboundingboxesv2': 'DrawBoundingBoxesV2', 'dynamicpartition': 'DynamicPartition', 'dynamicstitch': 'DynamicStitch', 'eagerpyfunc': 'EagerPyFunc', 'editdistance': 'EditDistance', 'einsum': 'Einsum', 'elu': 'Elu', 'elugrad': 'EluGrad', 'empty': 'Empty', 'emptytensorlist': 'EmptyTensorList', 'encodebase64': 'EncodeBase64', 'encodejpeg': 'EncodeJpeg', 'encodejpegvariablequality': 'EncodeJpegVariableQuality', 'encodepng': 'EncodePng', 'encodeproto': 'EncodeProto', 'encodewav': 'EncodeWav', 'enqueuetpuembeddingintegerbatch': 'EnqueueTPUEmbeddingIntegerBatch', 'enqueuetpuembeddingsparsebatch': 'EnqueueTPUEmbeddingSparseBatch', 'enqueuetpuembeddingsparsetensorbatch': 'EnqueueTPUEmbeddingSparseTensorBatch', 'ensureshape': 'EnsureShape', 'enter': 'Enter', 'equal': 'Equal', 'erf': 'Erf', 'erfc': 'Erfc', 'euclideannorm': 'EuclideanNorm', 'exit': 'Exit', 'exp': 'Exp', 'expanddims': 'ExpandDims', 'experimentalassertnextdataset': 'ExperimentalAssertNextDataset', 'experimentalautosharddataset': 'ExperimentalAutoShardDataset', 'experimentalbytesproducedstatsdataset': 'ExperimentalBytesProducedStatsDataset', 'experimentalchoosefastestdataset': 'ExperimentalChooseFastestDataset', 'experimentalcsvdataset': 'ExperimentalCSVDataset', 'experimentaldatasetcardinality': 'ExperimentalDatasetCardinality', 'experimentaldatasettotfrecord': 'ExperimentalDatasetToTFRecord', 'experimentaldensetosparsebatchdataset': 'ExperimentalDenseToSparseBatchDataset', 'experimentaldirectedinterleavedataset': 'ExperimentalDirectedInterleaveDataset', 'experimentalgroupbyreducerdataset': 'ExperimentalGroupByReducerDataset', 'experimentalgroupbywindowdataset': 'ExperimentalGroupByWindowDataset', 'experimentalignoreerrorsdataset': 'ExperimentalIgnoreErrorsDataset', 'experimentaliteratorgetdevice': 'ExperimentalIteratorGetDevice', 'experimentallatencystatsdataset': 'ExperimentalLatencyStatsDataset', 'experimentallmdbdataset': 'ExperimentalLMDBDataset', 'experimentalmapandbatchdataset': 'ExperimentalMapAndBatchDataset', 'experimentalmapdataset': 'ExperimentalMapDataset', 'experimentalmatchingfilesdataset': 'ExperimentalMatchingFilesDataset', 'experimentalmaxintraopparallelismdataset': 'ExperimentalMaxIntraOpParallelismDataset', 'experimentalnonserializabledataset': 'ExperimentalNonSerializableDataset', 'experimentalparallelinterleavedataset': 'ExperimentalParallelInterleaveDataset', 'experimentalparseexampledataset': 'ExperimentalParseExampleDataset', 'experimentalprivatethreadpooldataset': 'ExperimentalPrivateThreadPoolDataset', 'experimentalrandomdataset': 'ExperimentalRandomDataset', 'experimentalrebatchdataset': 'ExperimentalRebatchDataset', 'experimentalscandataset': 'ExperimentalScanDataset', 'experimentalsetstatsaggregatordataset': 'ExperimentalSetStatsAggregatorDataset', 'experimentalsleepdataset': 'ExperimentalSleepDataset', 'experimentalslidingwindowdataset': 'ExperimentalSlidingWindowDataset', 'experimentalsqldataset': 'ExperimentalSqlDataset', 'experimentalstatsaggregatorhandle': 'ExperimentalStatsAggregatorHandle', 'experimentalstatsaggregatorsummary': 'ExperimentalStatsAggregatorSummary', 'experimentaltakewhiledataset': 'ExperimentalTakeWhileDataset', 'experimentalthreadpooldataset': 'ExperimentalThreadPoolDataset', 'experimentalthreadpoolhandle': 'ExperimentalThreadPoolHandle', 'experimentalunbatchdataset': 'ExperimentalUnbatchDataset', 'experimentaluniquedataset': 'ExperimentalUniqueDataset', 'expm1': 'Expm1', 'extractglimpse': 'ExtractGlimpse', 'extractimagepatches': 'ExtractImagePatches', 'extractjpegshape': 'ExtractJpegShape', 'extractvolumepatches': 'ExtractVolumePatches', 'fact': 'Fact', 'fakeparam': 'FakeParam', 'fakequantwithminmaxargs': 'FakeQuantWithMinMaxArgs', 'fakequantwithminmaxargsgradient': 'FakeQuantWithMinMaxArgsGradient', 'fakequantwithminmaxvars': 'FakeQuantWithMinMaxVars', 'fakequantwithminmaxvarsgradient': 'FakeQuantWithMinMaxVarsGradient', 'fakequantwithminmaxvarsperchannel': 'FakeQuantWithMinMaxVarsPerChannel', 'fakequantwithminmaxvarsperchannelgradient': 'FakeQuantWithMinMaxVarsPerChannelGradient', 'fakequeue': 'FakeQueue', 'fft': 'FFT', 'fft2d': 'FFT2D', 'fft3d': 'FFT3D', 'fifoqueue': 'FIFOQueue', 'fifoqueuev2': 'FIFOQueueV2', 'fill': 'Fill', 'filterbylastcomponentdataset': 'FilterByLastComponentDataset', 'filterdataset': 'FilterDataset', 'fingerprint': 'Fingerprint', 'fixedlengthrecorddataset': 'FixedLengthRecordDataset', 'fixedlengthrecorddatasetv2': 'FixedLengthRecordDatasetV2', 'fixedlengthrecordreader': 'FixedLengthRecordReader', 'fixedlengthrecordreaderv2': 'FixedLengthRecordReaderV2', 'fixedunigramcandidatesampler': 'FixedUnigramCandidateSampler', 'flatmapdataset': 'FlatMapDataset', 'floor': 'Floor', 'floordiv': 'FloorDiv', 'floormod': 'FloorMod', 'flushsummarywriter': 'FlushSummaryWriter', 'for': 'For', 'fractionalavgpool': 'FractionalAvgPool', 'fractionalavgpoolgrad': 'FractionalAvgPoolGrad', 'fractionalmaxpool': 'FractionalMaxPool', 'fractionalmaxpoolgrad': 'FractionalMaxPoolGrad', 'fusedbatchnorm': 'FusedBatchNorm', 'fusedbatchnormgrad': 'FusedBatchNormGrad', 'fusedbatchnormgradv2': 'FusedBatchNormGradV2', 'fusedbatchnormgradv3': 'FusedBatchNormGradV3', 'fusedbatchnormv2': 'FusedBatchNormV2', 'fusedbatchnormv3': 'FusedBatchNormV3', 'fusedpadconv2d': 'FusedPadConv2D', 'fusedresizeandpadconv2d': 'FusedResizeAndPadConv2D', 'gather': 'Gather', 'gathernd': 'GatherNd', 'gatherv2': 'GatherV2', 'generatevocabremapping': 'GenerateVocabRemapping', 'generatordataset': 'GeneratorDataset', 'getsessionhandle': 'GetSessionHandle', 'getsessionhandlev2': 'GetSessionHandleV2', 'getsessiontensor': 'GetSessionTensor', 'greater': 'Greater', 'greaterequal': 'GreaterEqual', 'groupbyreducerdataset': 'GroupByReducerDataset', 'groupbywindowdataset': 'GroupByWindowDataset', 'grublockcell': 'GRUBlockCell', 'grublockcellgrad': 'GRUBlockCellGrad', 'guaranteeconst': 'GuaranteeConst', 'hashtable': 'HashTable', 'hashtablev2': 'HashTableV2', 'histogramfixedwidth': 'HistogramFixedWidth', 'histogramsummary': 'HistogramSummary', 'hsvtorgb': 'HSVToRGB', 'identity': 'Identity', 'identityn': 'IdentityN', 'identityreader': 'IdentityReader', 'identityreaderv2': 'IdentityReaderV2', 'if': 'If', 'ifft': 'IFFT', 'ifft2d': 'IFFT2D', 'ifft3d': 'IFFT3D', 'igamma': 'Igamma', 'igammac': 'Igammac', 'igammagrada': 'IgammaGradA', 'ignoreerrorsdataset': 'IgnoreErrorsDataset', 'imag': 'Imag', 'imagesummary': 'ImageSummary', 'immutableconst': 'ImmutableConst', 'importevent': 'ImportEvent', 'infeeddequeue': 'InfeedDequeue', 'infeeddequeuetuple': 'InfeedDequeueTuple', 'infeedenqueue': 'InfeedEnqueue', 'infeedenqueueprelinearizedbuffer': 'InfeedEnqueuePrelinearizedBuffer', 'infeedenqueuetuple': 'InfeedEnqueueTuple', 'initializetable': 'InitializeTable', 'initializetablefromtextfile': 'InitializeTableFromTextFile', 'initializetablefromtextfilev2': 'InitializeTableFromTextFileV2', 'initializetablev2': 'InitializeTableV2', 'inplaceadd': 'InplaceAdd', 'inplacesub': 'InplaceSub', 'inplaceupdate': 'InplaceUpdate', 'interleavedataset': 'InterleaveDataset', 'intopk': 'InTopK', 'intopkv2': 'InTopKV2', 'inv': 'Inv', 'invert': 'Invert', 'invertpermutation': 'InvertPermutation', 'invgrad': 'InvGrad', 'irfft': 'IRFFT', 'irfft2d': 'IRFFT2D', 'irfft3d': 'IRFFT3D', 'isboostedtreesensembleinitialized': 'IsBoostedTreesEnsembleInitialized', 'isboostedtreesquantilestreamresourceinitialized': 'IsBoostedTreesQuantileStreamResourceInitialized', 'isfinite': 'IsFinite', 'isinf': 'IsInf', 'isnan': 'IsNan', 'isvariableinitialized': 'IsVariableInitialized', 'iterator': 'Iterator', 'iteratorfromstringhandle': 'IteratorFromStringHandle', 'iteratorfromstringhandlev2': 'IteratorFromStringHandleV2', 'iteratorgetdevice': 'IteratorGetDevice', 'iteratorgetnext': 'IteratorGetNext', 'iteratorgetnextasoptional': 'IteratorGetNextAsOptional', 'iteratorgetnextsync': 'IteratorGetNextSync', 'iteratortostringhandle': 'IteratorToStringHandle', 'iteratorv2': 'IteratorV2', 'l2loss': 'L2Loss', 'latencystatsdataset': 'LatencyStatsDataset', 'leakyrelu': 'LeakyRelu', 'leakyrelugrad': 'LeakyReluGrad', 'learnedunigramcandidatesampler': 'LearnedUnigramCandidateSampler', 'leftshift': 'LeftShift', 'less': 'Less', 'lessequal': 'LessEqual', 'lgamma': 'Lgamma', 'linspace': 'LinSpace', 'listdiff': 'ListDiff', 'lmdbdataset': 'LMDBDataset', 'lmdbreader': 'LMDBReader', 'loadandremapmatrix': 'LoadAndRemapMatrix', 'loadtpuembeddingadadeltaparameters': 'LoadTPUEmbeddingAdadeltaParameters', 'loadtpuembeddingadadeltaparametersgradaccumdebug': 'LoadTPUEmbeddingAdadeltaParametersGradAccumDebug', 'loadtpuembeddingadagradparameters': 'LoadTPUEmbeddingAdagradParameters', 'loadtpuembeddingadagradparametersgradaccumdebug': 'LoadTPUEmbeddingAdagradParametersGradAccumDebug', 'loadtpuembeddingadamparameters': 'LoadTPUEmbeddingADAMParameters', 'loadtpuembeddingadamparametersgradaccumdebug': 'LoadTPUEmbeddingADAMParametersGradAccumDebug', 'loadtpuembeddingcenteredrmspropparameters': 'LoadTPUEmbeddingCenteredRMSPropParameters', 'loadtpuembeddingftrlparameters': 'LoadTPUEmbeddingFTRLParameters', 'loadtpuembeddingftrlparametersgradaccumdebug': 'LoadTPUEmbeddingFTRLParametersGradAccumDebug', 'loadtpuembeddingmdladagradlightparameters': 'LoadTPUEmbeddingMDLAdagradLightParameters', 'loadtpuembeddingmomentumparameters': 'LoadTPUEmbeddingMomentumParameters', 'loadtpuembeddingmomentumparametersgradaccumdebug': 'LoadTPUEmbeddingMomentumParametersGradAccumDebug', 'loadtpuembeddingproximaladagradparameters': 'LoadTPUEmbeddingProximalAdagradParameters', 'loadtpuembeddingproximaladagradparametersgradaccumdebug': 'LoadTPUEmbeddingProximalAdagradParametersGradAccumDebug', 'loadtpuembeddingrmspropparameters': 'LoadTPUEmbeddingRMSPropParameters', 'loadtpuembeddingrmspropparametersgradaccumdebug': 'LoadTPUEmbeddingRMSPropParametersGradAccumDebug', 'loadtpuembeddingstochasticgradientdescentparameters': 'LoadTPUEmbeddingStochasticGradientDescentParameters', 'log': 'Log', 'log1p': 'Log1p', 'logicaland': 'LogicalAnd', 'logicalnot': 'LogicalNot', 'logicalor': 'LogicalOr', 'logmatrixdeterminant': 'LogMatrixDeterminant', 'logsoftmax': 'LogSoftmax', 'loguniformcandidatesampler': 'LogUniformCandidateSampler', 'lookuptableexport': 'LookupTableExport', 'lookuptableexportv2': 'LookupTableExportV2', 'lookuptablefind': 'LookupTableFind', 'lookuptablefindv2': 'LookupTableFindV2', 'lookuptableimport': 'LookupTableImport', 'lookuptableimportv2': 'LookupTableImportV2', 'lookuptableinsert': 'LookupTableInsert', 'lookuptableinsertv2': 'LookupTableInsertV2', 'lookuptableremovev2': 'LookupTableRemoveV2', 'lookuptablesize': 'LookupTableSize', 'lookuptablesizev2': 'LookupTableSizeV2', 'loopcond': 'LoopCond', 'lowerbound': 'LowerBound', 'lrn': 'LRN', 'lrngrad': 'LRNGrad', 'lstmblockcell': 'LSTMBlockCell', 'lstmblockcellgrad': 'LSTMBlockCellGrad', 'lu': 'Lu', 'makeiterator': 'MakeIterator', 'mapandbatchdataset': 'MapAndBatchDataset', 'mapclear': 'MapClear', 'mapdataset': 'MapDataset', 'mapdefun': 'MapDefun', 'mapincompletesize': 'MapIncompleteSize', 'mappeek': 'MapPeek', 'mapsize': 'MapSize', 'mapstage': 'MapStage', 'mapunstage': 'MapUnstage', 'mapunstagenokey': 'MapUnstageNoKey', 'matchingfiles': 'MatchingFiles', 'matchingfilesdataset': 'MatchingFilesDataset', 'matmul': 'MatMul', 'matrixbandpart': 'MatrixBandPart', 'matrixdeterminant': 'MatrixDeterminant', 'matrixdiag': 'MatrixDiag', 'matrixdiagpart': 'MatrixDiagPart', 'matrixdiagpartv2': 'MatrixDiagPartV2', 'matrixdiagv2': 'MatrixDiagV2', 'matrixexponential': 'MatrixExponential', 'matrixinverse': 'MatrixInverse', 'matrixlogarithm': 'MatrixLogarithm', 'matrixsetdiag': 'MatrixSetDiag', 'matrixsetdiagv2': 'MatrixSetDiagV2', 'matrixsolve': 'MatrixSolve', 'matrixsolvels': 'MatrixSolveLs', 'matrixsquareroot': 'MatrixSquareRoot', 'matrixtriangularsolve': 'MatrixTriangularSolve', 'max': 'Max', 'maximum': 'Maximum', 'maxintraopparallelismdataset': 'MaxIntraOpParallelismDataset', 'maxpool': 'MaxPool', 'maxpool3d': 'MaxPool3D', 'maxpool3dgrad': 'MaxPool3DGrad', 'maxpool3dgradgrad': 'MaxPool3DGradGrad', 'maxpoolgrad': 'MaxPoolGrad', 'maxpoolgradgrad': 'MaxPoolGradGrad', 'maxpoolgradgradv2': 'MaxPoolGradGradV2', 'maxpoolgradgradwithargmax': 'MaxPoolGradGradWithArgmax', 'maxpoolgradv2': 'MaxPoolGradV2', 'maxpoolgradwithargmax': 'MaxPoolGradWithArgmax', 'maxpoolv2': 'MaxPoolV2', 'maxpoolwithargmax': 'MaxPoolWithArgmax', 'mean': 'Mean', 'merge': 'Merge', 'mergesummary': 'MergeSummary', 'mergev2checkpoints': 'MergeV2Checkpoints', 'mfcc': 'Mfcc', 'min': 'Min', 'minimum': 'Minimum', 'mirrorpad': 'MirrorPad', 'mirrorpadgrad': 'MirrorPadGrad', 'mod': 'Mod', 'modeldataset': 'ModelDataset', 'mul': 'Mul', 'mulnonan': 'MulNoNan', 'multideviceiterator': 'MultiDeviceIterator', 'multideviceiteratorfromstringhandle': 'MultiDeviceIteratorFromStringHandle', 'multideviceiteratorgetnextfromshard': 'MultiDeviceIteratorGetNextFromShard', 'multideviceiteratorinit': 'MultiDeviceIteratorInit', 'multideviceiteratortostringhandle': 'MultiDeviceIteratorToStringHandle', 'multinomial': 'Multinomial', 'mutabledensehashtable': 'MutableDenseHashTable', 'mutabledensehashtablev2': 'MutableDenseHashTableV2', 'mutablehashtable': 'MutableHashTable', 'mutablehashtableoftensors': 'MutableHashTableOfTensors', 'mutablehashtableoftensorsv2': 'MutableHashTableOfTensorsV2', 'mutablehashtablev2': 'MutableHashTableV2', 'mutexlock': 'MutexLock', 'mutexv2': 'MutexV2', 'ncclallreduce': 'NcclAllReduce', 'ncclbroadcast': 'NcclBroadcast', 'ncclreduce': 'NcclReduce', 'neg': 'Neg', 'nextafter': 'NextAfter', 'nextiteration': 'NextIteration', 'nondeterministicints': 'NonDeterministicInts', 'nonmaxsuppression': 'NonMaxSuppression', 'nonmaxsuppressionv2': 'NonMaxSuppressionV2', 'nonmaxsuppressionv3': 'NonMaxSuppressionV3', 'nonmaxsuppressionv4': 'NonMaxSuppressionV4', 'nonmaxsuppressionv5': 'NonMaxSuppressionV5', 'nonmaxsuppressionwithoverlaps': 'NonMaxSuppressionWithOverlaps', 'nonserializabledataset': 'NonSerializableDataset', 'noop': 'NoOp', 'notequal': 'NotEqual', 'nthelement': 'NthElement', 'onehot': 'OneHot', 'oneshotiterator': 'OneShotIterator', 'oneslike': 'OnesLike', 'optimizedataset': 'OptimizeDataset', 'optionalfromvalue': 'OptionalFromValue', 'optionalgetvalue': 'OptionalGetValue', 'optionalhasvalue': 'OptionalHasValue', 'optionalnone': 'OptionalNone', 'orderedmapclear': 'OrderedMapClear', 'orderedmapincompletesize': 'OrderedMapIncompleteSize', 'orderedmappeek': 'OrderedMapPeek', 'orderedmapsize': 'OrderedMapSize', 'orderedmapstage': 'OrderedMapStage', 'orderedmapunstage': 'OrderedMapUnstage', 'orderedmapunstagenokey': 'OrderedMapUnstageNoKey', 'outfeeddequeue': 'OutfeedDequeue', 'outfeeddequeuetuple': 'OutfeedDequeueTuple', 'outfeedenqueue': 'OutfeedEnqueue', 'outfeedenqueuetuple': 'OutfeedEnqueueTuple', 'pack': 'Pack', 'pad': 'Pad', 'paddedbatchdataset': 'PaddedBatchDataset', 'paddedbatchdatasetv2': 'PaddedBatchDatasetV2', 'paddingfifoqueue': 'PaddingFIFOQueue', 'paddingfifoqueuev2': 'PaddingFIFOQueueV2', 'padv2': 'PadV2', 'parallelconcat': 'ParallelConcat', 'paralleldynamicstitch': 'ParallelDynamicStitch', 'parallelinterleavedataset': 'ParallelInterleaveDataset', 'parallelinterleavedatasetv2': 'ParallelInterleaveDatasetV2', 'parallelmapdataset': 'ParallelMapDataset', 'parameterizedtruncatednormal': 'ParameterizedTruncatedNormal', 'parseexample': 'ParseExample', 'parseexampledataset': 'ParseExampleDataset', 'parseexamplev2': 'ParseExampleV2', 'parsesequenceexample': 'ParseSequenceExample', 'parsesingleexample': 'ParseSingleExample', 'parsesinglesequenceexample': 'ParseSingleSequenceExample', 'parsetensor': 'ParseTensor', 'partitionedcall': 'PartitionedCall', 'placeholder': 'Placeholder', 'placeholderv2': 'PlaceholderV2', 'placeholderwithdefault': 'PlaceholderWithDefault', 'polygamma': 'Polygamma', 'populationcount': 'PopulationCount', 'pow': 'Pow', 'prefetchdataset': 'PrefetchDataset', 'prelinearize': 'Prelinearize', 'prelinearizetuple': 'PrelinearizeTuple', 'preventgradient': 'PreventGradient', 'print': 'Print', 'printv2': 'PrintV2', 'priorityqueue': 'PriorityQueue', 'priorityqueuev2': 'PriorityQueueV2', 'privatethreadpooldataset': 'PrivateThreadPoolDataset', 'prod': 'Prod', 'pyfunc': 'PyFunc', 'pyfuncstateless': 'PyFuncStateless', 'qr': 'Qr', 'quantizeanddequantize': 'QuantizeAndDequantize', 'quantizeanddequantizev2': 'QuantizeAndDequantizeV2', 'quantizeanddequantizev3': 'QuantizeAndDequantizeV3', 'quantizedadd': 'QuantizedAdd', 'quantizedavgpool': 'QuantizedAvgPool', 'quantizedbatchnormwithglobalnormalization': 'QuantizedBatchNormWithGlobalNormalization', 'quantizedbiasadd': 'QuantizedBiasAdd', 'quantizedconcat': 'QuantizedConcat', 'quantizedconv2d': 'QuantizedConv2D', 'quantizedconv2dandrelu': 'QuantizedConv2DAndRelu', 'quantizedconv2dandreluandrequantize': 'QuantizedConv2DAndReluAndRequantize', 'quantizedconv2dandrequantize': 'QuantizedConv2DAndRequantize', 'quantizedconv2dperchannel': 'QuantizedConv2DPerChannel', 'quantizedconv2dwithbias': 'QuantizedConv2DWithBias', 'quantizedconv2dwithbiasandrelu': 'QuantizedConv2DWithBiasAndRelu', 'quantizedconv2dwithbiasandreluandrequantize': 'QuantizedConv2DWithBiasAndReluAndRequantize', 'quantizedconv2dwithbiasandrequantize': 'QuantizedConv2DWithBiasAndRequantize', 'quantizedconv2dwithbiassignedsumandreluandrequantize': 'QuantizedConv2DWithBiasSignedSumAndReluAndRequantize', 'quantizedconv2dwithbiassumandrelu': 'QuantizedConv2DWithBiasSumAndRelu', 'quantizedconv2dwithbiassumandreluandrequantize': 'QuantizedConv2DWithBiasSumAndReluAndRequantize', 'quantizeddepthwiseconv2d': 'QuantizedDepthwiseConv2D', 'quantizeddepthwiseconv2dwithbias': 'QuantizedDepthwiseConv2DWithBias', 'quantizeddepthwiseconv2dwithbiasandrelu': 'QuantizedDepthwiseConv2DWithBiasAndRelu', 'quantizeddepthwiseconv2dwithbiasandreluandrequantize': 'QuantizedDepthwiseConv2DWithBiasAndReluAndRequantize', 'quantizedinstancenorm': 'QuantizedInstanceNorm', 'quantizedmatmul': 'QuantizedMatMul', 'quantizedmatmulwithbias': 'QuantizedMatMulWithBias', 'quantizedmatmulwithbiasandrelu': 'QuantizedMatMulWithBiasAndRelu', 'quantizedmatmulwithbiasandreluandrequantize': 'QuantizedMatMulWithBiasAndReluAndRequantize', 'quantizedmaxpool': 'QuantizedMaxPool', 'quantizedmul': 'QuantizedMul', 'quantizedownandshrinkrange': 'QuantizeDownAndShrinkRange', 'quantizedrelu': 'QuantizedRelu', 'quantizedrelu6': 'QuantizedRelu6', 'quantizedrelux': 'QuantizedReluX', 'quantizedreshape': 'QuantizedReshape', 'quantizedresizebilinear': 'QuantizedResizeBilinear', 'quantizev2': 'QuantizeV2', 'queueclose': 'QueueClose', 'queueclosev2': 'QueueCloseV2', 'queuedequeue': 'QueueDequeue', 'queuedequeuemany': 'QueueDequeueMany', 'queuedequeuemanyv2': 'QueueDequeueManyV2', 'queuedequeueupto': 'QueueDequeueUpTo', 'queuedequeueuptov2': 'QueueDequeueUpToV2', 'queuedequeuev2': 'QueueDequeueV2', 'queueenqueue': 'QueueEnqueue', 'queueenqueuemany': 'QueueEnqueueMany', 'queueenqueuemanyv2': 'QueueEnqueueManyV2', 'queueenqueuev2': 'QueueEnqueueV2', 'queueisclosed': 'QueueIsClosed', 'queueisclosedv2': 'QueueIsClosedV2', 'queuesize': 'QueueSize', 'queuesizev2': 'QueueSizeV2', 'raggedgather': 'RaggedGather', 'raggedrange': 'RaggedRange', 'raggedtensorfromvariant': 'RaggedTensorFromVariant', 'raggedtensortosparse': 'RaggedTensorToSparse', 'raggedtensortotensor': 'RaggedTensorToTensor', 'raggedtensortovariant': 'RaggedTensorToVariant', 'randomcrop': 'RandomCrop', 'randomdataset': 'RandomDataset', 'randomgamma': 'RandomGamma', 'randomgammagrad': 'RandomGammaGrad', 'randompoisson': 'RandomPoisson', 'randompoissonv2': 'RandomPoissonV2', 'randomshuffle': 'RandomShuffle', 'randomshufflequeue': 'RandomShuffleQueue', 'randomshufflequeuev2': 'RandomShuffleQueueV2', 'randomstandardnormal': 'RandomStandardNormal', 'randomuniform': 'RandomUniform', 'randomuniformint': 'RandomUniformInt', 'range': 'Range', 'rangedataset': 'RangeDataset', 'rank': 'Rank', 'readernumrecordsproduced': 'ReaderNumRecordsProduced', 'readernumrecordsproducedv2': 'ReaderNumRecordsProducedV2', 'readernumworkunitscompleted': 'ReaderNumWorkUnitsCompleted', 'readernumworkunitscompletedv2': 'ReaderNumWorkUnitsCompletedV2', 'readerread': 'ReaderRead', 'readerreadupto': 'ReaderReadUpTo', 'readerreaduptov2': 'ReaderReadUpToV2', 'readerreadv2': 'ReaderReadV2', 'readerreset': 'ReaderReset', 'readerresetv2': 'ReaderResetV2', 'readerrestorestate': 'ReaderRestoreState', 'readerrestorestatev2': 'ReaderRestoreStateV2', 'readerserializestate': 'ReaderSerializeState', 'readerserializestatev2': 'ReaderSerializeStateV2', 'readfile': 'ReadFile', 'readvariableop': 'ReadVariableOp', 'real': 'Real', 'realdiv': 'RealDiv', 'rebatchdataset': 'RebatchDataset', 'reciprocal': 'Reciprocal', 'reciprocalgrad': 'ReciprocalGrad', 'recordinput': 'RecordInput', 'recv': 'Recv', 'recvtpuembeddingactivations': 'RecvTPUEmbeddingActivations', 'reducedataset': 'ReduceDataset', 'reducejoin': 'ReduceJoin', 'refenter': 'RefEnter', 'refexit': 'RefExit', 'refidentity': 'RefIdentity', 'refmerge': 'RefMerge', 'refnextiteration': 'RefNextIteration', 'refselect': 'RefSelect', 'refswitch': 'RefSwitch', 'regexfullmatch': 'RegexFullMatch', 'regexreplace': 'RegexReplace', 'relu': 'Relu', 'relu6': 'Relu6', 'relu6grad': 'Relu6Grad', 'relugrad': 'ReluGrad', 'remotecall': 'RemoteCall', 'repeatdataset': 'RepeatDataset', 'requantizationrange': 'RequantizationRange', 'requantizationrangeperchannel': 'RequantizationRangePerChannel', 'requantize': 'Requantize', 'requantizeperchannel': 'RequantizePerChannel', 'reshape': 'Reshape', 'resizearea': 'ResizeArea', 'resizebicubic': 'ResizeBicubic', 'resizebicubicgrad': 'ResizeBicubicGrad', 'resizebilinear': 'ResizeBilinear', 'resizebilineargrad': 'ResizeBilinearGrad', 'resizenearestneighbor': 'ResizeNearestNeighbor', 'resizenearestneighborgrad': 'ResizeNearestNeighborGrad', 'resourceaccumulatorapplygradient': 'ResourceAccumulatorApplyGradient', 'resourceaccumulatornumaccumulated': 'ResourceAccumulatorNumAccumulated', 'resourceaccumulatorsetglobalstep': 'ResourceAccumulatorSetGlobalStep', 'resourceaccumulatortakegradient': 'ResourceAccumulatorTakeGradient', 'resourceapplyadadelta': 'ResourceApplyAdadelta', 'resourceapplyadagrad': 'ResourceApplyAdagrad', 'resourceapplyadagradda': 'ResourceApplyAdagradDA', 'resourceapplyadagradv2': 'ResourceApplyAdagradV2', 'resourceapplyadam': 'ResourceApplyAdam', 'resourceapplyadamax': 'ResourceApplyAdaMax', 'resourceapplyadamwithamsgrad': 'ResourceApplyAdamWithAmsgrad', 'resourceapplyaddsign': 'ResourceApplyAddSign', 'resourceapplycenteredrmsprop': 'ResourceApplyCenteredRMSProp', 'resourceapplyftrl': 'ResourceApplyFtrl', 'resourceapplyftrlv2': 'ResourceApplyFtrlV2', 'resourceapplygradientdescent': 'ResourceApplyGradientDescent', 'resourceapplykerasmomentum': 'ResourceApplyKerasMomentum', 'resourceapplymomentum': 'ResourceApplyMomentum', 'resourceapplypowersign': 'ResourceApplyPowerSign', 'resourceapplyproximaladagrad': 'ResourceApplyProximalAdagrad', 'resourceapplyproximalgradientdescent': 'ResourceApplyProximalGradientDescent', 'resourceapplyrmsprop': 'ResourceApplyRMSProp', 'resourceconditionalaccumulator': 'ResourceConditionalAccumulator', 'resourcecountupto': 'ResourceCountUpTo', 'resourcegather': 'ResourceGather', 'resourcegathernd': 'ResourceGatherNd', 'resourcescatteradd': 'ResourceScatterAdd', 'resourcescatterdiv': 'ResourceScatterDiv', 'resourcescattermax': 'ResourceScatterMax', 'resourcescattermin': 'ResourceScatterMin', 'resourcescattermul': 'ResourceScatterMul', 'resourcescatterndadd': 'ResourceScatterNdAdd', 'resourcescatterndsub': 'ResourceScatterNdSub', 'resourcescatterndupdate': 'ResourceScatterNdUpdate', 'resourcescattersub': 'ResourceScatterSub', 'resourcescatterupdate': 'ResourceScatterUpdate', 'resourcesparseapplyadadelta': 'ResourceSparseApplyAdadelta', 'resourcesparseapplyadagrad': 'ResourceSparseApplyAdagrad', 'resourcesparseapplyadagradda': 'ResourceSparseApplyAdagradDA', 'resourcesparseapplyadagradv2': 'ResourceSparseApplyAdagradV2', 'resourcesparseapplycenteredrmsprop': 'ResourceSparseApplyCenteredRMSProp', 'resourcesparseapplyftrl': 'ResourceSparseApplyFtrl', 'resourcesparseapplyftrlv2': 'ResourceSparseApplyFtrlV2', 'resourcesparseapplykerasmomentum': 'ResourceSparseApplyKerasMomentum', 'resourcesparseapplymomentum': 'ResourceSparseApplyMomentum', 'resourcesparseapplyproximaladagrad': 'ResourceSparseApplyProximalAdagrad', 'resourcesparseapplyproximalgradientdescent': 'ResourceSparseApplyProximalGradientDescent', 'resourcesparseapplyrmsprop': 'ResourceSparseApplyRMSProp', 'resourcestridedsliceassign': 'ResourceStridedSliceAssign', 'restore': 'Restore', 'restoreslice': 'RestoreSlice', 'restorev2': 'RestoreV2', 'retrievetpuembeddingadadeltaparameters': 'RetrieveTPUEmbeddingAdadeltaParameters', 'retrievetpuembeddingadadeltaparametersgradaccumdebug': 'RetrieveTPUEmbeddingAdadeltaParametersGradAccumDebug', 'retrievetpuembeddingadagradparameters': 'RetrieveTPUEmbeddingAdagradParameters', 'retrievetpuembeddingadagradparametersgradaccumdebug': 'RetrieveTPUEmbeddingAdagradParametersGradAccumDebug', 'retrievetpuembeddingadamparameters': 'RetrieveTPUEmbeddingADAMParameters', 'retrievetpuembeddingadamparametersgradaccumdebug': 'RetrieveTPUEmbeddingADAMParametersGradAccumDebug', 'retrievetpuembeddingcenteredrmspropparameters': 'RetrieveTPUEmbeddingCenteredRMSPropParameters', 'retrievetpuembeddingftrlparameters': 'RetrieveTPUEmbeddingFTRLParameters', 'retrievetpuembeddingftrlparametersgradaccumdebug': 'RetrieveTPUEmbeddingFTRLParametersGradAccumDebug', 'retrievetpuembeddingmdladagradlightparameters': 'RetrieveTPUEmbeddingMDLAdagradLightParameters', 'retrievetpuembeddingmomentumparameters': 'RetrieveTPUEmbeddingMomentumParameters', 'retrievetpuembeddingmomentumparametersgradaccumdebug': 'RetrieveTPUEmbeddingMomentumParametersGradAccumDebug', 'retrievetpuembeddingproximaladagradparameters': 'RetrieveTPUEmbeddingProximalAdagradParameters', 'retrievetpuembeddingproximaladagradparametersgradaccumdebug': 'RetrieveTPUEmbeddingProximalAdagradParametersGradAccumDebug', 'retrievetpuembeddingrmspropparameters': 'RetrieveTPUEmbeddingRMSPropParameters', 'retrievetpuembeddingrmspropparametersgradaccumdebug': 'RetrieveTPUEmbeddingRMSPropParametersGradAccumDebug', 'retrievetpuembeddingstochasticgradientdescentparameters': 'RetrieveTPUEmbeddingStochasticGradientDescentParameters', 'reverse': 'Reverse', 'reversesequence': 'ReverseSequence', 'reversev2': 'ReverseV2', 'rfft': 'RFFT', 'rfft2d': 'RFFT2D', 'rfft3d': 'RFFT3D', 'rgbtohsv': 'RGBToHSV', 'rightshift': 'RightShift', 'rint': 'Rint', 'rngskip': 'RngSkip', 'roll': 'Roll', 'round': 'Round', 'rsqrt': 'Rsqrt', 'rsqrtgrad': 'RsqrtGrad', 'sampledistortedboundingbox': 'SampleDistortedBoundingBox', 'sampledistortedboundingboxv2': 'SampleDistortedBoundingBoxV2', 'samplingdataset': 'SamplingDataset', 'save': 'Save', 'saveslices': 'SaveSlices', 'savev2': 'SaveV2', 'scalarsummary': 'ScalarSummary', 'scaleandtranslate': 'ScaleAndTranslate', 'scaleandtranslategrad': 'ScaleAndTranslateGrad', 'scandataset': 'ScanDataset', 'scatteradd': 'ScatterAdd', 'scatterdiv': 'ScatterDiv', 'scattermax': 'ScatterMax', 'scattermin': 'ScatterMin', 'scattermul': 'ScatterMul', 'scatternd': 'ScatterNd', 'scatterndadd': 'ScatterNdAdd', 'scatterndnonaliasingadd': 'ScatterNdNonAliasingAdd', 'scatterndsub': 'ScatterNdSub', 'scatterndupdate': 'ScatterNdUpdate', 'scattersub': 'ScatterSub', 'scatterupdate': 'ScatterUpdate', 'sdcafprint': 'SdcaFprint', 'sdcaoptimizer': 'SdcaOptimizer', 'sdcaoptimizerv2': 'SdcaOptimizerV2', 'sdcashrinkl1': 'SdcaShrinkL1', 'segmentmax': 'SegmentMax', 'segmentmean': 'SegmentMean', 'segmentmin': 'SegmentMin', 'segmentprod': 'SegmentProd', 'segmentsum': 'SegmentSum', 'select': 'Select', 'selectv2': 'SelectV2', 'selfadjointeig': 'SelfAdjointEig', 'selfadjointeigv2': 'SelfAdjointEigV2', 'selu': 'Selu', 'selugrad': 'SeluGrad', 'send': 'Send', 'sendtpuembeddinggradients': 'SendTPUEmbeddingGradients', 'serializeiterator': 'SerializeIterator', 'serializemanysparse': 'SerializeManySparse', 'serializesparse': 'SerializeSparse', 'serializetensor': 'SerializeTensor', 'setsize': 'SetSize', 'setstatsaggregatordataset': 'SetStatsAggregatorDataset', 'shape': 'Shape', 'shapen': 'ShapeN', 'sharddataset': 'ShardDataset', 'shardedfilename': 'ShardedFilename', 'shardedfilespec': 'ShardedFilespec', 'shuffleandrepeatdataset': 'ShuffleAndRepeatDataset', 'shuffledataset': 'ShuffleDataset', 'shuffledatasetv2': 'ShuffleDatasetV2', 'shutdowndistributedtpu': 'ShutdownDistributedTPU', 'sigmoid': 'Sigmoid', 'sigmoidgrad': 'SigmoidGrad', 'sign': 'Sign', 'sin': 'Sin', 'sinh': 'Sinh', 'size': 'Size', 'skipdataset': 'SkipDataset', 'sleepdataset': 'SleepDataset', 'slice': 'Slice', 'slidingwindowdataset': 'SlidingWindowDataset', 'snapshot': 'Snapshot', 'snapshotdataset': 'SnapshotDataset', 'softmax': 'Softmax', 'softmaxcrossentropywithlogits': 'SoftmaxCrossEntropyWithLogits', 'softplus': 'Softplus', 'softplusgrad': 'SoftplusGrad', 'softsign': 'Softsign', 'softsigngrad': 'SoftsignGrad', 'spacetobatch': 'SpaceToBatch', 'spacetobatchnd': 'SpaceToBatchND', 'spacetodepth': 'SpaceToDepth', 'sparseaccumulatorapplygradient': 'SparseAccumulatorApplyGradient', 'sparseaccumulatortakegradient': 'SparseAccumulatorTakeGradient', 'sparseadd': 'SparseAdd', 'sparseaddgrad': 'SparseAddGrad', 'sparseapplyadadelta': 'SparseApplyAdadelta', 'sparseapplyadagrad': 'SparseApplyAdagrad', 'sparseapplyadagradda': 'SparseApplyAdagradDA', 'sparseapplyadagradv2': 'SparseApplyAdagradV2', 'sparseapplycenteredrmsprop': 'SparseApplyCenteredRMSProp', 'sparseapplyftrl': 'SparseApplyFtrl', 'sparseapplyftrlv2': 'SparseApplyFtrlV2', 'sparseapplymomentum': 'SparseApplyMomentum', 'sparseapplyproximaladagrad': 'SparseApplyProximalAdagrad', 'sparseapplyproximalgradientdescent': 'SparseApplyProximalGradientDescent', 'sparseapplyrmsprop': 'SparseApplyRMSProp', 'sparseconcat': 'SparseConcat', 'sparseconditionalaccumulator': 'SparseConditionalAccumulator', 'sparsecross': 'SparseCross', 'sparsedensecwiseadd': 'SparseDenseCwiseAdd', 'sparsedensecwisediv': 'SparseDenseCwiseDiv', 'sparsedensecwisemul': 'SparseDenseCwiseMul', 'sparsefillemptyrows': 'SparseFillEmptyRows', 'sparsefillemptyrowsgrad': 'SparseFillEmptyRowsGrad', 'sparsematmul': 'SparseMatMul', 'sparsereducemax': 'SparseReduceMax', 'sparsereducemaxsparse': 'SparseReduceMaxSparse', 'sparsereducesum': 'SparseReduceSum', 'sparsereducesumsparse': 'SparseReduceSumSparse', 'sparsereorder': 'SparseReorder', 'sparsereshape': 'SparseReshape', 'sparsesegmentmean': 'SparseSegmentMean', 'sparsesegmentmeangrad': 'SparseSegmentMeanGrad', 'sparsesegmentmeanwithnumsegments': 'SparseSegmentMeanWithNumSegments', 'sparsesegmentsqrtn': 'SparseSegmentSqrtN', 'sparsesegmentsqrtngrad': 'SparseSegmentSqrtNGrad', 'sparsesegmentsqrtnwithnumsegments': 'SparseSegmentSqrtNWithNumSegments', 'sparsesegmentsum': 'SparseSegmentSum', 'sparsesegmentsumwithnumsegments': 'SparseSegmentSumWithNumSegments', 'sparseslice': 'SparseSlice', 'sparseslicegrad': 'SparseSliceGrad', 'sparsesoftmax': 'SparseSoftmax', 'sparsesoftmaxcrossentropywithlogits': 'SparseSoftmaxCrossEntropyWithLogits', 'sparsesparsemaximum': 'SparseSparseMaximum', 'sparsesparseminimum': 'SparseSparseMinimum', 'sparsesplit': 'SparseSplit', 'sparsetensordenseadd': 'SparseTensorDenseAdd', 'sparsetensordensematmul': 'SparseTensorDenseMatMul', 'sparsetensorslicedataset': 'SparseTensorSliceDataset', 'sparsetodense': 'SparseToDense', 'sparsetosparsesetoperation': 'SparseToSparseSetOperation', 'split': 'Split', 'splitv': 'SplitV', 'sqldataset': 'SqlDataset', 'sqrt': 'Sqrt', 'sqrtgrad': 'SqrtGrad', 'square': 'Square', 'squareddifference': 'SquaredDifference', 'squeeze': 'Squeeze', 'stack': 'Stack', 'stackclose': 'StackClose', 'stackclosev2': 'StackCloseV2', 'stackpop': 'StackPop', 'stackpopv2': 'StackPopV2', 'stackpush': 'StackPush', 'stackpushv2': 'StackPushV2', 'stackv2': 'StackV2', 'stage': 'Stage', 'stageclear': 'StageClear', 'stagepeek': 'StagePeek', 'stagesize': 'StageSize', 'statefulpartitionedcall': 'StatefulPartitionedCall', 'statefulrandombinomial': 'StatefulRandomBinomial', 'statefulstandardnormal': 'StatefulStandardNormal', 'statefulstandardnormalv2': 'StatefulStandardNormalV2', 'statefultruncatednormal': 'StatefulTruncatedNormal', 'statefuluniform': 'StatefulUniform', 'statefuluniformfullint': 'StatefulUniformFullInt', 'statefuluniformint': 'StatefulUniformInt', 'statelessif': 'StatelessIf', 'statelessmultinomial': 'StatelessMultinomial', 'statelessrandomnormal': 'StatelessRandomNormal', 'statelessrandomuniform': 'StatelessRandomUniform', 'statelessrandomuniformint': 'StatelessRandomUniformInt', 'statelesstruncatednormal': 'StatelessTruncatedNormal', 'statelesswhile': 'StatelessWhile', 'staticregexfullmatch': 'StaticRegexFullMatch', 'staticregexreplace': 'StaticRegexReplace', 'statsaggregatorhandle': 'StatsAggregatorHandle', 'statsaggregatorhandlev2': 'StatsAggregatorHandleV2', 'statsaggregatorsetsummarywriter': 'StatsAggregatorSetSummaryWriter', 'statsaggregatorsummary': 'StatsAggregatorSummary', 'stopgradient': 'StopGradient', 'stridedslice': 'StridedSlice', 'stridedsliceassign': 'StridedSliceAssign', 'stridedslicegrad': 'StridedSliceGrad', 'stringformat': 'StringFormat', 'stringjoin': 'StringJoin', 'stringlength': 'StringLength', 'stringlower': 'StringLower', 'stringngrams': 'StringNGrams', 'stringsplit': 'StringSplit', 'stringsplitv2': 'StringSplitV2', 'stringstrip': 'StringStrip', 'stringtohashbucket': 'StringToHashBucket', 'stringtohashbucketfast': 'StringToHashBucketFast', 'stringtohashbucketstrong': 'StringToHashBucketStrong', 'stringtonumber': 'StringToNumber', 'stringupper': 'StringUpper', 'sub': 'Sub', 'substr': 'Substr', 'sum': 'Sum', 'summarywriter': 'SummaryWriter', 'svd': 'Svd', 'switch': 'Switch', 'symbolicgradient': 'SymbolicGradient', 'takedataset': 'TakeDataset', 'takemanysparsefromtensorsmap': 'TakeManySparseFromTensorsMap', 'takewhiledataset': 'TakeWhileDataset', 'tan': 'Tan', 'tanh': 'Tanh', 'tanhgrad': 'TanhGrad', 'temporaryvariable': 'TemporaryVariable', 'tensorarray': 'TensorArray', 'tensorarrayclose': 'TensorArrayClose', 'tensorarrayclosev2': 'TensorArrayCloseV2', 'tensorarrayclosev3': 'TensorArrayCloseV3', 'tensorarrayconcat': 'TensorArrayConcat', 'tensorarrayconcatv2': 'TensorArrayConcatV2', 'tensorarrayconcatv3': 'TensorArrayConcatV3', 'tensorarraygather': 'TensorArrayGather', 'tensorarraygatherv2': 'TensorArrayGatherV2', 'tensorarraygatherv3': 'TensorArrayGatherV3', 'tensorarraygrad': 'TensorArrayGrad', 'tensorarraygradv2': 'TensorArrayGradV2', 'tensorarraygradv3': 'TensorArrayGradV3', 'tensorarraygradwithshape': 'TensorArrayGradWithShape', 'tensorarraypack': 'TensorArrayPack', 'tensorarrayread': 'TensorArrayRead', 'tensorarrayreadv2': 'TensorArrayReadV2', 'tensorarrayreadv3': 'TensorArrayReadV3', 'tensorarrayscatter': 'TensorArrayScatter', 'tensorarrayscatterv2': 'TensorArrayScatterV2', 'tensorarrayscatterv3': 'TensorArrayScatterV3', 'tensorarraysize': 'TensorArraySize', 'tensorarraysizev2': 'TensorArraySizeV2', 'tensorarraysizev3': 'TensorArraySizeV3', 'tensorarraysplit': 'TensorArraySplit', 'tensorarraysplitv2': 'TensorArraySplitV2', 'tensorarraysplitv3': 'TensorArraySplitV3', 'tensorarrayunpack': 'TensorArrayUnpack', 'tensorarrayv2': 'TensorArrayV2', 'tensorarrayv3': 'TensorArrayV3', 'tensorarraywrite': 'TensorArrayWrite', 'tensorarraywritev2': 'TensorArrayWriteV2', 'tensorarraywritev3': 'TensorArrayWriteV3', 'tensordataset': 'TensorDataset', 'tensorlistconcat': 'TensorListConcat', 'tensorlistconcatlists': 'TensorListConcatLists', 'tensorlistconcatv2': 'TensorListConcatV2', 'tensorlistelementshape': 'TensorListElementShape', 'tensorlistfromtensor': 'TensorListFromTensor', 'tensorlistgather': 'TensorListGather', 'tensorlistgetitem': 'TensorListGetItem', 'tensorlistlength': 'TensorListLength', 'tensorlistpopback': 'TensorListPopBack', 'tensorlistpushback': 'TensorListPushBack', 'tensorlistpushbackbatch': 'TensorListPushBackBatch', 'tensorlistreserve': 'TensorListReserve', 'tensorlistresize': 'TensorListResize', 'tensorlistscatter': 'TensorListScatter', 'tensorlistscatterintoexistinglist': 'TensorListScatterIntoExistingList', 'tensorlistscatterv2': 'TensorListScatterV2', 'tensorlistsetitem': 'TensorListSetItem', 'tensorlistsplit': 'TensorListSplit', 'tensorliststack': 'TensorListStack', 'tensorscatteradd': 'TensorScatterAdd', 'tensorscattersub': 'TensorScatterSub', 'tensorscatterupdate': 'TensorScatterUpdate', 'tensorslicedataset': 'TensorSliceDataset', 'tensorstridedsliceupdate': 'TensorStridedSliceUpdate', 'tensorsummary': 'TensorSummary', 'tensorsummaryv2': 'TensorSummaryV2', 'textlinedataset': 'TextLineDataset', 'textlinereader': 'TextLineReader', 'textlinereaderv2': 'TextLineReaderV2', 'tfrecorddataset': 'TFRecordDataset', 'tfrecordreader': 'TFRecordReader', 'tfrecordreaderv2': 'TFRecordReaderV2', 'threadpooldataset': 'ThreadPoolDataset', 'threadpoolhandle': 'ThreadPoolHandle', 'threadunsafeunigramcandidatesampler': 'ThreadUnsafeUnigramCandidateSampler', 'tile': 'Tile', 'tilegrad': 'TileGrad', 'timestamp': 'Timestamp', 'topk': 'TopK', 'topkv2': 'TopKV2', 'tpucompilationresult': 'TPUCompilationResult', 'tpuembeddingactivations': 'TPUEmbeddingActivations', 'tpuordinalselector': 'TPUOrdinalSelector', 'tpupartitionedcall': 'TPUPartitionedCall', 'tpureplicatedinput': 'TPUReplicatedInput', 'tpureplicatedoutput': 'TPUReplicatedOutput', 'tpureplicatemetadata': 'TPUReplicateMetadata', 'transpose': 'Transpose', 'tridiagonalmatmul': 'TridiagonalMatMul', 'tridiagonalsolve': 'TridiagonalSolve', 'truncatediv': 'TruncateDiv', 'truncatednormal': 'TruncatedNormal', 'truncatemod': 'TruncateMod', 'unbatch': 'Unbatch', 'unbatchdataset': 'UnbatchDataset', 'unbatchgrad': 'UnbatchGrad', 'unicodedecode': 'UnicodeDecode', 'unicodedecodewithoffsets': 'UnicodeDecodeWithOffsets', 'unicodeencode': 'UnicodeEncode', 'unicodescript': 'UnicodeScript', 'unicodetranscode': 'UnicodeTranscode', 'uniformcandidatesampler': 'UniformCandidateSampler', 'unique': 'Unique', 'uniquedataset': 'UniqueDataset', 'uniquev2': 'UniqueV2', 'uniquewithcounts': 'UniqueWithCounts', 'uniquewithcountsv2': 'UniqueWithCountsV2', 'unpack': 'Unpack', 'unravelindex': 'UnravelIndex', 'unsortedsegmentjoin': 'UnsortedSegmentJoin', 'unsortedsegmentmax': 'UnsortedSegmentMax', 'unsortedsegmentmin': 'UnsortedSegmentMin', 'unsortedsegmentprod': 'UnsortedSegmentProd', 'unsortedsegmentsum': 'UnsortedSegmentSum', 'unstage': 'Unstage', 'unwrapdatasetvariant': 'UnwrapDatasetVariant', 'upperbound': 'UpperBound', 'varhandleop': 'VarHandleOp', 'variable': 'Variable', 'variableshape': 'VariableShape', 'variablev2': 'VariableV2', 'varisinitializedop': 'VarIsInitializedOp', 'where': 'Where', 'while': 'While', 'wholefilereader': 'WholeFileReader', 'wholefilereaderv2': 'WholeFileReaderV2', 'windowdataset': 'WindowDataset', 'workerheartbeat': 'WorkerHeartbeat', 'wrapdatasetvariant': 'WrapDatasetVariant', 'writeaudiosummary': 'WriteAudioSummary', 'writefile': 'WriteFile', 'writegraphsummary': 'WriteGraphSummary', 'writehistogramsummary': 'WriteHistogramSummary', 'writeimagesummary': 'WriteImageSummary', 'writerawprotosummary': 'WriteRawProtoSummary', 'writescalarsummary': 'WriteScalarSummary', 'writesummary': 'WriteSummary', 'xdivy': 'Xdivy', 'xlogy': 'Xlogy', 'zeroslike': 'ZerosLike', 'zeta': 'Zeta', 'zipdataset': 'ZipDataset'}</em><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.lower_op_name_to_raw" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.make_opdef_sig">
+<em class="property">classmethod </em><code class="sig-name descname">make_opdef_sig</code><span class="sig-paren">(</span><em class="sig-param">opdef</em>, <em class="sig-param">opdef_py_func=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.make_opdef_sig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a <cite>Signature</cite> object for an <cite>OpDef</cite>.</p>
+<p>Annotations are include so that one can partially verify arguments.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.opdef_signatures">
+<code class="sig-name descname">opdef_signatures</code><em class="property"> = {'AddN': (&lt;Signature (inputs, name=None) -&gt; [('sum', 'T')]&gt;, &lt;function add_n&gt;), 'AddV2': (&lt;Signature (x, y, name=None) -&gt; [('z', 'T')]&gt;, &lt;function add_v2&gt;), 'Const': (&lt;Signature (value, dtype, name=None) -&gt; [('output', 'dtype')]&gt;, &lt;function MetaOpDefLibrary.__init__.&lt;locals&gt;.mt_const&gt;), 'Mul': (&lt;Signature (x, y, name=None) -&gt; [('z', 'T')]&gt;, &lt;function mul&gt;)}</em><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.opdef_signatures" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.tensorflow.meta.OpDefFactoryType">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.meta.</code><code class="sig-name descname">OpDefFactoryType</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.OpDefFactoryType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="symbolic_pymc.html#symbolic_pymc.meta.MetaSymbolType" title="symbolic_pymc.meta.MetaSymbolType"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.meta.MetaSymbolType</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaAccessor">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.meta.</code><code class="sig-name descname">TFlowMetaAccessor</code><span class="sig-paren">(</span><em class="sig-param">namespace=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaAccessor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>An accessor object that simplifies the use of meta objects.</p>
+<p>Instances of this class can be used to implicitly convert TensorFlow
+functions and objects into meta objects.</p>
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaAccessor.namespaces">
+<code class="sig-name descname">namespaces</code><em class="property"> = [&lt;module 'tensorflow' from '/home/bwillard/apps/anaconda3/envs/symbolic-pymc/lib/python3.6/site-packages/tensorflow/__init__.py'&gt;, &lt;module 'tensorflow_core._api.v2.raw_ops' from '/home/bwillard/apps/anaconda3/envs/symbolic-pymc/lib/python3.6/site-packages/tensorflow_core/_api/v2/raw_ops/__init__.py'&gt;, &lt;module 'tensorflow_probability' from '/home/bwillard/apps/anaconda3/envs/symbolic-pymc/lib/python3.6/site-packages/tensorflow_probability/__init__.py'&gt;, &lt;module 'tensorflow_probability.python.distributions' from '/home/bwillard/apps/anaconda3/envs/symbolic-pymc/lib/python3.6/site-packages/tensorflow_probability/python/distributions/__init__.py'&gt;, &lt;module 'symbolic_pymc.tensorflow.meta' from '/home/bwillard/projects/code/python/symbolic-pymc/symbolic_pymc/tensorflow/meta.py'&gt;]</em><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaAccessor.namespaces" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.meta.</code><code class="sig-name descname">TFlowMetaNodeDef</code><span class="sig-paren">(</span><em class="sig-param">op</em>, <em class="sig-param">name</em>, <em class="sig-param">attr</em>, <em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.tensorflow.meta.TFlowMetaSymbol" title="symbolic_pymc.tensorflow.meta.TFlowMetaSymbol"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.tensorflow.meta.TFlowMetaSymbol</span></code></a></p>
+<p>A meta <cite>NodeDef</cite>.</p>
+<p>NOTE: We’re ignoring <cite>node_def.input</cite>; it’s just an unnecessary hassle.</p>
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.attr">
+<code class="sig-name descname">attr</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.attr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.base">
+<code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.base" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.core.framework.node_def_pb2.NodeDef</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.frozen_attr">
+<em class="property">property </em><code class="sig-name descname">frozen_attr</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.frozen_attr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.name">
+<code class="sig-name descname">name</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.op">
+<code class="sig-name descname">op</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.op" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOp">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.meta.</code><code class="sig-name descname">TFlowMetaOp</code><span class="sig-paren">(</span><em class="sig-param">op_def</em>, <em class="sig-param">node_def</em>, <em class="sig-param">inputs</em>, <em class="sig-param">outputs=None</em>, <em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.tensorflow.meta.TFlowMetaSymbol" title="symbolic_pymc.tensorflow.meta.TFlowMetaSymbol"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.tensorflow.meta.TFlowMetaSymbol</span></code></a></p>
+<p>A meta <cite>Operation</cite>.</p>
+<p>This is like an <cite>Apply</cite> node in Theano.</p>
+<p>TODO: This whole thing should probably be a “NodeDef” class?</p>
+<p>Create a TensorFlow meta <cite>Operation</cite>.</p>
+<p>The real signature of <cite>tf.Operation.__init__</cite> includes the graph
+object, so we can’t really the signature directly.  This is part of the
+reason why we have <cite>TFlowMetaOpFactory.__call__</cite> and
+<cite>TFlowMetaTensor.operator</cite> + <cite>TFlowMetaTensor.inputs</cite> that do not
+directly use <cite>__all_props__</cite>/<cite>TFlowMetaTensor.rands</cite> and construct the
+objects directly.</p>
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOp.base">
+<code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOp.base" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.framework.ops.Operation</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOp.default_output">
+<em class="property">property </em><code class="sig-name descname">default_output</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOp.default_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the default output for this <cite>Operation</cite>.</p>
+<p>TODO: It might be worth considering a direct approach, and not one that
+requires the generation of all meta outputs.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOp.inputs">
+<code class="sig-name descname">inputs</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOp.inputs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOp.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOp.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOp.node_def">
+<code class="sig-name descname">node_def</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOp.node_def" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOp.op_def">
+<code class="sig-name descname">op_def</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOp.op_def" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOp.outputs">
+<em class="property">property </em><code class="sig-name descname">outputs</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOp.outputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute outputs for this meta <cite>Operation</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOp.reify">
+<code class="sig-name descname">reify</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOp.reify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempt to create a concrete base object from this meta object.</p>
+<p>During the process, dependent objects will need to be reified, which
+may result in updates to the object(s) being reified.</p>
+<p>For instance, if a meta tensor’s parent operator is fully reifiable to
+a base object, then the meta tensor’s dtype and shape may be fixed:
+e.g. a tensor corresponding to the output of a sum of two float64
+scalars is necessarily a float64 scalar.</p>
+<p>This function will set any unspecified properties (e.g. dtype and shape
+values for the previous example), mutating the object in-place when
+possible.  It will return a [refined/partially reified] meta object
+when it can’t fully reify to a base object (in which case, it will
+return the base object) or when partial reification results in a meta
+object from a subclass.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOp.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOp.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOp.type">
+<em class="property">property </em><code class="sig-name descname">type</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOp.type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOpDef">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.meta.</code><code class="sig-name descname">TFlowMetaOpDef</code><span class="sig-paren">(</span><em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOpDef" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.tensorflow.meta.TFlowMetaSymbol" title="symbolic_pymc.tensorflow.meta.TFlowMetaSymbol"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.tensorflow.meta.TFlowMetaSymbol</span></code></a></p>
+<p>A meta <cite>OpDef</cite>.</p>
+<p>This is like an <cite>Op</cite> node in Theano.</p>
+<dl>
+<dt>Some useful info/links:</dt><dd><ul>
+<li><p><a class="reference external" href="https://stackoverflow.com/questions/41147734/looking-for-source-code-of-from-gen-nn-ops-in-tensorflow/41149557#41149557">https://stackoverflow.com/questions/41147734/looking-for-source-code-of-from-gen-nn-ops-in-tensorflow/41149557#41149557</a></p></li>
+<li><p>A better way to view an <cite>OpDef</cite>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="k">import</span> <span class="n">json_format</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">json_format</span><span class="o">.</span><span class="n">MessageToJson</span><span class="p">(</span><span class="n">opdef</span><span class="p">))</span>
+</pre></div>
+</div>
+</li>
+<li><p>If you want to use an <cite>OpDef</cite> to construct a node, see
+<cite>op_def_library.apply_op</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOpDef.attr">
+<em class="property">property </em><code class="sig-name descname">attr</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOpDef.attr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOpDef.base">
+<code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOpDef.base" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.core.framework.op_def_pb2.OpDef</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOpDef.reify">
+<code class="sig-name descname">reify</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOpDef.reify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempt to create a concrete base object from this meta object.</p>
+<p>During the process, dependent objects will need to be reified, which
+may result in updates to the object(s) being reified.</p>
+<p>For instance, if a meta tensor’s parent operator is fully reifiable to
+a base object, then the meta tensor’s dtype and shape may be fixed:
+e.g. a tensor corresponding to the output of a sum of two float64
+scalars is necessarily a float64 scalar.</p>
+<p>This function will set any unspecified properties (e.g. dtype and shape
+values for the previous example), mutating the object in-place when
+possible.  It will return a [refined/partially reified] meta object
+when it can’t fully reify to a base object (in which case, it will
+return the base object) or when partial reification results in a meta
+object from a subclass.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOpDef.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOpDef.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOperator">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.meta.</code><code class="sig-name descname">TFlowMetaOperator</code><span class="sig-paren">(</span><em class="sig-param">op_def</em>, <em class="sig-param">node_def=None</em>, <em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOperator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.tensorflow.meta.TFlowMetaSymbol" title="symbolic_pymc.tensorflow.meta.TFlowMetaSymbol"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.tensorflow.meta.TFlowMetaSymbol</span></code></a>, <a class="reference internal" href="symbolic_pymc.html#symbolic_pymc.meta.MetaOp" title="symbolic_pymc.meta.MetaOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.meta.MetaOp</span></code></a></p>
+<p>A class that implements the notion of an operator on top of TensorFlow’s OpDef and NodeDef objects.</p>
+<p>With this abstraction, we can better model operators by distinguishing
+parameterized operators and their respective parameter values from the
+operator’s inputs, which may have similar properties across the entire
+family of operators (i.e. across all parameter values).</p>
+<p>For example, addition is commutative in its arguments, so modeling addition
+as an operator parameterized on dtypes and/or names, we may want to
+preserve the distinction of the operators inputs and its parameterized
+values so that we can implement commutativity exclusively on the
+non-dtype/name inputs.</p>
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOperator.base">
+<code class="sig-name descname">base</code><em class="property"> = None</em><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOperator.base" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOperator.get_metaopdef">
+<em class="property">classmethod </em><code class="sig-name descname">get_metaopdef</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOperator.get_metaopdef" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain a MetaOpDef for a given string name.</p>
+<p>This is more flexible because it ignores things like string case
+(when the non-<cite>raw_ops</cite> name differs from the TF user-level API).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOperator.input_args">
+<code class="sig-name descname">input_args</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">apply_defaults=True</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOperator.input_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make args and kwargs conform to an OpDef’s “apply function” arguments.</p>
+<p>In order to do this, we effectively need to map <cite>OpDef</cite> and <cite>NodeDef</cite>
+values to <cite>tf.raw_ops.*</cite> function arguments (i.e. the reverse of what
+<cite>op_def_library._apply_op_helper</cite> does).</p>
+<p>Returns an <cite>OrderedDict</cite>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOperator.node_def">
+<code class="sig-name descname">node_def</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOperator.node_def" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOperator.op_args_to_operation_inputs">
+<code class="sig-name descname">op_args_to_operation_inputs</code><span class="sig-paren">(</span><em class="sig-param">apply_arguments</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOperator.op_args_to_operation_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map an <cite>OpDef</cite>’s “apply function” arguments to <cite>Operation</cite> inputs and a meta <cite>NodeDef</cite>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOperator.op_def">
+<code class="sig-name descname">op_def</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOperator.op_def" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOperator.output_meta_types">
+<code class="sig-name descname">output_meta_types</code><span class="sig-paren">(</span><em class="sig-param">inputs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOperator.output_meta_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of tuples containing object types and corresponding dtypes for the outputs of this OpDef.</p>
+<p>This work is done in
+<a class="reference external" href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/framework/op_def_library.py#L337">https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/framework/op_def_library.py#L337</a>.
+Would be very nice if the dtype inference and/or <cite>NodeDef</cite> generation
+was abstracted-out from that function.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOperator.reify">
+<code class="sig-name descname">reify</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOperator.reify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempt to create a concrete base object from this meta object.</p>
+<p>During the process, dependent objects will need to be reified, which
+may result in updates to the object(s) being reified.</p>
+<p>For instance, if a meta tensor’s parent operator is fully reifiable to
+a base object, then the meta tensor’s dtype and shape may be fixed:
+e.g. a tensor corresponding to the output of a sum of two float64
+scalars is necessarily a float64 scalar.</p>
+<p>This function will set any unspecified properties (e.g. dtype and shape
+values for the previous example), mutating the object in-place when
+possible.  It will return a [refined/partially reified] meta object
+when it can’t fully reify to a base object (in which case, it will
+return the base object) or when partial reification results in a meta
+object from a subclass.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaOperator.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaOperator.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaSymbol">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.meta.</code><code class="sig-name descname">TFlowMetaSymbol</code><span class="sig-paren">(</span><em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaSymbol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="symbolic_pymc.html#symbolic_pymc.meta.MetaSymbol" title="symbolic_pymc.meta.MetaSymbol"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.meta.MetaSymbol</span></code></a></p>
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaSymbol.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaSymbol.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaSymbol.validate_objs">
+<code class="sig-name descname">validate_objs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaSymbol.validate_objs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensor">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.meta.</code><code class="sig-name descname">TFlowMetaTensor</code><span class="sig-paren">(</span><em class="sig-param">op</em>, <em class="sig-param">value_index</em>, <em class="sig-param">dtype</em>, <em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.tensorflow.meta.TFlowMetaSymbol" title="symbolic_pymc.tensorflow.meta.TFlowMetaSymbol"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.tensorflow.meta.TFlowMetaSymbol</span></code></a>, <a class="reference internal" href="symbolic_pymc.html#symbolic_pymc.meta.MetaVariable" title="symbolic_pymc.meta.MetaVariable"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.meta.MetaVariable</span></code></a></p>
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensor.base">
+<code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensor.base" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.framework.ops.Tensor</span></code></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensor.base_arguments">
+<em class="property">property </em><code class="sig-name descname">base_arguments</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensor.base_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the base-level arguments.</p>
+<p>These arguments used in conjunction with the callable
+<cite>self.base_operator</cite> should re-produce this variable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensor.base_operator">
+<em class="property">property </em><code class="sig-name descname">base_operator</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensor.base_operator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a meta object representing a base-level operator.</p>
+<p>It should be callable with all inputs necessary to reproduce this
+tensor given by <cite>self.base_arguments</cite>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensor.dtype">
+<code class="sig-name descname">dtype</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensor.dtype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensor.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensor.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensor.op">
+<code class="sig-name descname">op</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensor.op" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensor.reify">
+<code class="sig-name descname">reify</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensor.reify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempt to create a concrete base object from this meta object.</p>
+<p>During the process, dependent objects will need to be reified, which
+may result in updates to the object(s) being reified.</p>
+<p>For instance, if a meta tensor’s parent operator is fully reifiable to
+a base object, then the meta tensor’s dtype and shape may be fixed:
+e.g. a tensor corresponding to the output of a sum of two float64
+scalars is necessarily a float64 scalar.</p>
+<p>This function will set any unspecified properties (e.g. dtype and shape
+values for the previous example), mutating the object in-place when
+possible.  It will return a [refined/partially reified] meta object
+when it can’t fully reify to a base object (in which case, it will
+return the base object) or when partial reification results in a meta
+object from a subclass.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensor.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensor.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensor.shape">
+<em class="property">property </em><code class="sig-name descname">shape</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensor.shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensor.value_index">
+<code class="sig-name descname">value_index</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensor.value_index" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.meta.</code><code class="sig-name descname">TFlowMetaTensorShape</code><span class="sig-paren">(</span><em class="sig-param">dims</em>, <em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.tensorflow.meta.TFlowMetaSymbol" title="symbolic_pymc.tensorflow.meta.TFlowMetaSymbol"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.tensorflow.meta.TFlowMetaSymbol</span></code></a></p>
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.as_list">
+<code class="sig-name descname">as_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.as_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.base">
+<code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.base" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.framework.tensor_shape.TensorShape</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.dims">
+<code class="sig-name descname">dims</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.dims" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.ndims">
+<em class="property">property </em><code class="sig-name descname">ndims</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.ndims" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.rank">
+<em class="property">property </em><code class="sig-name descname">rank</code><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.rank" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.tensorflow.meta.load_dispatcher">
+<code class="sig-prename descclassname">symbolic_pymc.tensorflow.meta.</code><code class="sig-name descname">load_dispatcher</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.meta.load_dispatcher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set/override dispatcher to default to TF objects.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-symbolic_pymc.tensorflow.printing">
+<span id="symbolic-pymc-tensorflow-printing-module"></span><h2>symbolic_pymc.tensorflow.printing module<a class="headerlink" href="#module-symbolic_pymc.tensorflow.printing" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="symbolic_pymc.tensorflow.printing.TFlowPrinter">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.printing.</code><code class="sig-name descname">TFlowPrinter</code><span class="sig-paren">(</span><em class="sig-param">formatter</em>, <em class="sig-param">buffer</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.TFlowPrinter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A printer that indents and keeps track of already printed subgraphs.</p>
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.printing.TFlowPrinter.format">
+<code class="sig-name descname">format</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.TFlowPrinter.format" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.printing.TFlowPrinter.indented">
+<code class="sig-name descname">indented</code><span class="sig-paren">(</span><em class="sig-param">indent</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.TFlowPrinter.indented" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.printing.TFlowPrinter.print">
+<code class="sig-name descname">print</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.TFlowPrinter.print" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.printing.TFlowPrinter.println">
+<code class="sig-name descname">println</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.TFlowPrinter.println" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.tensorflow.printing.tf_dprint">
+<code class="sig-prename descclassname">symbolic_pymc.tensorflow.printing.</code><code class="sig-name descname">tf_dprint</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">printer=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.tf_dprint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print a textual representation of a TF graph.</p>
+<p>The output roughly follows the format of <cite>theano.printing.debugprint</cite>.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-symbolic_pymc.tensorflow.unify">
+<span id="symbolic-pymc-tensorflow-unify-module"></span><h2>symbolic_pymc.tensorflow.unify module<a class="headerlink" href="#module-symbolic_pymc.tensorflow.unify" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-symbolic_pymc.tensorflow">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-symbolic_pymc.tensorflow" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+    </div>
+</div>
+<div class="ui vertical footer segment">
+    <div class="ui center aligned container">
+        <a href="https://github.com/pymc-devs/symbolic_pymc"><i class="github icon large"></i></a>
+        <a href="https://twitter.com/pymc_devs"><i class="twitter icon large"></i></a>
+        <a href="https://discourse.pymc.io/"><i class="discourse icon large"></i></a>
+    </div>
+    <div class="ui center aligned container">
+        <p>
+            &copy; Copyright 2019, PyMC developers.
+        </p>
+        <p>
+            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.2.0.<br />
+        </p>
+    </div>
+</div>
+  </body>
+</html>
