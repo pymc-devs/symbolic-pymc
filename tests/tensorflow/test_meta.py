@@ -56,6 +56,18 @@ def test_meta_helpers():
     assert lvar_op_mt.output_meta_types() is None
     assert lvar_op_mt.op_args_to_operation_inputs({}) is None
 
+    add_op_mt = TFlowMetaOperator('add')
+    assert add_op_mt.node_def is None
+    assert add_op_mt.op_def.obj.name == 'Add'
+    assert add_op_mt == mt.add
+
+    # Both cases should work
+    add_op_mt_2 = TFlowMetaOperator('Add')
+    assert add_op_mt == add_op_mt_2
+
+    with pytest.raises(ValueError):
+        TFlowMetaOperator('anoperatorthatdoesnotexist')
+
 
 def test_meta_eager():
 
