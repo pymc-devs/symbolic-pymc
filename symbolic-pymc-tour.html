@@ -68,7 +68,7 @@
 </dl>
 </div></blockquote>
 <div class="section" id="introduction">
-<h2>1 Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
 <p>In this document we’ll cover the basics of the Symbolic PyMC package while
 implementing a symbolic “search-and-replace” that changes TensorFlow graphs
 like <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">y)</span></code>
@@ -133,7 +133,7 @@ replaced parts), we use <a class="reference external" href="https://en.wikipedia
 these using <a class="reference external" href="https://www.tensorflow.org/">TensorFlow</a> (and <a class="reference external" href="http://deeplearning.net/software/theano/">Theano</a>) graphs via <strong>meta objects</strong> and <strong>expression-tuples</strong>.</p>
 </div>
 <div class="section" id="meta-objects">
-<h2>2 Meta Objects<a class="headerlink" href="#meta-objects" title="Permalink to this headline">¶</a></h2>
+<h2>Meta Objects<a class="headerlink" href="#meta-objects" title="Permalink to this headline">¶</a></h2>
 <p>Meta objects model the essential components of TensorFlow graphs, while allowing one
 to use input that isn’t normally valid.  More specifically, we can
 construct meta graphs that contain <strong>logic variables</strong>.  Later, those logic
@@ -228,7 +228,7 @@ graph’s <code class="docutils literal notranslate"><span class="pre">reify</sp
 </div>
 </div>
 <div class="section" id="s-expressions">
-<h2>3 S-expressions<a class="headerlink" href="#s-expressions" title="Permalink to this headline">¶</a></h2>
+<h2>S-expressions<a class="headerlink" href="#s-expressions" title="Permalink to this headline">¶</a></h2>
 <p>As an alternative approach to full meta graph conversion, we can also convert
 TensorFlow graphs into an <a class="reference external" href="https://en.wikipedia.org/wiki/S-expression">S-expression-like</a> form.</p>
 <div class="highlight-python notranslate" id="etuplize-graph"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">symbolic_pymc.etuple</span> <span class="kn">import</span> <span class="n">etuple</span><span class="p">,</span> <span class="n">etuplize</span>
@@ -355,7 +355,7 @@ objects that, through the use of <code class="docutils literal notranslate"><spa
 the same results–albeit without the more convenient tuple-like structuring.</p>
 </div>
 <div class="section" id="meta-operators-and-their-parameters">
-<h2>4 Meta Operators and their Parameters<a class="headerlink" href="#meta-operators-and-their-parameters" title="Permalink to this headline">¶</a></h2>
+<h2>Meta Operators and their Parameters<a class="headerlink" href="#meta-operators-and-their-parameters" title="Permalink to this headline">¶</a></h2>
 <p>In Listing <a class="reference internal" href="#etuplize-graph-print">etuplize-graph-print</a>, the <code class="docutils literal notranslate"><span class="pre">etuple</span></code> form of
 our matrix multiplication graph, <code class="docutils literal notranslate"><span class="pre">z_sexp</span></code>, produced
 <code class="docutils literal notranslate"><span class="pre">symbolic_pymc.tensorflow.meta.TFlowMetaOperator</span></code>
@@ -420,7 +420,7 @@ special logic to determine which arguments are applicable.</p>
 sections that follow.</p>
 </div>
 <div class="section" id="unification-and-reification">
-<h2>5 Unification and Reification<a class="headerlink" href="#unification-and-reification" title="Permalink to this headline">¶</a></h2>
+<h2>Unification and Reification<a class="headerlink" href="#unification-and-reification" title="Permalink to this headline">¶</a></h2>
 <p>With the ability to use logic variables and TensorFlow graphs together, we can
 now “search” or “match” arbitrary graphs using <strong>unification</strong> and produce new
 graphs by replacing logic variables using <strong>reification</strong>.</p>
@@ -464,7 +464,7 @@ graphs–it simply returns an empty map.  If unification fails, it
 returns <code class="docutils literal notranslate"><span class="pre">False</span></code>–at least in the implementation we use, but not
 necessarily in general.</p>
 <div class="section" id="id3">
-<h3>5.1 Unification<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<h3>Unification<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
 <p>We can perform the unification using the function <code class="docutils literal notranslate"><span class="pre">unify</span></code>.  The result
 is a <code class="docutils literal notranslate"><span class="pre">dict</span></code> mapping logic variables to their unified values.</p>
 <div class="highlight-python notranslate" id="matmul-pattern-unify"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">unify</span><span class="p">(</span><span class="n">matmul_pat</span><span class="p">,</span> <span class="n">z_sexp</span><span class="p">,</span> <span class="p">{})</span>
@@ -521,7 +521,7 @@ is a <code class="docutils literal notranslate"><span class="pre">dict</span></c
 </div>
 </div>
 <div class="section" id="id4">
-<h3>5.2 Reification<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<h3>Reification<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
 <p>Using <code class="docutils literal notranslate"><span class="pre">reify</span></code>, we can “fill-in”–or replace–the logic variables of
 our “pattern” with the matches obtained by <code class="docutils literal notranslate"><span class="pre">unify</span></code> that are held
 within the variable <code class="docutils literal notranslate"><span class="pre">s</span></code>, or we could specify our own substitutions
@@ -589,7 +589,7 @@ graph, <code class="docutils literal notranslate"><span class="pre">z_sexp</span
 </div>
 </div>
 <div class="section" id="finishing-our-implementation">
-<h3>5.3 Finishing our Implementation<a class="headerlink" href="#finishing-our-implementation" title="Permalink to this headline">¶</a></h3>
+<h3>Finishing our Implementation<a class="headerlink" href="#finishing-our-implementation" title="Permalink to this headline">¶</a></h3>
 <p>We can also reify an entirely different graph using the values extracted from
 the graph <code class="docutils literal notranslate"><span class="pre">z_sexp</span></code>.  In this case, we create an “output”
 pattern graph, to complement our “input” pattern
@@ -653,7 +653,7 @@ the same power as logic programming: <a class="reference external" href="http://
 </div>
 </div>
 <div class="section" id="relational-programming-in-minikanren">
-<h2>6 Relational Programming in miniKanren<a class="headerlink" href="#relational-programming-in-minikanren" title="Permalink to this headline">¶</a></h2>
+<h2>Relational Programming in miniKanren<a class="headerlink" href="#relational-programming-in-minikanren" title="Permalink to this headline">¶</a></h2>
 <p>As mentioned at the end of the last section, Symbolic PyMC uses a Python
 implementation of the embedded domain-specific language miniKanren–provided by
 the <code class="docutils literal notranslate"><span class="pre">kanren</span></code> package–to orchestrate more sophisticated uses of
@@ -667,7 +667,7 @@ the <strong>states</strong> that satisfy the goals.</p>
 <p>In their most basic form, miniKanren <strong>states</strong> are simply the substitution maps returned by
 unification, which–in the normal course of operation–aren’t dealt with directly.</p>
 <div class="section" id="the-basic-goals">
-<h3>6.1 The Basic Goals<a class="headerlink" href="#the-basic-goals" title="Permalink to this headline">¶</a></h3>
+<h3>The Basic Goals<a class="headerlink" href="#the-basic-goals" title="Permalink to this headline">¶</a></h3>
 <p>Normally, a user will only need to construct compound goals from a basic set of
 primitives.  Arguably, the most primitive goal is the <a class="reference external" href="https://en.wikipedia.org/wiki/Equivalence_relation">equivalence relation</a>
 under unification denoted by <code class="docutils literal notranslate"><span class="pre">eq</span></code> in Python.</p>
@@ -766,7 +766,7 @@ like a traditional conditional statement.</p>
 </div>
 </div>
 <div class="section" id="a-better-implementation">
-<h3>6.2 A Better Implementation<a class="headerlink" href="#a-better-implementation" title="Permalink to this headline">¶</a></h3>
+<h3>A Better Implementation<a class="headerlink" href="#a-better-implementation" title="Permalink to this headline">¶</a></h3>
 <p>Since miniKanren uses unification and reification, we can apply its basic goals
 to TensorFlow graphs, as we did earlier, and reproduce the entire implementation
 in a much more concise manner.</p>
@@ -794,7 +794,7 @@ to <code class="docutils literal notranslate"><span class="pre">run</span></code
 construction in a functions which we call <strong>goal constructors</strong>.</p>
 </div>
 <div class="section" id="goal-constructors">
-<h3>6.3 Goal Constructors<a class="headerlink" href="#goal-constructors" title="Permalink to this headline">¶</a></h3>
+<h3>Goal Constructors<a class="headerlink" href="#goal-constructors" title="Permalink to this headline">¶</a></h3>
 <p>Using our distributive law example, we can create a goal constructor that
 creates our combined pattern and applies it in one go.  In this case, we’ll
 construct goals that operate on meta graphs instead
@@ -850,7 +850,7 @@ the previously “expanded” results.</p>
 </div>
 </div>
 <div class="section" id="graph-based-goals">
-<h3>6.4 Graph-based Goals<a class="headerlink" href="#graph-based-goals" title="Permalink to this headline">¶</a></h3>
+<h3>Graph-based Goals<a class="headerlink" href="#graph-based-goals" title="Permalink to this headline">¶</a></h3>
 <p>In most situations, one won’t be operating on the exact graph they want to
 match.  Instead, the desired graphs will be subgraphs of much larger ones.</p>
 <p>Symbolic PyMC introduces some miniKanren goals that apply other goals throughout
@@ -920,7 +920,7 @@ compute all those graphs unless we actually request them.</p>
 </div>
 </div>
 <div class="section" id="discussion">
-<h2>7 Discussion<a class="headerlink" href="#discussion" title="Permalink to this headline">¶</a></h2>
+<h2>Discussion<a class="headerlink" href="#discussion" title="Permalink to this headline">¶</a></h2>
 <p>As the development of Symbolic PyMC goes on, the process of using the
 above elements will become easier and computationally more efficient.
 Much of the boilerplate work can be removed without affecting the extensibility
