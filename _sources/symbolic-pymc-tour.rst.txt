@@ -169,7 +169,7 @@ The ``mt`` object also makes it easier to construct meta graphs by hand.
       value_index=0,
       dtype=tf.int32)
 
-In `create-meta-graph`_, we created a graph of ``1`` plus
+In Listing `create-meta-graph`_, we created a graph of ``1`` plus
 a ``unification`` logic variable with the name ``'a'``. This
 wouldn't be possible with a standard TensorFlow graph.
 
@@ -732,7 +732,7 @@ Normally, a user will only need to construct compound goals from a basic set of
 primitives.  Arguably, the most primitive goal is the `equivalence relation <https://en.wikipedia.org/wiki/Equivalence_relation>`_
 under unification denoted by ``eq`` in Python.
 
-In Listing , we ask for all successful results/reifications (signified
+In Listing `mk-basics-eq`_, we ask for all successful results/reifications (signified
 by the ``0`` argument) of the logic variable ``var('q')`` for the goal
 ``eq(var('q'), 1)``--i.e. unify ``var('q')`` with ``1``.
 
@@ -927,7 +927,7 @@ matrix multiplication and addition.  In this sense, it can be run **both** ways:
 i.e. it can "expand" a multiplication by distributing it through addition, and
 it can "contract" by doing the opposite.
 
-In we "expand" the distribution.
+In `mk-dist-goal-expand-distribute`_ we "expand" the distribution.
 
 .. code:: python
     :name: mk-dist-goal-expand-distribute
@@ -976,8 +976,11 @@ Symbolic PyMC introduces some miniKanren goals that apply other goals throughout
 graphs until a fixed-point is reached.  This sequence of operations is generally
 necessary for graph simplification and rewriting.
 
-In Listing `mk-dist-goal-gapply-distribute`_ we create a new graph
-that contains a
+In Listing `mk-dist-goal-gapply-distribute`_ we create a new graph that
+contains ``tf.matmul(A, x + y)`` as a subgraph.
+Using ``graph_applyo``,
+our ``distributeo`` relation is applied all throughout the
+graph until the applicable subgraph is found (and replaced).
 
 .. code:: python
     :name: mk-dist-goal-gapply-distribute
@@ -1037,3 +1040,36 @@ that contains a
     |  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"y:0"
     |  Tensor(Const):0,	dtype=float32,	shape=[],	"add_2/y:0"
     |  |  1.
+
+The first result from ``graph_applyo`` is the graph with
+all applications of ``distributeo`` applied.  The other
+goal results are all the successful applications leading up to the first one.
+In other words, we're given the entire sequence of all possible applications of
+``distributeo`` throughout the graph.
+Since ``run`` computes results lazily, we don't have to
+compute all those graphs unless we actually request them.
+
+7 Discussion
+------------
+
+As the development of Symbolic PyMC goes on, the process of using the
+above elements will become easier and computationally more efficient.
+Much of the boilerplate work can be removed without affecting the extensibility
+of Symbolic PyMC and ``kanren``.
+
+For instance, the need to manually replace ``NodeDef``s
+with logic variables can be handled by context managers
+like ``enable_lvar_defaults``, or by updates to the
+defaults of meta object creation.
+
+Likewise, there are tools available in Symbolic PyMC that make it easier to
+determine why to objects won't unify
+(i.e. ``symbolic_pymc.unify.debug_unify``) and exactly
+which components are unequal between two meta objects
+(i.e. ``symbolic_pymc.utils.meta_parts_unequal``).
+
+Symbolic PyMC's library of relevant mathematical and statistical relations is
+intended to evolve over time.  These relations will reflect useful properties
+for the reformulation of statistical models into computationally more efficient
+equivalent forms--and conditional on, or used to determine, explicit estimation
+procedures in PyMC.

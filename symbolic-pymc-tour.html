@@ -198,7 +198,7 @@ the <code class="docutils literal notranslate"><span class="pre">mt</span></code
   <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>In <a class="reference internal" href="#create-meta-graph">create-meta-graph</a>, we created a graph of <code class="docutils literal notranslate"><span class="pre">1</span></code> plus
+<p>In Listing <a class="reference internal" href="#create-meta-graph">create-meta-graph</a>, we created a graph of <code class="docutils literal notranslate"><span class="pre">1</span></code> plus
 a <code class="docutils literal notranslate"><span class="pre">unification</span></code> logic variable with the name <code class="docutils literal notranslate"><span class="pre">'a'</span></code>. This
 wouldn’t be possible with a standard TensorFlow graph.</p>
 <p>Also, because one of the elements in the graph is a logic variable, it cannot be
@@ -671,7 +671,7 @@ unification, which–in the normal course of operation–aren’t dealt with dir
 <p>Normally, a user will only need to construct compound goals from a basic set of
 primitives.  Arguably, the most primitive goal is the <a class="reference external" href="https://en.wikipedia.org/wiki/Equivalence_relation">equivalence relation</a>
 under unification denoted by <code class="docutils literal notranslate"><span class="pre">eq</span></code> in Python.</p>
-<p>In Listing , we ask for all successful results/reifications (signified
+<p>In Listing <a class="reference internal" href="#mk-basics-eq">mk-basics-eq</a>, we ask for all successful results/reifications (signified
 by the <code class="docutils literal notranslate"><span class="pre">0</span></code> argument) of the logic variable <code class="docutils literal notranslate"><span class="pre">var('q')</span></code> for the goal
 <code class="docutils literal notranslate"><span class="pre">eq(var('q'),</span> <span class="pre">1)</span></code>–i.e. unify <code class="docutils literal notranslate"><span class="pre">var('q')</span></code> with <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
 <div class="highlight-python notranslate" id="mk-basics-eq"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">eq</span>
@@ -820,7 +820,7 @@ of <a href="#id6"><span class="problematic" id="id7">``</span></a>etuple``s.</p>
 matrix multiplication and addition.  In this sense, it can be run <strong>both</strong> ways:
 i.e. it can “expand” a multiplication by distributing it through addition, and
 it can “contract” by doing the opposite.</p>
-<p>In we “expand” the distribution.</p>
+<p>In <a class="reference internal" href="#mk-dist-goal-expand-distribute">mk-dist-goal-expand-distribute</a> we “expand” the distribution.</p>
 <div class="highlight-python notranslate" id="mk-dist-goal-expand-distribute"><div class="highlight"><pre><span></span><span class="n">q_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
 <span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">,</span> <span class="n">distributeo</span><span class="p">(</span><span class="n">z_mt</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">))</span>
 <span class="n">z_expanded_mt</span> <span class="o">=</span> <span class="n">mk_res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -856,8 +856,11 @@ match.  Instead, the desired graphs will be subgraphs of much larger ones.</p>
 <p>Symbolic PyMC introduces some miniKanren goals that apply other goals throughout
 graphs until a fixed-point is reached.  This sequence of operations is generally
 necessary for graph simplification and rewriting.</p>
-<p>In Listing <a class="reference internal" href="#mk-dist-goal-gapply-distribute">mk-dist-goal-gapply-distribute</a> we create a new graph
-that contains a</p>
+<p>In Listing <a class="reference internal" href="#mk-dist-goal-gapply-distribute">mk-dist-goal-gapply-distribute</a> we create a new graph that
+contains <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">y)</span></code> as a subgraph.
+Using <code class="docutils literal notranslate"><span class="pre">graph_applyo</span></code>,
+our <code class="docutils literal notranslate"><span class="pre">distributeo</span></code> relation is applied all throughout the
+graph until the applicable subgraph is found (and replaced).</p>
 <div class="highlight-python notranslate" id="mk-dist-goal-gapply-distribute"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">symbolic_pymc.relations.graph</span> <span class="kn">import</span> <span class="n">graph_applyo</span>
 
 
@@ -907,7 +910,35 @@ that contains a</p>
 <span class="o">|</span>  <span class="o">|</span>  <span class="mf">1.</span>
 </pre></div>
 </div>
+<p>The first result from <code class="docutils literal notranslate"><span class="pre">graph_applyo</span></code> is the graph with
+all applications of <code class="docutils literal notranslate"><span class="pre">distributeo</span></code> applied.  The other
+goal results are all the successful applications leading up to the first one.
+In other words, we’re given the entire sequence of all possible applications of
+<code class="docutils literal notranslate"><span class="pre">distributeo</span></code> throughout the graph.
+Since <code class="docutils literal notranslate"><span class="pre">run</span></code> computes results lazily, we don’t have to
+compute all those graphs unless we actually request them.</p>
 </div>
+</div>
+<div class="section" id="discussion">
+<h2>7 Discussion<a class="headerlink" href="#discussion" title="Permalink to this headline">¶</a></h2>
+<p>As the development of Symbolic PyMC goes on, the process of using the
+above elements will become easier and computationally more efficient.
+Much of the boilerplate work can be removed without affecting the extensibility
+of Symbolic PyMC and <code class="docutils literal notranslate"><span class="pre">kanren</span></code>.</p>
+<p>For instance, the need to manually replace <code class="docutils literal notranslate"><span class="pre">NodeDef``s</span>
+<span class="pre">with</span> <span class="pre">logic</span> <span class="pre">variables</span> <span class="pre">can</span> <span class="pre">be</span> <span class="pre">handled</span> <span class="pre">by</span> <span class="pre">context</span> <span class="pre">managers</span>
+<span class="pre">like</span> <span class="pre">``enable_lvar_defaults</span></code>, or by updates to the
+defaults of meta object creation.</p>
+<p>Likewise, there are tools available in Symbolic PyMC that make it easier to
+determine why to objects won’t unify
+(i.e. <code class="docutils literal notranslate"><span class="pre">symbolic_pymc.unify.debug_unify</span></code>) and exactly
+which components are unequal between two meta objects
+(i.e. <code class="docutils literal notranslate"><span class="pre">symbolic_pymc.utils.meta_parts_unequal</span></code>).</p>
+<p>Symbolic PyMC’s library of relevant mathematical and statistical relations is
+intended to evolve over time.  These relations will reflect useful properties
+for the reformulation of statistical models into computationally more efficient
+equivalent forms–and conditional on, or used to determine, explicit estimation
+procedures in PyMC.</p>
 </div>
 </div>
 
