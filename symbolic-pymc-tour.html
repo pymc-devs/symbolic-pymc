@@ -70,7 +70,7 @@
 <div class="section" id="introduction">
 <h2>1 Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
 <p>In this document we’ll cover the basics of the Symbolic PyMC package while
-implementing a symbolic “search-and-replace” that changes terms
+implementing a symbolic “search-and-replace” that changes TensorFlow graphs
 like <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">y)</span></code>
 into <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x)</span> <span class="pre">+</span> <span class="pre">tf.matmul(A,</span> <span class="pre">y)</span></code>.  In other words, we’ll
 demonstrate how to implement the distributive property of matrix multiplication
@@ -82,11 +82,13 @@ These operations are then combined and orchestrated through the relational
 programming DSL <a class="reference external" href="http://minikanren.org/">miniKanren</a>.</p>
 <p>More specifically, we’ll introduce the basic <strong>unification</strong> and <strong>reification</strong>
 operations and explicitly show how they relate to graph manipulation and the
-modeling of high-level mathematical relations.</p>
+modeling of high-level mathematical relations.  Along the way, we’ll
+cover some of the necessary details behind TensorFlow graphs and how they’re
+modeled by <strong>meta graph objects</strong> in Symbolic PyMC.</p>
 <p>We start by creating a graph of our target
-expressions–i.e. <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">y</span></code>–in TensorFlow.  We do this so
-that we can inspect its structure and determine exactly what we need to search
-for and replace.</p>
+expressions–i.e. <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">y</span></code>–in TensorFlow.
+We do this so that we can inspect its structure and determine exactly what we
+need to search for and replace.</p>
 <div class="highlight-python notranslate" id="tf-matmul-graph"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="kn">as</span> <span class="nn">tf</span>

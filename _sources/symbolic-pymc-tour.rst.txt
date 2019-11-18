@@ -11,7 +11,7 @@ A Tour of Symbolic PyMC
 --------------
 
 In this document we'll cover the basics of the Symbolic PyMC package while
-implementing a symbolic "search-and-replace" that changes terms
+implementing a symbolic "search-and-replace" that changes TensorFlow graphs
 like ``tf.matmul(A, x + y)``
 into ``tf.matmul(A, x) + tf.matmul(A, y)``.  In other words, we'll
 demonstrate how to implement the distributive property of matrix multiplication
@@ -26,13 +26,15 @@ programming DSL `miniKanren <http://minikanren.org/>`_.
 
 More specifically, we'll introduce the basic **unification** and **reification**
 operations and explicitly show how they relate to graph manipulation and the
-modeling of high-level mathematical relations.
+modeling of high-level mathematical relations.  Along the way, we'll
+cover some of the necessary details behind TensorFlow graphs and how they're
+modeled by **meta graph objects** in Symbolic PyMC.
 
 
 We start by creating a graph of our target
-expressions--i.e. ``tf.matmul(A, x + y``--in TensorFlow.  We do this so
-that we can inspect its structure and determine exactly what we need to search
-for and replace.
+expressions--i.e. ``tf.matmul(A, x + y``--in TensorFlow.
+We do this so that we can inspect its structure and determine exactly what we
+need to search for and replace.
 
 .. code:: python
     :name: tf-matmul-graph
