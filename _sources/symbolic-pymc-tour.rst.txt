@@ -79,7 +79,7 @@ function ``tf_dprint``.
     |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"y:0"
 
 The output of Listing `tf-print-graph`_ shows us the underlying operators (e.g. ``MatMul``,
-``Placeholder``, ``Add``) and their arguments.
+``Placeholder``, ``AddV2``) and their arguments.
 
 To "match/search for" combinations of TensorFlow operations--or, in other words, graphs--like
 `tf-print-graph`_, we use `**unification** <https://en.wikipedia.org/wiki/Unification_(computer_science)>`_; to "replace" parts of a graph (well, to produce copies with
