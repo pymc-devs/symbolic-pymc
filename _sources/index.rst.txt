@@ -10,7 +10,7 @@ Welcome to Symbolic PyMC's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   symbolic-pymc-brief-tour
+   symbolic-pymc-tour
 
 Indices and tables
 ==================
