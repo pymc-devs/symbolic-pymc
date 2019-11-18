@@ -11,9 +11,9 @@ A Tour of Symbolic PyMC
 --------------
 
 In this document we'll cover the basics of the Symbolic PyMC package while
-implementing a symbolic "search-and-replace" for terms
+implementing a symbolic "search-and-replace" that changes terms
 like ``tf.matmul(A, x + y)``
-into ``tf.matmul(A, x) + tf.matmul(A, y)``.  In other words, we will
+into ``tf.matmul(A, x) + tf.matmul(A, y)``.  In other words, we'll
 demonstrate how to implement the distributive property of matrix multiplication
 so that it can be applied to arbitrary TensorFlow graphs.
 
