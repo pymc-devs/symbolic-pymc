@@ -79,10 +79,10 @@ so that it can be applied to arbitrary TensorFlow graphs.</p>
 property–and many other sophisticated manipulations of graphs–by providing
 flexible, pure Python versions of core operations in symbolic computation.
 These operations are then combined and orchestrated through the relational
-programming DSL .</p>
-<p>Throughout the course of our implementation, we will introduce these concepts
-and explicitly show how they relate to graph manipulations and the high-level
-math that they model.</p>
+programming DSL <a class="reference external" href="http://minikanren.org/">miniKanren</a>.</p>
+<p>More specifically, we’ll introduce the basic <strong>unification</strong> and <strong>reification</strong>
+operations and explicitly show how they relate to graph manipulation and the
+modeling of high-level mathematical relations.</p>
 <p>We start by creating a graph of our target
 expressions–i.e. <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">y</span></code>–in TensorFlow.  We do this so
 that we can inspect its structure and determine exactly what we need to search
@@ -796,7 +796,7 @@ construction in a functions which we call <strong>goal constructors</strong>.</p
 <p>Using our distributive law example, we can create a goal constructor that
 creates our combined pattern and applies it in one go.  In this case, we’ll
 construct goals that operate on meta graphs instead
-of <a href="#id5"><span class="problematic" id="id6">``</span></a>etuple``s.</p>
+of <a href="#id6"><span class="problematic" id="id7">``</span></a>etuple``s.</p>
 <div class="highlight-python notranslate" id="matrix-inverse-goal"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">distributeo</span><span class="p">(</span><span class="n">in_g</span><span class="p">,</span> <span class="n">out_g</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a goal that represents commuted matrix multiplication and addition.</span>
 
@@ -836,14 +836,14 @@ it can “contract” by doing the opposite.</p>
 <span class="o">|</span>  <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">Placeholder</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>        <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>        <span class="s2">&quot;y:0&quot;</span>
 </pre></div>
 </div>
-<p>Now, in Listing <a href="#id8"><span class="problematic" id="id9">`mk-dist-goal-contract-distribute`_</span></a> we “contract” the graph using
+<p>Now, in Listing <a href="#id9"><span class="problematic" id="id10">`mk-dist-goal-contract-distribute`_</span></a> we “contract” the graph using
 the previously “expanded” results.</p>
 <div class="highlight-python notranslate" id="mk-dist-goal-contract-distribute"><div class="highlight"><pre><span></span><span class="n">q_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
 <span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">,</span> <span class="n">distributeo</span><span class="p">(</span><span class="n">q_lv</span><span class="p">,</span> <span class="n">z_expanded_mt</span><span class="p">))</span>
 <span class="n">z_contracted_mt</span> <span class="o">=</span> <span class="n">mk_res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate" id="id7"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_contracted_mt</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="id8"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_contracted_mt</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

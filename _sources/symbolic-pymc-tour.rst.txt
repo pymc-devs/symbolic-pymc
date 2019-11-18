@@ -21,12 +21,12 @@ Symbolic PyMC allows one to implement rewrite rules like the distributive
 property--and many other sophisticated manipulations of graphs--by providing
 flexible, pure Python versions of core operations in symbolic computation.
 These operations are then combined and orchestrated through the relational
-programming DSL .
+programming DSL `miniKanren <http://minikanren.org/>`_.
 
 
-Throughout the course of our implementation, we will introduce these concepts
-and explicitly show how they relate to graph manipulations and the high-level
-math that they model.
+More specifically, we'll introduce the basic **unification** and **reification**
+operations and explicitly show how they relate to graph manipulation and the
+modeling of high-level mathematical relations.
 
 
 We start by creating a graph of our target
