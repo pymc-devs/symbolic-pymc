@@ -23,6 +23,9 @@ def test_operator():
 
     assert add_mt == mt.add
 
+    assert unify(mt.mul, mt.matmul) is False
+    assert unify(mt.mul.op_def, mt.matmul.op_def) is False
+
 
 @run_in_graph_mode
 def test_etuple_term():

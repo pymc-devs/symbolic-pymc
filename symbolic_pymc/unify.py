@@ -46,7 +46,7 @@ def debug_unify(enable=True):  # pragma: no cover
 def unify_MetaSymbol(u, v, s):
     if type(u) != type(v):
         return False
-    if hasattr(u, "__all_props__"):
+    if getattr(u, "__all_props__", False):
         s = unify(
             [getattr(u, slot) for slot in u.__all_props__],
             [getattr(v, slot) for slot in v.__all_props__],

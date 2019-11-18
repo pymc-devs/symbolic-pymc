@@ -567,7 +567,6 @@ def test_opdef_func():
     with tf.compat.v1.Session() as sess:
         assert sum_tf.eval() == np.r_[3]
 
-
 @run_in_graph_mode
 def test_tensor_ops():
 
