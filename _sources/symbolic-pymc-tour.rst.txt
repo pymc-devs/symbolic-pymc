@@ -273,7 +273,7 @@ TensorFlow graphs into an `S-expression-like <https://en.wikipedia.org/wiki/S-ex
                'dtype': 'float32'})))))
 
 An ``etuple`` is like a
-normal ``tuple``, except that it's first element is
+normal ``tuple``, except that its first element is
 a ``Callable`` and the remaining elements are
 the ``Callable``'s arguments.
 As above, a pretty-printed ``etuple`` looks like
