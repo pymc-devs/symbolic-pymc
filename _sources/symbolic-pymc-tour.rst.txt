@@ -18,9 +18,11 @@ demonstrate how to implement the distributive property of matrix multiplication
 so that it can be applied to arbitrary TensorFlow graphs.
 
 Symbolic PyMC allows one to implement rewrite rules like the distributive
-property, as well as other sophisticated symbolic manipulations of graphs,
-through a combination of fundamental computational concepts with direct and
-transparent implementations in pure Python.
+property--and many other sophisticated manipulations of graphs--by providing
+flexible, pure Python versions of core operations in symbolic computation.
+These operations are then combined and orchestrated through the relational
+programming DSL .
+
 
 Throughout the course of our implementation, we will introduce these concepts
 and explicitly show how they relate to graph manipulations and the high-level
