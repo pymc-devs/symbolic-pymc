@@ -33,8 +33,8 @@ modeled by **meta graph objects** in Symbolic PyMC.
 
 We start by creating a graph of our target
 expressions--i.e. ``tf.matmul(A, x + y)``--in TensorFlow.
-We do this so that we can inspect its structure and determine exactly what we
-need to search for and replace.
+We need to do this in order to determine exactly what we're searching for
+and--later--what to put in its place.
 
 .. code:: python
     :name: tf-matmul-graph

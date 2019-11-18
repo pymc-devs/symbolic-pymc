@@ -87,8 +87,8 @@ cover some of the necessary details behind TensorFlow graphs and how they’re
 modeled by <strong>meta graph objects</strong> in Symbolic PyMC.</p>
 <p>We start by creating a graph of our target
 expressions–i.e. <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">y)</span></code>–in TensorFlow.
-We do this so that we can inspect its structure and determine exactly what we
-need to search for and replace.</p>
+We need to do this in order to determine exactly what we’re searching for
+and–later–what to put in its place.</p>
 <div class="highlight-python notranslate" id="tf-matmul-graph"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="kn">as</span> <span class="nn">tf</span>
