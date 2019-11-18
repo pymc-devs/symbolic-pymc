@@ -70,9 +70,9 @@
 <div class="section" id="introduction">
 <h2>1 Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
 <p>In this document we’ll cover the basics of the Symbolic PyMC package while
-implementing a symbolic “search-and-replace” for terms
+implementing a symbolic “search-and-replace” that changes terms
 like <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">y)</span></code>
-into <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x)</span> <span class="pre">+</span> <span class="pre">tf.matmul(A,</span> <span class="pre">y)</span></code>.  In other words, we will
+into <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x)</span> <span class="pre">+</span> <span class="pre">tf.matmul(A,</span> <span class="pre">y)</span></code>.  In other words, we’ll
 demonstrate how to implement the distributive property of matrix multiplication
 so that it can be applied to arbitrary TensorFlow graphs.</p>
 <p>Symbolic PyMC allows one to implement rewrite rules like the distributive
