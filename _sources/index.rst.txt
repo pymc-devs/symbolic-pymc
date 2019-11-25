@@ -11,6 +11,8 @@ Welcome to Symbolic PyMC's documentation!
    :caption: Contents:
 
    symbolic-pymc-tour.md
+   symbolic-pymc-examples
+   modules
 
 Indices and tables
 ==================
