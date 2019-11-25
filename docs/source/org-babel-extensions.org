@@ -1,0 +1,115 @@
+#+TITLE: Custom =org-babel= Extensions
+#+AUTHOR: Brandon T. Willard
+#+DATE: 2018-07-29
+#+EMAIL: brandonwillard@gmail.com
+#+STARTUP: hideblocks
+
+* Introduction
+
+  To get started, add a block like the following to an Org file that
+  needs to reference the functions herein:
+  #+BEGIN_SRC elisp :eval t :exports none :results none
+  (org-babel-lob-ingest "org-babel-extensions.org")
+  #+END_SRC
+
+  Alternatively, run the same code within Emacs; both should add the named
+  blocks below to your LOB (library-of-babel, i.e. =org-babel-library-of-babel=).
+
+* General Babel Functions
+
+  #+NAME: babel_helper_functions
+  #+BEGIN_SRC elisp :eval t :exports none :results none
+  (defun org-babel-get-call-var-value (var-name)
+    "Extract the value of a named variable from a CALL statement."
+    ;; What about `org-element-context' and `org-babel-parse-header-arguments'?
+    (when-let ((el-info (org-babel-lob-get-info)))
+      (car-safe
+       (seq-filter #'identity
+                   (map-values-apply
+                    (lambda (x) (if (string-match (format "^%s=\"\\(.*\\)\"$" var-name) x)
+                                    (match-string 1 x)))
+                    (seq-filter (lambda (x) (eq (car x) :var))
+                                (nth 2 el-info)))))))
+
+  (defmacro org-babel-get-caller-var-value (var)
+    `(or (org-with-point-at org-babel-current-src-block-location
+           (org-babel-get-call-var-value ,(symbol-name var)))
+         ,var))
+  #+END_SRC
+
+* Figure Generation
+
+  Below, we create a babel function that nicely wraps the output of a filename
+  to be displayed as a figure in org-mode and LaTeX.
+
+  The code takes extra effort to extract variable information from the calling block.
+  This is especially useful when blocks are called indirectly (e.g. from =:post=) and
+  variables (i.e. =:var= assignments) for the callee need to be set.
+
+  #+NAME: org_fig_wrap
+  #+HEADER: :var org_attrs=":width 400"
+  #+HEADER: :var latex_attrs=":width 1.0\\textwidth :height 1.0\\textwidth :float t :options [keepaspectratio] :placement [p!]"
+  #+HEADER: :var data="" :var label="" :var caption="" :var label_var=""
+  #+BEGIN_SRC elisp :exports none :results raw value :noweb yes
+
+  <<babel_helper_functions>>
+
+  (let* ((label (if (string-blank-p label)
+                    ;; There's no specified label.
+                    (org-with-point-at org-babel-current-src-block-location
+                      (let ((src-block-info (org-babel-get-src-block-info)))
+                        ;; First, use the calling block's name as the label.
+                        (if src-block-info
+                            (nth 4 (org-babel-get-src-block-info))
+                          ;; The caller is not a SRC block; let's assume it's a
+                          ;; CALL.
+                          (or (org-babel-get-call-var-value "label")
+                              ;; If the CALL specifies no label value, try the
+                              ;; value assigned to the variable given by
+                              ;; label_var.
+                              (org-babel-get-call-var-value label_var))
+                          ;; (error "No figure name!")
+                          )))
+                  label))
+         (latex_attrs (org-babel-get-caller-var-value latex_attrs))
+         (org_attrs (org-babel-get-caller-var-value org_attrs))
+         (caption (org-babel-get-caller-var-value caption))
+         ;; TODO: Further customize filename output?
+         ;; (filename (if (org-export-derived-backend-p org-export-current-backend 'latex)
+         ;;               (let ((pdf-name (concat (file-name-sans-extension data) ".pdf")))
+         ;;                 (or (and (file-exists-p pdf-name) pdf-name)
+         ;;                     data))
+         ;;             data))
+         ;; TODO: Could number figures using `org-export-get-ordinal'.
+         ;; See https://github.com/kawabata/ox-pandoc/blob/master/ox-pandoc.el
+         )
+    (mapconcat 'identity
+               `(,(format "#+ATTR_ORG: %s" org_attrs)
+                 ,(format "#+ATTR_LATEX: %s" latex_attrs)
+                 ,(format "#+CAPTION: %s" caption)
+                 ,(format "#+NAME: fig:%s" label)
+                 ,(format "[[file:%s]]" data))
+               "\n"))
+  #+END_SRC
+
+** Example Usage
+
+   In this instance, we call =org_fig_wrap= as a block =:post= processing function.
+   This is where the indirect variable gathering functionality is useful, since,
+   without it, we would not be able to set =label= or =caption= for
+   =org_fig_wrap= in the originating =CALL=.
+
+   #+BEGIN_SRC org :eval never :exports code
+   ,#+NAME: insert_pydot_figure
+   ,#+HEADER: :var graph_obj_name=""
+   ,#+HEADER: :post org_fig_wrap(data=*this*, label_var="graph_obj_name")
+   ,#+BEGIN_SRC python :results raw value
+   ...
+   ,#+END_SRC
+   #+END_SRC
+
+
+   Then emit the results in a =CALL= statement.
+   #+BEGIN_SRC org :eval never :exports code
+   ,#+CALL: insert_pydot_figure[:results value](graph_obj_name="blah", label="a-label", caption="A caption")
+   #+END_SRC

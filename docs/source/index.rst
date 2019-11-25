@@ -12,6 +12,7 @@ Welcome to Symbolic PyMC's documentation!
 
    symbolic-pymc-tour.md
    symbolic-pymc-examples
+   radon-example
    modules
 
 Indices and tables

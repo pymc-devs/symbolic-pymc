@@ -40,6 +40,11 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
 ]
 
+mathjax_config = {
+    # 'extensions': [''],
+    # 'jax': ['input/TeX']
+}
+
 # Don't auto-generate summary for class members.
 numpydoc_show_class_members = False
 
