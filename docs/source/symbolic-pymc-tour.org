@@ -91,7 +91,7 @@ Tensor(MatMul):0,	dtype=float32,	shape=[None, 1],	"MatMul:0"
 
 #+end_SRC
 
-The output of Listing [[tf-print-graph]] shows us the underlying operators (e.g. ~MatMul~,
+The output of [[tf-print-graph]] shows us the underlying operators (e.g. ~MatMul~,
 ~Placeholder~, ~AddV2~) and their arguments.
 
 To "match/search for" combinations of TensorFlow operations--or, in other words, graphs--like
@@ -188,7 +188,7 @@ TFlowMetaTensor(
 
 #+end_SRC
 
-In Listing [[create-meta-graph]], we created a graph of src_python[:eval never]{1} plus
+In [[create-meta-graph]], we created a graph of src_python[:eval never]{1} plus
 a src_python[:eval never]{unification} logic variable with the name src_python[:eval never]{'a'}. This
 wouldn't be possible with a standard TensorFlow graph.
 
@@ -308,7 +308,7 @@ an src_python[:eval never]{etuple} can be manipulated until all of its constitue
 variables and meta objects are eventually replaced with valid arguments to the
 function/operator.  At that point, the src_python[:eval never]{etuple} can be evaluated.
 
-For example, in Listing [[etuple-eval-example]], we create an src_python[:eval never]{etuple}
+For example, in [[etuple-eval-example]], we create an src_python[:eval never]{etuple}
 that uses the TensorFlow function src_python[:eval never]{tf.add} with a logic variable argument.
 #+NAME: etuple-eval-example
 #+BEGIN_SRC python :exports code :results none
@@ -318,7 +318,7 @@ add_tf_pat = etuple(tf.add, x_lv, y_lv)
 #+END_SRC
 
 Normally, it wouldn't be possible to call this function with these argument
-types, as demonstrated in Listing [[etuple-bad-usage-example]].
+types, as demonstrated in [[etuple-bad-usage-example]].
 
 #+NAME: etuple-bad-usage-example
 #+BEGIN_SRC python :exports both :results output :wrap "SRC python :eval never"
@@ -345,7 +345,7 @@ its src_python[:eval never]{ExpressionTuple.eval_obj} property.  However, after
 performing a simple manipulation that replaces the logic variable with valid
 inputs to src_python[:eval never]{tf.add}, we are able to evaluate
 the src_python[:eval never]{etuple} and obtain a TF Tensor result, as
-demonstrated in Listings [[etuple-reify-example]] and
+demonstrated in [[etuple-reify-example]] and
 [[etuple-reify-eval-print-example]].
 
 #+NAME: etuple-reify-example
@@ -388,10 +388,10 @@ objects that, through the use of src_python[:eval never]{eval}, could achieve
 the same results--albeit without the more convenient tuple-like structuring.
 
 * Meta Operators and their Parameters
-In Listing [[etuplize-graph-print]], the src_python[:eval never]{etuple} form of
+In [[etuplize-graph-print]], the src_python[:eval never]{etuple} form of
 our matrix multiplication graph, src_python[:eval never]{z_sexp}, produced
 src_python[:eval never]{symbolic_pymc.tensorflow.meta.TFlowMetaOperator}
-in the function/operator position.  Listing [[print-etuple-operator]] prints
+in the function/operator position.  [[print-etuple-operator]] prints
 only the function part of the src_python[:eval never]{etuple}.
 
 #+NAME: print-etuple-operator
@@ -438,7 +438,7 @@ src_python[:eval never]{Operation}'s src_python[:eval never]{OpDef}.  Notice tha
 src_python[:eval never]{NodeDef} in the meta operator for src_python[:eval never]{tf.matmul}
 has a src_python[:eval never]{dict} containing src_python[:eval never]{transpose_*} entries.
 These are the default values for the TF function src_python[:eval never]{tf.matmul} (see
-Listing [[print-tf-matmul]]).
+[[print-tf-matmul]]).
 
 #+NAME: print-tf-matmul
 #+BEGIN_SRC python :exports both :results output :wrap "SRC python :eval never"
@@ -481,7 +481,7 @@ Patterns, in this case, take the form of meta graphs or S-expr graphs with the
 desired structure and logic variables in place of "unknown" or arbitrary terms
 that we might like to reference elsewhere.
 
-Listing [[matmul-pattern]] represents an S-expr that evaluates to a graph in
+[[matmul-pattern]] represents an S-expr that evaluates to a graph in
 which two terms are matrix-multiplied.
 #+NAME: matmul-pattern
 #+BEGIN_SRC python :exports code :results none
@@ -497,7 +497,7 @@ matmul_pat_mt = matmul_op_mt(A_lv, B_lv)
 matmul_pat = etuplize(matmul_pat_mt)
 #+END_SRC
 
-In Listing [[matmul-pattern]] we created a meta
+In [[matmul-pattern]] we created a meta
 graph, src_python[:eval never]{matmul_pat_mt}, from a meta
 TF src_python[:eval never]{MatMul} operator and a
 variable src_python[:eval never]{NodeDef}, then we applied that meta operator to
@@ -590,7 +590,7 @@ our "pattern" with the matches obtained by src_python[:eval never]{unify} that a
 within the variable src_python[:eval never]{s}, or we could specify our own substitutions
 based on that information.
 
-In Listing [[matmul-pattern-reify]], we simply change the src_python[:eval never]{'name'} value in the
+In [[matmul-pattern-reify]], we simply change the src_python[:eval never]{'name'} value in the
 and create a new graph with that value.  The end result is a version of the original
 graph, src_python[:eval never]{z_sexp}, with a new name.
 #+NAME: matmul-pattern-reify
@@ -684,13 +684,13 @@ and src_python[:eval never]{y_lv} mapped to their template-corresponding objects
 in another graph, we can reify src_python[:eval never]{output_pat} and obtain a
 "transformed" version of said graph.
 
-Using our earlier unification results in Listing [[matmul-pattern-unify]], we only
+Using our earlier unification results in [[matmul-pattern-unify]], we only
 need to reify our output pattern, src_python[:eval never]{output_pat}, with
 those mappings.  However, since our output pattern refers to logic variables
 src_python[:eval never]{x_lv} and src_python[:eval never]{y_lv}, we'll need
 to unify those logic variables with the appropriate terms in the graph.
 
-Listing [[dist-add-unify]], unifies the remaining terms by simply extracting the
+[[dist-add-unify]], unifies the remaining terms by simply extracting the
 src_python[:eval never]{B} argument in the matrix multiply and unifying
 that with a pattern for tensor addition.
 
@@ -764,7 +764,7 @@ Normally, a user will only need to construct compound goals from a basic set of
 primitives.  Arguably, the most primitive goal is the [[https://en.wikipedia.org/wiki/Equivalence_relation][equivalence relation]]
 under unification denoted by src_python[:eval never]{eq} in Python.
 
-In Listing [[mk-basics-eq]], we ask for all successful results/reifications (signified
+In [[mk-basics-eq]], we ask for all successful results/reifications (signified
 by the src_python[:eval never]{0} argument) of the logic variable src_python[:eval never]{var('q')} for the goal
 src_python[:eval never]{eq(var('q'), 1)}--i.e. unify src_python[:eval never]{var('q')} with src_python[:eval never]{1}.
 
@@ -814,7 +814,7 @@ pprint(mk_res)
 
 #+end_SRC
 
-In Listing [[mk-basics-lall]], we used src_python[:eval never]{lall} to obtain the conjunction of two unification goals.
+In [[mk-basics-lall]], we used src_python[:eval never]{lall} to obtain the conjunction of two unification goals.
 Since we requested that the same logic variable be unified
 with both src_python[:eval never]{1} and src_python[:eval never]{2} simultaneously (i.e. in the same
 state), which isn't possible, we got back an empty stream of results--indicating failure.
@@ -839,7 +839,7 @@ pprint(mk_res)
 
 #+end_SRC
 
-The goal disjunction results in Listing [[mk-basics-lany-print]] show that the logic variable
+The goal disjunction results in [[mk-basics-lany-print]] show that the logic variable
 src_python[:eval never]{q_lv} can be unified with either src_python[:eval never]{1} *or* src_python[:eval never]{2} under the
 two unification goals.
 
@@ -874,14 +874,14 @@ pprint(mk_res)
 
 #+end_SRC
 
-In Listing [[mk-basics-conde]], we introduced another logic
+In [[mk-basics-conde]], we introduced another logic
 variable, src_python[:eval never]{r_lv}, and requested the reified values of a list
 containing both logic variables.  The output resembles the idea that
 if src_python[:eval never]{q_lv} is "equal" to src_python[:eval never]{1}, then src_python[:eval never]{r_lv} is "equal"
 to src_python[:eval never]{10}, etc.  Unlike normal conditionals, each clause/branch isn't
 exclusive, instead each is realized when the goals in a branch can be successful.
 
-Listing [[mk-basics-conde-exclusive]], demonstrates when src_python[:eval never]{conde} can behave more
+[[mk-basics-conde-exclusive]], demonstrates when src_python[:eval never]{conde} can behave more
 like a traditional conditional statement.
 #+NAME: mk-basics-conde-exclusive
 #+BEGIN_SRC python :exports code :results none
@@ -936,7 +936,7 @@ Tensor(AddV2):0,	dtype=float32,	shape=~_14,	"add:0"
 #+end_SRC
 
 We didn't need to use the goal conjunction operator src_python[:eval never]{lall} explicitly
-in Listing [[mk-distribute]], because all remaining goal arguments
+in [[mk-distribute]], because all remaining goal arguments
 to src_python[:eval never]{run} are automatically applied in conjunction.
 
 When combinations of miniKanren goals comprise logical units, we can wrap their
@@ -999,7 +999,7 @@ Tensor(AddV2):0,	dtype=~_27,	shape=~_28,	"AddV2:0"
 
 #+end_SRC
 
-Now, in Listing [[mk-dist-goal-contract-distribute]] we "contract" the graph using
+Now, in [[mk-dist-goal-contract-distribute]] we "contract" the graph using
 the previously "expanded" results.
 
 #+NAME: mk-dist-goal-contract-distribute
@@ -1009,12 +1009,12 @@ mk_res = run(1, q_lv, distributeo(q_lv, z_expanded_mt))
 z_contracted_mt = mk_res[0]
 #+END_SRC
 
-#+NAME: mk-dist-goal-contract-distribute
+#+NAME: mk-dist-goal-contract-distribute-print
 #+BEGIN_SRC python :exports both :results output :wrap "SRC python :eval never"
 tf_dprint(z_contracted_mt)
 #+END_SRC
 
-#+RESULTS: mk-dist-goal-contract-distribute
+#+RESULTS: mk-dist-goal-contract-distribute-print
 #+begin_SRC python :eval never
 Tensor(MatMul):0,	dtype=~_38,	shape=~_42,	"~_44"
 |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, None],	"A:0"
@@ -1034,7 +1034,7 @@ Symbolic PyMC introduces some miniKanren goals that apply other goals throughout
 graphs until a fixed-point is reached.  This sequence of operations is generally
 necessary for graph simplification and rewriting.
 
-In Listing [[mk-dist-goal-gapply-distribute]] we create a new graph that
+In [[mk-dist-goal-gapply-distribute]] we create a new graph that
 contains src_python[:eval never]{tf.matmul(A, x + y)} as a subgraph.
 Using src_python[:eval never]{graph_applyo},
 our src_python[:eval never]{distributeo} relation is applied all throughout the

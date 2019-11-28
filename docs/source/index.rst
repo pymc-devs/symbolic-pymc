@@ -10,10 +10,25 @@ Welcome to Symbolic PyMC's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   symbolic-pymc-tour.md
-   symbolic-pymc-examples
-   radon-example
+   symbolic-pymc-tour
    modules
+
+Examples
+========
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Theano:
+
+   theano-posteriors-example
+   theano-radon-example
+
+.. toctree::
+   :maxdepth: 1
+   :caption: TensorFlow:
+
+   tensorflow-radon-example
+   tensorflow-simplification-example
 
 Indices and tables
 ==================

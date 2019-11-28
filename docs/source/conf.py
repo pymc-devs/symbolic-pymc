@@ -40,10 +40,19 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
 ]
 
+html_css_files = [
+    'custom.css',
+]
+
 mathjax_config = {
     # 'extensions': [''],
     # 'jax': ['input/TeX']
 }
+
+modindex_common_prefix = ['symbolic_pymc.']
+
+numfig = True
+numfig_secnum_depth = 1
 
 # Don't auto-generate summary for class members.
 numpydoc_show_class_members = False
@@ -76,7 +85,6 @@ html_theme = "semantic_sphinx"
 html_theme_options = {
     "navbar_links": [
         ("Index", "index"),
-        ("Examples", "symbolic-pymc-examples"),
         ("API", "modules"),
     ],
 }
