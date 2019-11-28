@@ -145,12 +145,24 @@ also reproduced here in `fig:pymc4-radon-plot-energy`_ and
 
 .. _fig:pymc4-radon-plot-energy:
 
-.. image:: _static/pymc4-radon-plot-energy.png
+.. figure:: _static/pymc4-radon-plot-energy.png
+    :width: 800px
+    :align: center
+    :figclass: align-center
+
+
+    Pre-transform MCMC energy
 
 
 .. _fig:pymc4-radon-plot-trace:
 
-.. image:: _static/pymc4-radon-plot-trace.png
+.. figure:: _static/pymc4-radon-plot-trace.png
+    :width: 800px
+    :align: center
+    :figclass: align-center
+
+
+    Pre-transform MCMC trace
 
 The Model's Log-likelihood Graph
 --------------------------------
@@ -1372,14 +1384,26 @@ function.
 
 .. _fig:transformed-model-plot-energy:
 
-.. image:: _static/transformed-model-plot-energy.png
+.. figure:: _static/transformed-model-plot-energy.png
+    :width: 800px
+    :align: center
+    :figclass: align-center
+
+
+    Post-transform MCMC energy
 
 
 
 
 .. _fig:transformed-model-plot-trace:
 
-.. image:: _static/transformed-model-plot-trace.png
+.. figure:: _static/transformed-model-plot-trace.png
+    :width: 800px
+    :align: center
+    :figclass: align-center
+
+
+    Post-transform MCMC trace
 
 Discussion
 ----------
