@@ -94,10 +94,10 @@ using the log-likelihood of a hierarchical normal-normal model.</p>
 </div>
 <p>We start by including the graph normalization/simplifications native to
 TensorFlow via the <code class="docutils literal notranslate"><span class="pre">grappler</span></code> module.  In
-<a class="reference internal" href="#grappler-normalize-function"><span class="std std-numref">Listing 88</span></a>, we create a helper function that
+<a class="reference internal" href="#grappler-normalize-function-sp"><span class="std std-numref">Listing 88</span></a>, we create a helper function that
 applies <code class="docutils literal notranslate"><span class="pre">grappler</span></code> simplifications to a graph.</p>
-<div class="literal-block-wrapper docutils container" id="grappler-normalize-function">
-<div class="code-block-caption"><span class="caption-number">Listing 88 </span><span class="caption-text">grappler-normalize-function</span><a class="headerlink" href="#grappler-normalize-function" title="Permalink to this code">¶</a></div>
+<div class="literal-block-wrapper docutils container" id="grappler-normalize-function-sp">
+<div class="code-block-caption"><span class="caption-number">Listing 88 </span><span class="caption-text">grappler-normalize-function-sp</span><a class="headerlink" href="#grappler-normalize-function-sp" title="Permalink to this code">¶</a></div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">config_pb2</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">ops</span>

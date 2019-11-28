@@ -32,12 +32,12 @@ using the log-likelihood of a hierarchical normal-normal model.
 
 We start by including the graph normalization/simplifications native to
 TensorFlow via the \ ``grappler``\  module.  In
-:numref:`grappler-normalize-function`, we create a helper function that
+:numref:`grappler-normalize-function-sp`, we create a helper function that
 applies \ ``grappler``\  simplifications to a graph.
 
 .. code-block:: python
-    :caption: grappler-normalize-function
-    :name: grappler-normalize-function
+    :caption: grappler-normalize-function-sp
+    :name: grappler-normalize-function-sp
 
     from tensorflow.core.protobuf import config_pb2
 
