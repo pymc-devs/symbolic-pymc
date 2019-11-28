@@ -1,0 +1,530 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Simplification Example &#8212; Symbolic PyMC  documentation</title>
+    <link rel="stylesheet" href="_static/semantic-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/default.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/highlight.min.js"></script>
+    <script type="text/javascript" src="_static/semantic.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Radon Example" href="tensorflow-radon-example.html" />
+<script>hljs.initHighlightingOnLoad();</script>
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+
+
+  </head><body>
+<div class="ui vertical center aligned">
+
+    <div class="ui container">
+        <div class="ui large secondary pointing menu">
+            <a class="item" href="/">
+                Symbolic
+                <img class="ui bottom aligned tiny image" src="https://cdn.rawgit.com/pymc-devs/pymc3/master/docs/logos/svg/PyMC3_banner.svg" />
+            </a>
+             <a href="index.html" class="item">Index</a> <a href="symbolic-pymc-examples.html" class="item">Examples</a> <a href="modules.html" class="item">API</a>
+            
+            <div class="right menu">
+                <div class="item">
+                    <form class="ui icon input" action="search.html" method="get">
+                        <input type="text" placeholder="Search..." name="q" />
+                        <i class="search link icon"></i>
+                    </form>
+                </div>
+                <a class="item" href="https://github.com/pymc-devs/symbolic-pymc"><i class="github blue icon large"></i></a>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<div class="ui container" role="main">
+    
+
+    <div class="ui vertical segment">
+        
+  <div class="section" id="simplification-example">
+<h1>Simplification Example<a class="headerlink" href="#simplification-example" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><dl class="field-list simple">
+<dt class="field-odd">Author</dt>
+<dd class="field-odd"><p>Brandon T. Willard</p>
+</dd>
+<dt class="field-even">Date</dt>
+<dd class="field-even"><p>2019-09-08</p>
+</dd>
+</dl>
+</div></blockquote>
+<div class="section" id="introduction">
+<h2>1 Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>In this example, we’ll illustrate the effect of algebraic graph simplifications
+using the log-likelihood of a hierarchical normal-normal model.</p>
+<div class="literal-block-wrapper docutils container" id="simplification-python-setup">
+<div class="code-block-caption"><span class="caption-number">Listing 87 </span><span class="caption-text">simplification-python-setup</span><a class="headerlink" href="#simplification-python-setup" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="kn">as</span> <span class="nn">tf</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow_probability</span> <span class="kn">as</span> <span class="nn">tfp</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow.python.eager.context</span> <span class="kn">import</span> <span class="n">graph_mode</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework.ops</span> <span class="kn">import</span> <span class="n">disable_tensor_equality</span>
+
+<span class="kn">from</span> <span class="nn">symbolic_pymc.tensorflow.printing</span> <span class="kn">import</span> <span class="n">tf_dprint</span>
+
+
+<span class="n">disable_tensor_equality</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>We start by including the graph normalization/simplifications native to
+TensorFlow via the <code class="docutils literal notranslate"><span class="pre">grappler</span></code> module.  In
+<a class="reference internal" href="#grappler-normalize-function"><span class="std std-numref">Listing 88</span></a>, we create a helper function that
+applies <code class="docutils literal notranslate"><span class="pre">grappler</span></code> simplifications to a graph.</p>
+<div class="literal-block-wrapper docutils container" id="grappler-normalize-function">
+<div class="code-block-caption"><span class="caption-number">Listing 88 </span><span class="caption-text">grappler-normalize-function</span><a class="headerlink" href="#grappler-normalize-function" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">config_pb2</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">importer</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">meta_graph</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow.python.grappler</span> <span class="kn">import</span> <span class="n">cluster</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.grappler</span> <span class="kn">import</span> <span class="n">tf_optimizer</span>
+
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">gcluster</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">Cluster</span><span class="p">()</span>
+<span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">UnavailableError</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+<span class="n">config</span> <span class="o">=</span> <span class="n">config_pb2</span><span class="o">.</span><span class="n">ConfigProto</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">normalize_tf_graph</span><span class="p">(</span><span class="n">graph_output</span><span class="p">,</span> <span class="n">new_graph</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Use grappler to normalize a graph.</span>
+
+<span class="sd">    Arguments</span>
+<span class="sd">    =========</span>
+<span class="sd">    graph_output: Tensor</span>
+<span class="sd">      A tensor we want to consider as &quot;output&quot; of a FuncGraph.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    =======</span>
+<span class="sd">    The simplified graph.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">train_op</span> <span class="o">=</span> <span class="n">graph_output</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="n">ops</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">TRAIN_OP</span><span class="p">)</span>
+    <span class="n">train_op</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">train_op</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">graph_output</span><span class="p">])</span>
+
+    <span class="n">metagraph</span> <span class="o">=</span> <span class="n">meta_graph</span><span class="o">.</span><span class="n">create_meta_graph_def</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">graph_output</span><span class="o">.</span><span class="n">graph</span><span class="p">)</span>
+
+    <span class="n">optimized_graphdef</span> <span class="o">=</span> <span class="n">tf_optimizer</span><span class="o">.</span><span class="n">OptimizeGraph</span><span class="p">(</span>
+        <span class="n">config</span><span class="p">,</span> <span class="n">metagraph</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">cluster</span><span class="o">=</span><span class="n">gcluster</span><span class="p">)</span>
+
+    <span class="n">output_name</span> <span class="o">=</span> <span class="n">graph_output</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">if</span> <span class="n">new_graph</span><span class="p">:</span>
+        <span class="n">optimized_graph</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">optimized_graph</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+        <span class="k">del</span> <span class="n">graph_output</span>
+
+    <span class="k">with</span> <span class="n">optimized_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+        <span class="n">importer</span><span class="o">.</span><span class="n">import_graph_def</span><span class="p">(</span><span class="n">optimized_graphdef</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="n">opt_graph_output</span> <span class="o">=</span> <span class="n">optimized_graph</span><span class="o">.</span><span class="n">get_tensor_by_name</span><span class="p">(</span><span class="n">output_name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">opt_graph_output</span>
+</pre></div>
+</div>
+</div>
+<p><a class="reference internal" href="#hier-normal-graph"><span class="std std-numref">Listing 89</span></a> creates our model and normalizes it.</p>
+<div class="literal-block-wrapper docutils container" id="hier-normal-graph">
+<div class="code-block-caption"><span class="caption-number">Listing 89 </span><span class="caption-text">hier-normal-graph</span><a class="headerlink" href="#hier-normal-graph" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">tfp_normal_log_prob</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
+    <span class="n">log_unnormalized</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">squared_difference</span><span class="p">(</span>
+        <span class="n">x</span> <span class="o">/</span> <span class="n">scale</span><span class="p">,</span> <span class="n">loc</span> <span class="o">/</span> <span class="n">scale</span><span class="p">)</span>
+    <span class="n">log_normalization</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="c1"># log_normalization += tf.math.log(scale)</span>
+    <span class="k">return</span> <span class="n">log_unnormalized</span> <span class="o">-</span> <span class="n">log_normalization</span>
+
+
+<span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">()</span> <span class="k">as</span> <span class="n">demo_graph</span><span class="p">:</span>
+
+    <span class="n">x_tf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;value_x&#39;</span><span class="p">,</span>
+                                    <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="bp">None</span><span class="p">]))</span>
+    <span class="n">tau_tf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tau&#39;</span><span class="p">,</span>
+                                      <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="bp">None</span><span class="p">]))</span>
+    <span class="n">y_tf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;value_y&#39;</span><span class="p">,</span>
+                                    <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="bp">None</span><span class="p">]))</span>
+
+    <span class="n">X_tfp</span> <span class="o">=</span> <span class="n">tfp</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">normal</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;X&#39;</span><span class="p">)</span>
+
+    <span class="n">z_tf</span> <span class="o">=</span> <span class="n">x_tf</span> <span class="o">+</span> <span class="n">tau_tf</span> <span class="o">*</span> <span class="n">y_tf</span>
+
+    <span class="n">hier_norm_lik</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">z_tf</span><span class="p">)</span>
+
+    <span class="c1"># Unscaled normal log-likelihood</span>
+    <span class="n">log_unnormalized</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">squared_difference</span><span class="p">(</span>
+        <span class="n">z_tf</span> <span class="o">/</span> <span class="n">tau_tf</span><span class="p">,</span> <span class="n">x_tf</span> <span class="o">/</span> <span class="n">tau_tf</span><span class="p">)</span>
+    <span class="n">log_normalization</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="n">hier_norm_lik</span> <span class="o">+=</span> <span class="n">log_unnormalized</span> <span class="o">-</span> <span class="n">log_normalization</span>
+
+    <span class="n">hier_norm_lik</span> <span class="o">+=</span> <span class="n">X_tfp</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">x_tf</span><span class="p">)</span>
+
+    <span class="n">hier_norm_lik</span> <span class="o">=</span> <span class="n">normalize_tf_graph</span><span class="p">(</span><span class="n">hier_norm_lik</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>In <a class="reference internal" href="#hier-normal-graph"><span class="std std-numref">Listing 89</span></a> we used an unscaled version of the normal
+log-likelihood.  This is because we’re emulating the effect of applying a
+substitution like <span class="math notranslate nohighlight">\(Y \to x + \tau \epsilon \sim \operatorname{N}\left(x, \tau^2\right)\)</span>.
+This has the same effect as subtracting a <span class="math notranslate nohighlight">\(\log(\tau)\)</span> term; however, the
+result will produce equivalent–but not equal–graphs when we compare with the
+manually created fully transformed graph in <a class="reference internal" href="#manually-simplified-graph"><span class="std std-numref">Listing 91</span></a>.</p>
+<div class="literal-block-wrapper docutils container" id="hier-normal-graph-print">
+<div class="code-block-caption"><span class="caption-number">Listing 90 </span><span class="caption-text">hier-normal-graph-print</span><a class="headerlink" href="#hier-normal-graph-print" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">hier_norm_lik</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Tensor(AddV2):0,    dtype=float32,  shape=[None],   &quot;add_2:0&quot;
+|  Tensor(Sub):0,   dtype=float32,  shape=[None],   &quot;X_1/log_prob/sub:0&quot;
+|  |  Tensor(Mul):0,        dtype=float32,  shape=[None],   &quot;X_1/log_prob/mul:0&quot;
+|  |  |  Tensor(SquaredDifference):0,       dtype=float32,  shape=[None],   &quot;X_1/log_prob/SquaredDifference:0&quot;
+|  |  |  |  Tensor(Mul):0,  dtype=float32,  shape=[None],   &quot;X_1/log_prob/truediv:0&quot;
+|  |  |  |  |  Tensor(Const):0,     dtype=float32,  shape=[],       &quot;ConstantFolding/X_1/log_prob/truediv_recip:0&quot;
+|  |  |  |  |  |  1.
+|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[None],   &quot;value_x:0&quot;
+|  |  |  |  Tensor(Const):0,        dtype=float32,  shape=[],       &quot;X_1/log_prob/truediv_1:0&quot;
+|  |  |  |  |  0.
+|  |  |  Tensor(Const):0,   dtype=float32,  shape=[],       &quot;mul_1/x:0&quot;
+|  |  |  |  -0.5
+|  |  Tensor(Const):0,      dtype=float32,  shape=[],       &quot;sub/y:0&quot;
+|  |  |  0.9189385
+|  Tensor(AddV2):0, dtype=float32,  shape=[None],   &quot;add_1:0&quot;
+|  |  Tensor(Log):0,        dtype=float32,  shape=[None],   &quot;Log:0&quot;
+|  |  |  Tensor(AddV2):0,   dtype=float32,  shape=[None],   &quot;add:0&quot;
+|  |  |  |  Tensor(Mul):0,  dtype=float32,  shape=[None],   &quot;mul:0&quot;
+|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[None],   &quot;tau:0&quot;
+|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[None],   &quot;value_y:0&quot;
+|  |  |  |  Tensor(Placeholder):0,  dtype=float32,  shape=[None],   &quot;value_x:0&quot;
+|  |  Tensor(Sub):0,        dtype=float32,  shape=[None],   &quot;sub:0&quot;
+|  |  |  Tensor(Mul):0,     dtype=float32,  shape=[None],   &quot;mul_1:0&quot;
+|  |  |  |  Tensor(SquaredDifference):0,    dtype=float32,  shape=[None],   &quot;SquaredDifference:0&quot;
+|  |  |  |  |  Tensor(RealDiv):0,   dtype=float32,  shape=[None],   &quot;truediv:0&quot;
+|  |  |  |  |  |  Tensor(AddV2):0,  dtype=float32,  shape=[None],   &quot;add:0&quot;
+|  |  |  |  |  |  |  ...
+|  |  |  |  |  |  Tensor(Placeholder):0,    dtype=float32,  shape=[None],   &quot;tau:0&quot;
+|  |  |  |  |  Tensor(RealDiv):0,   dtype=float32,  shape=[None],   &quot;truediv_1:0&quot;
+|  |  |  |  |  |  Tensor(Placeholder):0,    dtype=float32,  shape=[None],   &quot;value_x:0&quot;
+|  |  |  |  |  |  Tensor(Placeholder):0,    dtype=float32,  shape=[None],   &quot;tau:0&quot;
+|  |  |  |  Tensor(Const):0,        dtype=float32,  shape=[],       &quot;mul_1/x:0&quot;
+|  |  |  |  |  -0.5
+|  |  |  Tensor(Const):0,   dtype=float32,  shape=[],       &quot;sub/y:0&quot;
+|  |  |  |  0.9189385
+</pre></div>
+</div>
+<p>From <a class="reference internal" href="#hier-normal-graph-print"><span class="std std-numref">Listing 90</span></a> we can see
+that <code class="docutils literal notranslate"><span class="pre">grappler</span></code> is not applying enough algebraic
+simplifications (e.g. it doesn’t remove multiplications with <span class="math notranslate nohighlight">\(1\)</span> or reduce the
+<span class="math notranslate nohighlight">\(\left(\mu + x - \mu \right)^2\)</span> term
+in <code class="docutils literal notranslate"><span class="pre">SquaredDifference</span></code>).</p>
+<p><strong>**Does missing this simplification amount to anything practical?**</strong></p>
+<p><a class="reference internal" href="#manually-simplified-graph-eval"><span class="std std-numref">Listing 93</span></a> demonstrates the difference between our model
+without the simplification and a manually constructed model with the simplification (i.e.
+<a class="reference internal" href="#manually-simplified-graph"><span class="std std-numref">Listing 91</span></a>).</p>
+<div class="literal-block-wrapper docutils container" id="manually-simplified-graph">
+<div class="code-block-caption"><span class="caption-number">Listing 91 </span><span class="caption-text">manually-simplified-graph</span><a class="headerlink" href="#manually-simplified-graph" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">demo_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+
+    <span class="n">Z_tfp</span> <span class="o">=</span> <span class="n">tfp</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">normal</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Y_trans&#39;</span><span class="p">)</span>
+
+    <span class="n">hn_manually_simplified_lik</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">z_tf</span><span class="p">)</span>
+    <span class="n">hn_manually_simplified_lik</span> <span class="o">+=</span> <span class="n">Z_tfp</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">y_tf</span><span class="p">)</span>
+    <span class="n">hn_manually_simplified_lik</span> <span class="o">+=</span> <span class="n">X_tfp</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">x_tf</span><span class="p">)</span>
+
+    <span class="n">hn_manually_simplified_lik</span> <span class="o">=</span> <span class="n">normalize_tf_graph</span><span class="p">(</span><span class="n">hn_manually_simplified_lik</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="manually-simplified-graph-print">
+<div class="code-block-caption"><span class="caption-number">Listing 92 </span><span class="caption-text">manually-simplified-graph-print</span><a class="headerlink" href="#manually-simplified-graph-print" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">hn_manually_simplified_lik</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Tensor(AddV2):0,    dtype=float32,  shape=[None],   &quot;add_4:0&quot;
+|  Tensor(Sub):0,   dtype=float32,  shape=[None],   &quot;X_2/log_prob/sub:0&quot;
+|  |  Tensor(Mul):0,        dtype=float32,  shape=[None],   &quot;X_2/log_prob/mul:0&quot;
+|  |  |  Tensor(SquaredDifference):0,       dtype=float32,  shape=[None],   &quot;X_2/log_prob/SquaredDifference:0&quot;
+|  |  |  |  Tensor(Mul):0,  dtype=float32,  shape=[None],   &quot;X_2/log_prob/truediv:0&quot;
+|  |  |  |  |  Tensor(Const):0,     dtype=float32,  shape=[],       &quot;ConstantFolding/Y_trans_1/log_prob/truediv_recip:0&quot;
+|  |  |  |  |  |  1.
+|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[None],   &quot;value_x:0&quot;
+|  |  |  |  Tensor(Const):0,        dtype=float32,  shape=[],       &quot;Y_trans_1/log_prob/truediv_1:0&quot;
+|  |  |  |  |  0.
+|  |  |  Tensor(Const):0,   dtype=float32,  shape=[],       &quot;Y_trans_1/log_prob/mul/x:0&quot;
+|  |  |  |  -0.5
+|  |  Tensor(Const):0,      dtype=float32,  shape=[],       &quot;Y_trans_1/log_prob/add:0&quot;
+|  |  |  0.9189385
+|  Tensor(AddV2):0, dtype=float32,  shape=[None],   &quot;add_3:0&quot;
+|  |  Tensor(Log):0,        dtype=float32,  shape=[None],   &quot;Log_1:0&quot;
+|  |  |  Tensor(AddV2):0,   dtype=float32,  shape=[None],   &quot;add:0&quot;
+|  |  |  |  Tensor(Mul):0,  dtype=float32,  shape=[None],   &quot;mul:0&quot;
+|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[None],   &quot;tau:0&quot;
+|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[None],   &quot;value_y:0&quot;
+|  |  |  |  Tensor(Placeholder):0,  dtype=float32,  shape=[None],   &quot;value_x:0&quot;
+|  |  Tensor(Sub):0,        dtype=float32,  shape=[None],   &quot;Y_trans_1/log_prob/sub:0&quot;
+|  |  |  Tensor(Mul):0,     dtype=float32,  shape=[None],   &quot;Y_trans_1/log_prob/mul:0&quot;
+|  |  |  |  Tensor(SquaredDifference):0,    dtype=float32,  shape=[None],   &quot;Y_trans_1/log_prob/SquaredDifference:0&quot;
+|  |  |  |  |  Tensor(Mul):0,       dtype=float32,  shape=[None],   &quot;Y_trans_1/log_prob/truediv:0&quot;
+|  |  |  |  |  |  Tensor(Const):0,  dtype=float32,  shape=[],       &quot;ConstantFolding/Y_trans_1/log_prob/truediv_recip:0&quot;
+|  |  |  |  |  |  |  1.
+|  |  |  |  |  |  Tensor(Placeholder):0,    dtype=float32,  shape=[None],   &quot;value_y:0&quot;
+|  |  |  |  |  Tensor(Const):0,     dtype=float32,  shape=[],       &quot;Y_trans_1/log_prob/truediv_1:0&quot;
+|  |  |  |  |  |  0.
+|  |  |  |  Tensor(Const):0,        dtype=float32,  shape=[],       &quot;Y_trans_1/log_prob/mul/x:0&quot;
+|  |  |  |  |  -0.5
+|  |  |  Tensor(Const):0,   dtype=float32,  shape=[],       &quot;Y_trans_1/log_prob/add:0&quot;
+|  |  |  |  0.9189385
+</pre></div>
+</div>
+<div class="literal-block-wrapper docutils container" id="manually-simplified-graph-eval">
+<div class="code-block-caption"><span class="caption-number">Listing 93 </span><span class="caption-text">manually-simplified-graph-eval</span><a class="headerlink" href="#manually-simplified-graph-eval" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">test_point</span> <span class="o">=</span> <span class="p">{</span><span class="n">x_tf</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>
+              <span class="n">tau_tf</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mf">1e-9</span><span class="p">],</span>
+              <span class="n">y_tf</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mf">1000.1</span><span class="p">]}</span>
+
+<span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">hn_manually_simplified_lik</span><span class="o">.</span><span class="n">graph</span><span class="p">)</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+    <span class="n">hn_manually_simplified_val</span> <span class="o">=</span> <span class="n">hn_manually_simplified_lik</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">test_point</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">hier_norm_lik</span><span class="o">.</span><span class="n">graph</span><span class="p">)</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+    <span class="n">hn_unsimplified_val</span> <span class="o">=</span> <span class="n">hier_norm_lik</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">test_point</span><span class="p">)</span>
+
+<span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">hn_unsimplified_val</span><span class="p">,</span> <span class="n">hn_manually_simplified_val</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[39299.97]
+</pre></div>
+</div>
+<p>The output of <a class="reference internal" href="#manually-simplified-graph-eval"><span class="std std-numref">Listing 93</span></a> shows exactly how large
+the discrepancy can be for carefully chosen parameter values.  More
+specifically, as <code class="docutils literal notranslate"><span class="pre">tau_tf</span></code> gets smaller and the magnitude
+of the difference <code class="docutils literal notranslate"><span class="pre">x_tf</span> <span class="pre">-</span> <span class="pre">y_tf</span></code> gets larger, the
+discrepancy can increase.  Since such parameter values are likely to be visited
+during sampling, we should address this missing simplification.</p>
+<p>In <a class="reference internal" href="#further-simplify-test-graph"><span class="std std-numref">Listing 95</span></a> we create a goal that performs that
+aforementioned simplification for <code class="docutils literal notranslate"><span class="pre">SquaredDifference</span></code>.</p>
+<div class="literal-block-wrapper docutils container" id="recenter-sqrdiffo">
+<div class="code-block-caption"><span class="caption-number">Listing 94 </span><span class="caption-text">recenter-sqrdiffo</span><a class="headerlink" href="#recenter-sqrdiffo" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Sequence</span>
+
+<span class="kn">from</span> <span class="nn">unification</span> <span class="kn">import</span> <span class="n">var</span>
+
+<span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">eq</span><span class="p">,</span> <span class="n">lall</span><span class="p">,</span> <span class="n">conde</span>
+<span class="kn">from</span> <span class="nn">kanren.facts</span> <span class="kn">import</span> <span class="n">fact</span>
+<span class="kn">from</span> <span class="nn">kanren.assoccomm</span> <span class="kn">import</span> <span class="n">eq_comm</span><span class="p">,</span> <span class="n">commutative</span>
+
+<span class="kn">from</span> <span class="nn">symbolic_pymc.meta</span> <span class="kn">import</span> <span class="n">enable_lvar_defaults</span>
+<span class="kn">from</span> <span class="nn">symbolic_pymc.tensorflow.meta</span> <span class="kn">import</span> <span class="n">mt</span><span class="p">,</span> <span class="n">TFlowMetaOperator</span>
+
+<span class="kn">from</span> <span class="nn">symbolic_pymc.relations.graph</span> <span class="kn">import</span> <span class="n">graph_applyo</span>
+<span class="kn">from</span> <span class="nn">symbolic_pymc.etuple</span> <span class="kn">import</span> <span class="n">ExpressionTuple</span><span class="p">,</span> <span class="n">etuple</span><span class="p">,</span> <span class="n">etuplize</span>
+
+
+<span class="n">fact</span><span class="p">(</span><span class="n">commutative</span><span class="p">,</span> <span class="n">TFlowMetaOperator</span><span class="p">(</span><span class="n">mt</span><span class="o">.</span><span class="n">SquaredDifference</span><span class="o">.</span><span class="n">op_def</span><span class="p">,</span> <span class="n">var</span><span class="p">()))</span>
+
+
+<span class="k">def</span> <span class="nf">tf_graph_applyo</span><span class="p">(</span><span class="n">relation</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Construct a `graph_applyo` goal that evaluates a relation only at tensor nodes in a meta graph.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    relation: function</span>
+<span class="sd">      A binary relation/goal constructor function</span>
+<span class="sd">    a: lvar, meta graph, or etuple</span>
+<span class="sd">      The left-hand side of the relation.</span>
+<span class="sd">    b: lvar, meta graph, or etuple</span>
+<span class="sd">      The right-hand side of the relation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_expand_some_nodes</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">mt</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">etuple</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">base_operator</span><span class="p">,</span> <span class="o">*</span><span class="n">node</span><span class="o">.</span><span class="n">base_arguments</span><span class="p">,</span> <span class="n">eval_obj</span><span class="o">=</span><span class="n">node</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">node</span>
+
+        <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="n">gapplyo</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">graph_applyo</span><span class="p">,</span> <span class="n">relation</span><span class="p">,</span> <span class="n">preprocess_graph</span><span class="o">=</span><span class="n">_expand_some_nodes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">gapplyo</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">recenter_sqrdiffo</span><span class="p">(</span><span class="n">in_g</span><span class="p">,</span> <span class="n">out_g</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a goal that essentially reduces `(a / d - (a + d * c) / d)**2` to `d**2`&quot;&quot;&quot;</span>
+    <span class="n">a_sqd_lv</span><span class="p">,</span> <span class="n">b_sqd_lv</span><span class="p">,</span> <span class="n">d_sqd_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">(),</span> <span class="n">var</span><span class="p">(),</span> <span class="n">var</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">enable_lvar_defaults</span><span class="p">(</span><span class="s1">&#39;names&#39;</span><span class="p">):</span>
+        <span class="c1"># Pattern: (a / d - b / d)**2</span>
+        <span class="n">target_sqrdiff_lv</span> <span class="o">=</span> <span class="n">mt</span><span class="o">.</span><span class="n">SquaredDifference</span><span class="p">(</span>
+            <span class="n">mt</span><span class="o">.</span><span class="n">Realdiv</span><span class="p">(</span><span class="n">a_sqd_lv</span><span class="p">,</span> <span class="n">d_sqd_lv</span><span class="p">),</span>
+            <span class="n">mt</span><span class="o">.</span><span class="n">Realdiv</span><span class="p">(</span><span class="n">b_sqd_lv</span><span class="p">,</span> <span class="n">d_sqd_lv</span><span class="p">))</span>
+
+        <span class="c1"># Pattern: d * c + a</span>
+        <span class="n">c_sqd_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
+        <span class="n">b_part_lv</span> <span class="o">=</span> <span class="n">mt</span><span class="o">.</span><span class="n">AddV2</span><span class="p">(</span><span class="n">mt</span><span class="o">.</span><span class="n">Mul</span><span class="p">(</span><span class="n">d_sqd_lv</span><span class="p">,</span> <span class="n">c_sqd_lv</span><span class="p">),</span> <span class="n">a_sqd_lv</span><span class="p">)</span>
+
+    <span class="c1"># Replacement: c**2</span>
+    <span class="n">simplified_sqrdiff_lv</span> <span class="o">=</span> <span class="n">mt</span><span class="o">.</span><span class="n">SquaredDifference</span><span class="p">(</span>
+        <span class="n">c_sqd_lv</span><span class="p">,</span>
+        <span class="mf">0.0</span>
+    <span class="p">)</span>
+
+    <span class="n">reshape_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
+    <span class="n">simplified_sqrdiff_reshaped_lv</span> <span class="o">=</span> <span class="n">mt</span><span class="o">.</span><span class="n">SquaredDifference</span><span class="p">(</span>
+        <span class="n">mt</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">c_sqd_lv</span><span class="p">,</span> <span class="n">reshape_lv</span><span class="p">),</span>
+        <span class="mf">0.0</span>
+    <span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">enable_lvar_defaults</span><span class="p">(</span><span class="s1">&#39;names&#39;</span><span class="p">):</span>
+        <span class="n">b_sqd_reshape_lv</span> <span class="o">=</span> <span class="n">mt</span><span class="o">.</span><span class="n">Reshape</span><span class="p">(</span><span class="n">b_part_lv</span><span class="p">,</span> <span class="n">reshape_lv</span><span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">lall</span><span class="p">(</span>
+        <span class="c1"># input == (a / d - b / d)**2 must be &quot;true&quot;</span>
+        <span class="n">eq_comm</span><span class="p">(</span><span class="n">in_g</span><span class="p">,</span> <span class="n">target_sqrdiff_lv</span><span class="p">),</span>
+        <span class="c1"># &quot;and&quot;</span>
+        <span class="n">conde</span><span class="p">([</span>
+            <span class="c1"># &quot;if&quot; b == d * c + a is &quot;true&quot;</span>
+            <span class="n">eq</span><span class="p">(</span><span class="n">b_sqd_lv</span><span class="p">,</span> <span class="n">b_part_lv</span><span class="p">),</span>
+            <span class="c1"># &quot;then&quot; output ==  (c - 0)**2 is also &quot;true&quot;</span>
+            <span class="n">eq</span><span class="p">(</span><span class="n">out_g</span><span class="p">,</span> <span class="n">simplified_sqrdiff_lv</span><span class="p">)</span>
+
+            <span class="c1"># &quot;or&quot;</span>
+        <span class="p">],</span> <span class="p">[</span>
+            <span class="c1"># We have to use this to cover some variation also not</span>
+            <span class="c1"># sufficiently/consistently &quot;normalized&quot; by `grappler`.</span>
+
+            <span class="c1"># &quot;if&quot; b == reshape(d * c + a, ?) is &quot;true&quot;</span>
+            <span class="n">eq_comm</span><span class="p">(</span><span class="n">b_sqd_lv</span><span class="p">,</span> <span class="n">b_sqd_reshape_lv</span><span class="p">),</span>
+            <span class="c1"># &quot;then&quot; output == (reshape(c, ?) - 0)**2 is also &quot;true&quot;</span>
+            <span class="n">eq</span><span class="p">(</span><span class="n">out_g</span><span class="p">,</span> <span class="n">simplified_sqrdiff_reshaped_lv</span><span class="p">)</span>
+        <span class="p">]))</span>
+    <span class="k">return</span> <span class="n">res</span>
+</pre></div>
+</div>
+</div>
+<p>We apply the simplification in <a class="reference internal" href="#further-simplify-test-graph"><span class="std std-numref">Listing 95</span></a> and print
+the results in <a class="reference internal" href="#further-simplify-test-graph-print"><span class="std std-numref">Listing 96</span></a>.</p>
+<div class="literal-block-wrapper docutils container" id="further-simplify-test-graph">
+<div class="code-block-caption"><span class="caption-number">Listing 95 </span><span class="caption-text">further-simplify-test-graph</span><a class="headerlink" href="#further-simplify-test-graph" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">symbolic_pymc.relations.graph</span> <span class="kn">import</span> <span class="n">reduceo</span>
+
+
+<span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">hier_norm_lik</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">),</span>
+              <span class="n">reduceo</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">tf_graph_applyo</span><span class="p">(</span><span class="n">recenter_sqrdiffo</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span>
+                      <span class="n">hier_norm_lik</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)))</span>
+
+<span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">()</span> <span class="k">as</span> <span class="n">result_graph</span><span class="p">:</span>
+    <span class="n">hn_simplified_tf</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval_obj</span><span class="o">.</span><span class="n">reify</span><span class="p">()</span>
+    <span class="n">hn_simplified_tf</span> <span class="o">=</span> <span class="n">normalize_tf_graph</span><span class="p">(</span><span class="n">hn_simplified_tf</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="further-simplify-test-graph-print">
+<div class="code-block-caption"><span class="caption-number">Listing 96 </span><span class="caption-text">further-simplify-test-graph-print</span><a class="headerlink" href="#further-simplify-test-graph-print" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># tf_dprint(hier_norm_lik.graph.get_tensor_by_name(&#39;SquaredDifference:0&#39;))</span>
+<span class="n">tf_dprint</span><span class="p">(</span><span class="n">hn_simplified_tf</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Tensor(AddV2):0,    dtype=float32,  shape=[None],   &quot;add_2_1:0&quot;
+|  Tensor(Sub):0,   dtype=float32,  shape=[None],   &quot;X_1/log_prob/sub:0&quot;
+|  |  Tensor(Mul):0,        dtype=float32,  shape=[None],   &quot;X_1/log_prob/mul:0&quot;
+|  |  |  Tensor(SquaredDifference):0,       dtype=float32,  shape=[None],   &quot;X_1/log_prob/SquaredDifference:0&quot;
+|  |  |  |  Tensor(Mul):0,  dtype=float32,  shape=[None],   &quot;X_1/log_prob/truediv:0&quot;
+|  |  |  |  |  Tensor(Const):0,     dtype=float32,  shape=[],       &quot;ConstantFolding/X_1/log_prob/truediv_recip:0&quot;
+|  |  |  |  |  |  1.
+|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[None],   &quot;value_x:0&quot;
+|  |  |  |  Tensor(Const):0,        dtype=float32,  shape=[],       &quot;X_1/log_prob/truediv_1:0&quot;
+|  |  |  |  |  0.
+|  |  |  Tensor(Const):0,   dtype=float32,  shape=[],       &quot;mul_1/x:0&quot;
+|  |  |  |  -0.5
+|  |  Tensor(Const):0,      dtype=float32,  shape=[],       &quot;sub/y:0&quot;
+|  |  |  0.9189385
+|  Tensor(AddV2):0, dtype=float32,  shape=[None],   &quot;add_1_1:0&quot;
+|  |  Tensor(Log):0,        dtype=float32,  shape=[None],   &quot;Log:0&quot;
+|  |  |  Tensor(AddV2):0,   dtype=float32,  shape=[None],   &quot;add:0&quot;
+|  |  |  |  Tensor(Mul):0,  dtype=float32,  shape=[None],   &quot;mul:0&quot;
+|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[None],   &quot;tau:0&quot;
+|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[None],   &quot;value_y:0&quot;
+|  |  |  |  Tensor(Placeholder):0,  dtype=float32,  shape=[None],   &quot;value_x:0&quot;
+|  |  Tensor(Sub):0,        dtype=float32,  shape=[None],   &quot;sub_1:0&quot;
+|  |  |  Tensor(Mul):0,     dtype=float32,  shape=[None],   &quot;mul_1_1:0&quot;
+|  |  |  |  Tensor(SquaredDifference):0,    dtype=float32,  shape=[None],   &quot;SquaredDifference_1:0&quot;
+|  |  |  |  |  Tensor(Const):0,     dtype=float32,  shape=[],       &quot;X_1/log_prob/truediv_1:0&quot;
+|  |  |  |  |  |  0.
+|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[None],   &quot;value_y:0&quot;
+|  |  |  |  Tensor(Const):0,        dtype=float32,  shape=[],       &quot;mul_1/x:0&quot;
+|  |  |  |  |  -0.5
+|  |  |  Tensor(Const):0,   dtype=float32,  shape=[],       &quot;sub/y:0&quot;
+|  |  |  |  0.9189385
+</pre></div>
+</div>
+<p>After applying our simplification, <a class="reference internal" href="#simplified-eval-print"><span class="std std-numref">Listing 97</span></a> numerically
+demonstrates that the difference is gone and that our transform produces a graph
+equivalent to the manually simplified graph in <a class="reference internal" href="#manually-simplified-graph"><span class="std std-numref">Listing 91</span></a>.</p>
+<div class="literal-block-wrapper docutils container" id="simplified-eval-print">
+<div class="code-block-caption"><span class="caption-number">Listing 97 </span><span class="caption-text">simplified-eval-print</span><a class="headerlink" href="#simplified-eval-print" title="Permalink to this code">¶</a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">hn_simplified_tf</span><span class="o">.</span><span class="n">graph</span><span class="p">)</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+    <span class="n">hn_simplified_val</span> <span class="o">=</span> <span class="n">hn_simplified_tf</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">test_point</span><span class="p">)</span>
+
+<span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">hn_manually_simplified_val</span><span class="p">,</span> <span class="n">hn_simplified_val</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>[0.]
+</pre></div>
+</div>
+</div>
+</div>
+
+
+    </div>
+</div>
+<div class="ui vertical footer segment">
+    <div class="ui center aligned container">
+        <a href="https://github.com/pymc-devs/symbolic-pymc"><i class="github icon large"></i></a>
+        <a href="https://twitter.com/pymc_devs"><i class="twitter icon large"></i></a>
+        <a href="https://discourse.pymc.io/"><i class="discourse icon large"></i></a>
+    </div>
+    <div class="ui center aligned container">
+        <p>
+            &copy; Copyright 2019, PyMC developers.
+        </p>
+        <p>
+            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.2.0.<br />
+        </p>
+    </div>
+</div>
+  </body>
+</html>

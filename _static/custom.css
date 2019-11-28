@@ -1,0 +1,9 @@
+div.code-block-caption {
+    justify-content: center;
+    text-align: center;
+}
+
+span.caption-text {
+    visibility: hidden;
+    display: none;
+}

@@ -12,8 +12,8 @@ Introduction
 
 In this document we'll cover the basics of the Symbolic PyMC package while
 implementing a symbolic "search-and-replace" that changes TensorFlow graphs
-like ``tf.matmul(A, x + y)``
-into ``tf.matmul(A, x) + tf.matmul(A, y)``.  In other words, we'll
+like \ ``tf.matmul(A, x + y)``\
+into \ ``tf.matmul(A, x) + tf.matmul(A, y)``\ .  In other words, we'll
 demonstrate how to implement the distributive property of matrix multiplication
 so that it can be applied to arbitrary TensorFlow graphs.
 
@@ -32,11 +32,12 @@ modeled by **meta graph objects** in Symbolic PyMC.
 
 
 We start by creating a graph of our target
-expressions--i.e. ``tf.matmul(A, x + y)``--in TensorFlow.
+expressions--i.e. \ ``tf.matmul(A, x + y)``\ --in TensorFlow.
 We need to do this in order to determine exactly what we're searching for
 and--later--what to put in its place.
 
-.. code:: python
+.. code-block:: python
+    :caption: tf-matmul-graph
     :name: tf-matmul-graph
 
     import numpy as np
@@ -61,16 +62,17 @@ and--later--what to put in its place.
         z_tf = tf.matmul(A_tf, x_tf + y_tf)
 
 A text print-out of the full TensorFlow graph is provided by the debug print
-function ``tf_dprint``.
+function \ ``tf_dprint``\ .
 
-.. code:: python
+.. code-block:: python
+    :caption: tf-print-graph
     :name: tf-print-graph
 
     from symbolic_pymc.tensorflow.printing import tf_dprint
 
     tf_dprint(z_tf)
 
-.. code:: python
+.. code-block:: python
 
     Tensor(MatMul):0,	dtype=float32,	shape=[None, 1],	"MatMul:0"
     |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, None],	"A:0"
@@ -78,11 +80,11 @@ function ``tf_dprint``.
     |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"x:0"
     |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"y:0"
 
-The output of Listing `tf-print-graph`_ shows us the underlying operators (e.g. ``MatMul``,
+The output of :numref:`tf-print-graph` shows us the underlying operators (e.g. ``MatMul``,
 ``Placeholder``, ``AddV2``) and their arguments.
 
 To "match/search for" combinations of TensorFlow operations--or, in other words, graphs--like
-`tf-print-graph`_, we use `**unification** <https://en.wikipedia.org/wiki/Unification_(computer_science)>`_; to "replace" parts of a graph (well, to produce copies with
+:numref:`tf-print-graph`, we use `**unification** <https://en.wikipedia.org/wiki/Unification_(computer_science)>`_; to "replace" parts of a graph (well, to produce copies with
 replaced parts), we use `**reification** <https://en.wikipedia.org/wiki/Reification_(computer_science)>`_.  Symbolic PyMC provides support for
 these using `TensorFlow <https://www.tensorflow.org/>`_ (and `Theano <http://deeplearning.net/software/theano/>`_) graphs via **meta objects** and **expression-tuples**.
 
@@ -96,9 +98,10 @@ variables can be replaced with other objects that allow the meta graph to
 be converted into a real TensorFlow graph.
 
 Existing TensorFlow graphs can be converted to their meta graph equivalents with
-the ``mt`` helper object.
+the \ ``mt``\  helper object.
 
-.. code:: python
+.. code-block:: python
+    :caption: convert-to-meta
     :name: convert-to-meta
 
     from symbolic_pymc.tensorflow.meta import mt
@@ -106,12 +109,13 @@ the ``mt`` helper object.
 
     z_mt = mt(z_tf)
 
-.. code:: python
+.. code-block:: python
+    :caption: convert-to-meta-print
     :name: convert-to-meta-print
 
     tf_dprint(z_mt)
 
-.. code:: python
+.. code-block:: python
 
     Tensor(MatMul):0,	dtype=float32,	shape=[None, 1],	"MatMul:0"
     |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, None],	"A:0"
@@ -119,14 +123,15 @@ the ``mt`` helper object.
     |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"x:0"
     |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"y:0"
 
-A meta graph can be converted to a TensorFlow graph using its ``reify`` method.
+A meta graph can be converted to a TensorFlow graph using its \ ``reify``\  method.
 
-.. code:: python
+.. code-block:: python
+    :caption: meta-to-tf
     :name: meta-to-tf
 
     tf_dprint(z_mt.reify())
 
-.. code:: python
+.. code-block:: python
 
     Tensor(MatMul):0,	dtype=float32,	shape=[None, 1],	"MatMul:0"
     |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, None],	"A:0"
@@ -134,9 +139,10 @@ A meta graph can be converted to a TensorFlow graph using its ``reify`` method.
     |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"x:0"
     |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"y:0"
 
-The ``mt`` object also makes it easier to construct meta graphs by hand.
+The \ ``mt``\  object also makes it easier to construct meta graphs by hand.
 
-.. code:: python
+.. code-block:: python
+    :caption: create-meta-graph
     :name: create-meta-graph
 
     from unification import unify, reify, var
@@ -145,11 +151,11 @@ The ``mt`` object also makes it easier to construct meta graphs by hand.
     with graph_mode():
         add_mt = mt.add(1, var('a'))
 
-.. code:: python
+.. code-block:: python
 
     pprint(add_mt)
 
-.. code:: python
+.. code-block:: python
 
     TFlowMetaTensor(
       op=TFlowMetaOp(
@@ -169,20 +175,21 @@ The ``mt`` object also makes it easier to construct meta graphs by hand.
       value_index=0,
       dtype=tf.int32)
 
-In Listing `create-meta-graph`_, we created a graph of ``1`` plus
-a ``unification`` logic variable with the name ``'a'``. This
+In :numref:`create-meta-graph`, we created a graph of \ ``1``\  plus
+a \ ``unification``\  logic variable with the name \ ``'a'``\ . This
 wouldn't be possible with a standard TensorFlow graph.
 
 Also, because one of the elements in the graph is a logic variable, it cannot be
 converted into a TensorFlow graph. Instead, if we attempt to use the meta
-graph's ``reify`` method, we are simply given the meta graph back.
+graph's \ ``reify``\  method, we are simply given the meta graph back.
 
-.. code:: python
+.. code-block:: python
+    :caption: bad-reify-meta-graphh
     :name: bad-reify-meta-graphh
 
     pprint(add_mt.reify())
 
-.. code:: python
+.. code-block:: python
 
     TFlowMetaTensor(
       op=TFlowMetaOp(
@@ -208,7 +215,8 @@ S-expressions
 As an alternative approach to full meta graph conversion, we can also convert
 TensorFlow graphs into an `S-expression-like <https://en.wikipedia.org/wiki/S-expression>`_ form.
 
-.. code:: python
+.. code-block:: python
+    :caption: etuplize-graph
     :name: etuplize-graph
 
     from symbolic_pymc.etuple import etuple, etuplize
@@ -216,12 +224,13 @@ TensorFlow graphs into an `S-expression-like <https://en.wikipedia.org/wiki/S-ex
 
     z_sexp = etuplize(z_tf)
 
-.. code:: python
+.. code-block:: python
+    :caption: etuplize-graph-print
     :name: etuplize-graph-print
 
     pprint(z_sexp)
 
-.. code:: python
+.. code-block:: python
 
     e(
       e(
@@ -272,24 +281,25 @@ TensorFlow graphs into an `S-expression-like <https://en.wikipedia.org/wiki/S-ex
               {'shape': TFlowMetaTensorShape(dims=(None, 1)),
                'dtype': 'float32'})))))
 
-An ``etuple`` is like a
-normal ``tuple``, except that its first element is
-a ``Callable`` and the remaining elements are
-the ``Callable``'s arguments.
-As above, a pretty-printed ``etuple`` looks like
-a ``tuple`` prefixed by an ``e``.
+An \ ``etuple``\  is like a
+normal \ ``tuple``\ , except that its first element is
+a \ ``Callable``\  and the remaining elements are
+the \ ``Callable``\ 's arguments.
+As above, a pretty-printed \ ``etuple``\  looks like
+a \ ``tuple``\  prefixed by an \ ``e``\ .
 
 
-By working with ``etuple``s, we can use **arbitrary Python functions** in
+By working with \ ``etuple``\ s, we can use **arbitrary Python functions** in
 conjunction with meta graphs and logic variable arguments.  Basically,
-an ``etuple`` can be manipulated until all of its constituent logic
+an \ ``etuple``\  can be manipulated until all of its constituent logic
 variables and meta objects are eventually replaced with valid arguments to the
-function/operator.  At that point, the ``etuple`` can be evaluated.
+function/operator.  At that point, the \ ``etuple``\  can be evaluated.
 
-For example, in Listing `etuple-eval-example`_, we create an ``etuple``
-that uses the TensorFlow function ``tf.add`` with a logic variable argument.
+For example, in :numref:`etuple-eval-example`, we create an \ ``etuple``\
+that uses the TensorFlow function \ ``tf.add``\  with a logic variable argument.
 
-.. code:: python
+.. code-block:: python
+    :caption: etuple-eval-example
     :name: etuple-eval-example
 
     x_lv, y_lv = var('x'), var('y')
@@ -297,9 +307,10 @@ that uses the TensorFlow function ``tf.add`` with a logic variable argument.
     add_tf_pat = etuple(tf.add, x_lv, y_lv)
 
 Normally, it wouldn't be possible to call this function with these argument
-types, as demonstrated in Listing `etuple-bad-usage-example`_.
+types, as demonstrated in :numref:`etuple-bad-usage-example`.
 
-.. code:: python
+.. code-block:: python
+    :caption: etuple-bad-usage-example
     :name: etuple-bad-usage-example
 
     try:
@@ -307,7 +318,7 @@ types, as demonstrated in Listing `etuple-bad-usage-example`_.
     except ValueError as e:
         print(str(e))
 
-.. code:: python
+.. code-block:: python
 
     2019-11-17 20:48:04.437195: I tensorflow/core/platform/cpu_feature_guard.cc:142] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
     2019-11-17 20:48:04.461487: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2112000000 Hz
@@ -316,61 +327,65 @@ types, as demonstrated in Listing `etuple-bad-usage-example`_.
     Attempt to convert a value (~x) with an unsupported type (<class 'unification.variable.Var'>) to a Tensor.
 
 We'll get the same error if we attempt to evaluate
-the ``etuple`` by accessing
-its ``ExpressionTuple.eval_obj`` property.  However, after
+the \ ``etuple``\  by accessing
+its \ ``ExpressionTuple.eval_obj``\  property.  However, after
 performing a simple manipulation that replaces the logic variable with valid
-inputs to ``tf.add``, we are able to evaluate
-the ``etuple`` and obtain a TF Tensor result, as
-demonstrated in Listings `etuple-reify-example`_ and
-`etuple-reify-eval-print-example`_.
+inputs to \ ``tf.add``\ , we are able to evaluate
+the \ ``etuple``\  and obtain a TF Tensor result, as
+demonstrated in :numref:`etuple-reify-example` and
+:numref:`etuple-reify-eval-print-example`.
 
-.. code:: python
+.. code-block:: python
+    :caption: etuple-reify-example
     :name: etuple-reify-example
 
     add_pat_new = reify(add_tf_pat, {x_lv: 1, y_lv: 1})
 
-.. code:: python
+.. code-block:: python
+    :caption: etuple-reify-print-example
     :name: etuple-reify-print-example
 
     pprint(add_pat_new)
 
-.. code:: python
+.. code-block:: python
 
     e(<function tensorflow.python.ops.gen_math_ops.add(x, y, name=None)>, 1, 1)
 
-.. code:: python
+.. code-block:: python
+    :caption: etuple-reify-eval-print-example
     :name: etuple-reify-eval-print-example
 
     pprint(add_pat_new.eval_obj)
 
-.. code:: python
+.. code-block:: python
 
     <tf.Tensor: shape=(), dtype=int32, numpy=2>
 
 Working with S-expressions is much like manipulating a subset of Python AST, so,
-when using ``etuple``s, one is--in effect--**meta programming** (e.g. by automating the production and evaluation of
+when using \ ``etuple``\ s, one is--in effect--**meta programming** (e.g. by automating the production and evaluation of
 TensorFlow-using Python code).
 
-As a matter of fact, ``etuple``s could be recast
-as ``ast.Expr`` and ``ast.Call``
-objects that, through the use of ``eval``, could achieve
+As a matter of fact, \ ``etuple``\ s could be recast
+as \ ``ast.Expr``\  and \ ``ast.Call``\
+objects that, through the use of \ ``eval``\ , could achieve
 the same results--albeit without the more convenient tuple-like structuring.
 
 Meta Operators and their Parameters
 -----------------------------------
 
-In Listing `etuplize-graph-print`_, the ``etuple`` form of
-our matrix multiplication graph, ``z_sexp``, produced
-``symbolic_pymc.tensorflow.meta.TFlowMetaOperator``
-in the function/operator position.  Listing `print-etuple-operator`_ prints
-only the function part of the ``etuple``.
+In :numref:`etuplize-graph-print`, the \ ``etuple``\  form of
+our matrix multiplication graph, \ ``z_sexp``\ , produced
+\ ``symbolic_pymc.tensorflow.meta.TFlowMetaOperator``\
+in the function/operator position.  :numref:`print-etuple-operator` prints
+only the function part of the \ ``etuple``\ .
 
-.. code:: python
+.. code-block:: python
+    :caption: print-etuple-operator
     :name: print-etuple-operator
 
     pprint(z_sexp[0])
 
-.. code:: python
+.. code-block:: python
 
     e(
       symbolic_pymc.tensorflow.meta.TFlowMetaOperator,
@@ -381,43 +396,44 @@ only the function part of the ``etuple``.
         'MatMul',
         {'T': 'float32', 'transpose_a': False, 'transpose_b': False}))
 
-A ``TFlowMetaOperator`` is an abstraction that combines the
-TF ``OpDef`` and ``NodeDef`` that,
+A \ ``TFlowMetaOperator``\  is an abstraction that combines the
+TF \ ``OpDef``\  and \ ``NodeDef``\  that,
 when paired with operator arguments, comprises a valid
-TF ``Operation``.
+TF \ ``Operation``\ .
 
-When we call ``mt.add`` we're imitating the TF user-level API function
-``tf.add``.  Behind the scenes, ``tf.add`` obtains
-the ``OpDef``, creates the ``NodeDef`` and
-produces an ``Operation``.  Since we can't directly use helper functions like
-``tf.add`` with our logic variables, the meta objects have to recreate
-the same process and that's what ``TFlowMetaOperator`` does.
+When we call \ ``mt.add``\  we're imitating the TF user-level API function
+\ ``tf.add``\ .  Behind the scenes, \ ``tf.add``\  obtains
+the \ ``OpDef``\ , creates the \ ``NodeDef``\  and
+produces an \ ``Operation``\ .  Since we can't directly use helper functions like
+\ ``tf.add``\  with our logic variables, the meta objects have to recreate
+the same process and that's what \ ``TFlowMetaOperator``\  does.
 
 More importantly, it does so in a way that allows for some intercession so that logic variables
-can be used.  For instance, TF ``Operation``s are necessarily assigned unique
-names, so, if we wanted to match graphs produced by ``tf.add``, we would
-either need to know the explicit names of its ``Operation``s,
-or use logic variables in their place.  The ``NodeDef`` holds the
+can be used.  For instance, TF \ ``Operation``\ s are necessarily assigned unique
+names, so, if we wanted to match graphs produced by \ ``tf.add``\ , we would
+either need to know the explicit names of its \ ``Operation``\ s,
+or use logic variables in their place.  The \ ``NodeDef``\  holds the
 name value, so we could set that property--or the
-entire ``NodeDef``--to a logic variable and match **any** .
+entire \ ``NodeDef``\ --to a logic variable and match **any** .
 
 The same goes for extra options associated with an
-``Operation``'s ``OpDef``.  Notice that the
-``NodeDef`` in the meta operator for ``tf.matmul``
-has a ``dict`` containing ``transpose_*`` entries.
-These are the default values for the TF function ``tf.matmul`` (see
-Listing `print-tf-matmul`_).
+\ ``Operation``\ 's \ ``OpDef``\ .  Notice that the
+\ ``NodeDef``\  in the meta operator for \ ``tf.matmul``\
+has a \ ``dict``\  containing \ ``transpose_*``\  entries.
+These are the default values for the TF function \ ``tf.matmul``\  (see
+:numref:`print-tf-matmul`).
 
-.. code:: python
+.. code-block:: python
+    :caption: print-tf-matmul
     :name: print-tf-matmul
 
     pprint(tf.matmul)
 
-.. code:: python
+.. code-block:: python
 
     <function tensorflow.python.ops.math_ops.matmul(a, b, transpose_a=False, transpose_b=False, adjoint_a=False, adjoint_b=False, a_is_sparse=False, b_is_sparse=False, name=None)>
 
-Meta operators make it easier to set an entire ``NodeDef``
+Meta operators make it easier to set an entire \ ``NodeDef``\
 to a logic variable so that one can find graphs based only on the high-level
 operations they perform (e.g. multiplication).  Furthermore, it separates the
 high-level operator's **arguments** from its **parameters**.  Take the matrix
@@ -432,7 +448,7 @@ commutative, so that our matching process could consider any order of arguments.
 If we followed TensorFlow's convention, we would--at minimum--need to include
 special logic to determine which arguments are applicable.
 
-We'll see examples of ``TFlowMetaOperator``'s use in the
+We'll see examples of \ ``TFlowMetaOperator``\ 's use in the
 sections that follow.
 
 Unification and Reification
@@ -447,10 +463,11 @@ Patterns, in this case, take the form of meta graphs or S-expr graphs with the
 desired structure and logic variables in place of "unknown" or arbitrary terms
 that we might like to reference elsewhere.
 
-Listing `matmul-pattern`_ represents an S-expr that evaluates to a graph in
+:numref:`matmul-pattern` represents an S-expr that evaluates to a graph in
 which two terms are matrix-multiplied.
 
-.. code:: python
+.. code-block:: python
+    :caption: matmul-pattern
     :name: matmul-pattern
 
     from symbolic_pymc.tensorflow.meta import TFlowMetaOperator
@@ -464,20 +481,20 @@ which two terms are matrix-multiplied.
 
     matmul_pat = etuplize(matmul_pat_mt)
 
-In Listing `matmul-pattern`_ we created a meta
-graph, ``matmul_pat_mt``, from a meta
-TF ``MatMul`` operator and a
-variable ``NodeDef``, then we applied that meta operator to
+In :numref:`matmul-pattern` we created a meta
+graph, \ ``matmul_pat_mt``\ , from a meta
+TF \ ``MatMul``\  operator and a
+variable \ ``NodeDef``\ , then we applied that meta operator to
 two logic variable arguments.
 
-The logic variable ``node_def_lv`` is there to match the parameters
-to ``tf.matmul``:
+The logic variable \ ``node_def_lv``\  is there to match the parameters
+to \ ``tf.matmul``\ :
 e.g.
-``transpose_a``, ``transpose_b``, and
+\ ``transpose_a``\ , \ ``transpose_b``\ , and
 the name parameter.
-Again, by setting the ``NodeDef`` in our meta operator to a
+Again, by setting the \ ``NodeDef``\  in our meta operator to a
 to logic variable, we are allowing unification with **any** matrix multiplication
-(e.g. not just ones named ``"blah"``, or ones with
+(e.g. not just ones named \ ``"blah"``\ , or ones with
 transposed second arguments).
 
 "Matching" a graph against our pattern is actually called **unification**.
@@ -485,26 +502,28 @@ Unification of two graphs implies unification of all sub-graphs and elements
 between them.  When unification is successful, it returns a map of logic
 variables and their unified values.  If there are no logic variables in the
 graphs--it simply returns an empty map.  If unification fails, it
-returns ``False``--at least in the implementation we use, but not
+returns \ ``False``\ --at least in the implementation we use, but not
 necessarily in general.
 
 Unification
 ~~~~~~~~~~~
 
-We can perform the unification using the function ``unify``.  The result
-is a ``dict`` mapping logic variables to their unified values.
+We can perform the unification using the function \ ``unify``\ .  The result
+is a \ ``dict``\  mapping logic variables to their unified values.
 
-.. code:: python
+.. code-block:: python
+    :caption: matmul-pattern-unify
     :name: matmul-pattern-unify
 
     s = unify(matmul_pat, z_sexp, {})
 
-.. code:: python
+.. code-block:: python
+    :caption: matmul-pattern-unify-print
     :name: matmul-pattern-unify-print
 
     pprint(s)
 
-.. code:: python
+.. code-block:: python
 
     {~node_def: e(
        symbolic_pymc.tensorflow.meta.TFlowMetaNodeDef,
@@ -554,28 +573,30 @@ is a ``dict`` mapping logic variables to their unified values.
 Reification
 ~~~~~~~~~~~
 
-Using ``reify``, we can "fill-in"--or replace--the logic variables of
-our "pattern" with the matches obtained by ``unify`` that are held
-within the variable ``s``, or we could specify our own substitutions
+Using \ ``reify``\ , we can "fill-in"--or replace--the logic variables of
+our "pattern" with the matches obtained by \ ``unify``\  that are held
+within the variable \ ``s``\ , or we could specify our own substitutions
 based on that information.
 
-In Listing `matmul-pattern-reify`_, we simply change the ``'name'`` value in the
+In :numref:`matmul-pattern-reify`, we simply change the \ ``'name'``\  value in the
 and create a new graph with that value.  The end result is a version of the original
-graph, ``z_sexp``, with a new name.
+graph, \ ``z_sexp``\ , with a new name.
 
-.. code:: python
+.. code-block:: python
+    :caption: matmul-pattern-reify
     :name: matmul-pattern-reify
 
     s[var('node_def')] = s[var('node_def')][:2] + ("a_new_name",) + s[var('node_def')][3:]
 
     z_sexp_re = reify(matmul_pat, s)
 
-.. code:: python
+.. code-block:: python
+    :caption: matmul-pattern-reify-print
     :name: matmul-pattern-reify-print
 
     pprint(z_sexp_re)
 
-.. code:: python
+.. code-block:: python
 
     e(
       e(
@@ -630,15 +651,16 @@ Finishing our Implementation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can also reify an entirely different graph using the values extracted from
-the graph ``z_sexp``.  In this case, we create an "output"
+the graph \ ``z_sexp``\ .  In this case, we create an "output"
 pattern graph, to complement our "input" pattern
-graph, ``matmul_pat``.
+graph, \ ``matmul_pat``\ .
 
 If we combine our matrix multiplication and
-addition ``etuple`` patterns, we can extract all the
+addition \ ``etuple``\  patterns, we can extract all the
 arguments needed as input to a distributed multiplication pattern.
 
-.. code:: python
+.. code-block:: python
+    :caption: dist-new-pattern
     :name: dist-new-pattern
 
     add_op_mt = TFlowMetaOperator('addv2', var('add_node_def'))
@@ -648,39 +670,42 @@ arguments needed as input to a distributed multiplication pattern.
     output_pat = etuplize(output_pat_mt)
 
 With logic
-variables ``A_lv``, ``x_lv``
-and ``y_lv`` mapped to their template-corresponding objects
-in another graph, we can reify ``output_pat`` and obtain a
+variables \ ``A_lv``\ , \ ``x_lv``\
+and \ ``y_lv``\  mapped to their template-corresponding objects
+in another graph, we can reify \ ``output_pat``\  and obtain a
 "transformed" version of said graph.
 
-Using our earlier unification results in Listing `matmul-pattern-unify`_, we only
-need to reify our output pattern, ``output_pat``, with
+Using our earlier unification results in :numref:`matmul-pattern-unify`, we only
+need to reify our output pattern, \ ``output_pat``\ , with
 those mappings.  However, since our output pattern refers to logic variables
-``x_lv`` and ``y_lv``, we'll need
+\ ``x_lv``\  and \ ``y_lv``\ , we'll need
 to unify those logic variables with the appropriate terms in the graph.
 
-Listing `dist-add-unify`_, unifies the remaining terms by simply extracting the
-``B`` argument in the matrix multiply and unifying
+:numref:`dist-add-unify`, unifies the remaining terms by simply extracting the
+\ ``B``\  argument in the matrix multiply and unifying
 that with a pattern for tensor addition.
 
-.. code:: python
+.. code-block:: python
+    :caption: dist-add-unify
     :name: dist-add-unify
 
     add_pat = etuple(etuplize(add_op_mt), x_lv, y_lv)
 
     s_add = unify(s[B_lv], add_pat, s)
 
-.. code:: python
+.. code-block:: python
+    :caption: dist-new-pattern-reify
     :name: dist-new-pattern-reify
 
     z_new = reify(output_pat, s_add)
 
-.. code:: python
+.. code-block:: python
+    :caption: dist-new-pattern-reify-print
     :name: dist-new-pattern-reify-print
 
     tf_dprint(z_new.eval_obj)
 
-.. code:: python
+.. code-block:: python
 
     Tensor(AddV2):0,	dtype=float32,	shape=~_11,	"add:0"
     |  Tensor(MatMul):0,	dtype=float32,	shape=~_12,	"a_new_name:0"
@@ -712,13 +737,13 @@ Relational Programming in miniKanren
 
 As mentioned at the end of the last section, Symbolic PyMC uses a Python
 implementation of the embedded domain-specific language miniKanren--provided by
-the ``kanren`` package--to orchestrate more sophisticated uses of
+the \ ``kanren``\  package--to orchestrate more sophisticated uses of
 unification and reification.  For a quick intro, see `the basic introduction <https://github.com/logpy/logpy/blob/master/doc/basic.md>`_
-provided by the ``kanren`` package.  We'll cover most of the same
+provided by the \ ``kanren``\  package.  We'll cover most of the same
 basic material here, but not all.
 
 To start, miniKanren uses **goals** (in the same sense as `logic programming <https://en.wikipedia.org/wiki/Logic_programming>`_) to
-assert relations, and the ``run`` function evaluates those goals and
+assert relations, and the \ ``run``\  function evaluates those goals and
 allows one to specify the exact amount and type of reified output desired from
 the **states** that satisfy the goals.
 
@@ -730,13 +755,14 @@ The Basic Goals
 
 Normally, a user will only need to construct compound goals from a basic set of
 primitives.  Arguably, the most primitive goal is the `equivalence relation <https://en.wikipedia.org/wiki/Equivalence_relation>`_
-under unification denoted by ``eq`` in Python.
+under unification denoted by \ ``eq``\  in Python.
 
-In Listing `mk-basics-eq`_, we ask for all successful results/reifications (signified
-by the ``0`` argument) of the logic variable ``var('q')`` for the goal
-``eq(var('q'), 1)``--i.e. unify ``var('q')`` with ``1``.
+In :numref:`mk-basics-eq`, we ask for all successful results/reifications (signified
+by the \ ``0``\  argument) of the logic variable \ ``var('q')``\  for the goal
+\ ``eq(var('q'), 1)``\ --i.e. unify \ ``var('q')``\  with \ ``1``\ .
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-basics-eq
     :name: mk-basics-eq
 
     from kanren import run, eq
@@ -744,71 +770,77 @@ by the ``0`` argument) of the logic variable ``var('q')`` for the goal
     q_lv = var('q')
     mk_res = run(0, q_lv, eq(q_lv, 1))
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-basics-eq-print
     :name: mk-basics-eq-print
 
     pprint(mk_res)
 
-.. code:: python
+.. code-block:: python
 
     (1,)
 
-Since miniKanren's ``run`` always returns a stream of results, we obtain
-a tuple containing the reified value of ``q_lv`` under the one
+Since miniKanren's \ ``run``\  always returns a stream of results, we obtain
+a tuple containing the reified value of \ ``q_lv``\  under the one
 possible state for which our stated goal successfully evaluates.
 
 The other basic primitives represent conjunction and disjunction of miniKanren
-goals: ``lall`` and ``lany``, respectively.
+goals: \ ``lall``\  and \ ``lany``\ , respectively.
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-basics-lall
     :name: mk-basics-lall
 
     from kanren import lall, lany
 
     mk_res = run(0, q_lv, lall(eq(q_lv, 1), eq(q_lv, 2)))
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-basics-lall-print
     :name: mk-basics-lall-print
 
     pprint(mk_res)
 
-.. code:: python
+.. code-block:: python
 
     ()
 
-In Listing `mk-basics-lall`_, we used ``lall`` to obtain the conjunction of two unification goals.
+In :numref:`mk-basics-lall`, we used \ ``lall``\  to obtain the conjunction of two unification goals.
 Since we requested that the same logic variable be unified
-with both ``1`` and ``2`` simultaneously (i.e. in the same
+with both \ ``1``\  and \ ``2``\  simultaneously (i.e. in the same
 state), which isn't possible, we got back an empty stream of results--indicating failure.
 
-Goal disjunction, ``lany``, will split a state stream across goals,
+Goal disjunction, \ ``lany``\ , will split a state stream across goals,
 producing new distinct states for each.
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-basics-lany
     :name: mk-basics-lany
 
     mk_res = run(0, q_lv, lany(eq(q_lv, 1), eq(q_lv, 2)))
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-basics-lany-print
     :name: mk-basics-lany-print
 
     pprint(mk_res)
 
-.. code:: python
+.. code-block:: python
 
     (1, 2)
 
-The goal disjunction results in Listing `mk-basics-lany-print`_ show that the logic variable
-``q_lv`` can be unified with either ``1`` **or** ``2`` under the
+The goal disjunction results in :numref:`mk-basics-lany-print` show that the logic variable
+\ ``q_lv``\  can be unified with either \ ``1``\  **or** \ ``2``\  under the
 two unification goals.
 
-A common pattern of disjunction and conjunction is called ``conde``, and
+A common pattern of disjunction and conjunction is called \ ``conde``\ , and
 it mirrors the Lisp function ``cond``, which is effectively a type of
-compound ``if ... elif ... elif ...``.  Specifically,
-``conde([x_1, ...], ..., [y_1, ...])`` is the same as
-``lany(lall(x_1, ...), ..., lall(y_1, ...))``--i.e. a disjunction of goal conjunctions.
+compound \ ``if ... elif ... elif ...``\ .  Specifically,
+\ ``conde([x_1, ...], ..., [y_1, ...])``\  is the same as
+\ ``lany(lall(x_1, ...), ..., lall(y_1, ...))``\ --i.e. a disjunction of goal conjunctions.
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-basics-conde
     :name: mk-basics-conde
 
     from kanren import conde
@@ -821,26 +853,28 @@ compound ``if ... elif ... elif ...``.  Specifically,
                      [eq(q_lv, 2), eq(r_lv, 20)],
                  ))
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-basics-conde-print
     :name: mk-basics-conde-print
 
     pprint(mk_res)
 
-.. code:: python
+.. code-block:: python
 
     ([1, 10], [2, 20])
 
-In Listing `mk-basics-conde`_, we introduced another logic
-variable, ``r_lv``, and requested the reified values of a list
+In :numref:`mk-basics-conde`, we introduced another logic
+variable, \ ``r_lv``\ , and requested the reified values of a list
 containing both logic variables.  The output resembles the idea that
-if ``q_lv`` is "equal" to ``1``, then ``r_lv`` is "equal"
-to ``10``, etc.  Unlike normal conditionals, each clause/branch isn't
+if \ ``q_lv``\  is "equal" to \ ``1``\ , then \ ``r_lv``\  is "equal"
+to \ ``10``\ , etc.  Unlike normal conditionals, each clause/branch isn't
 exclusive, instead each is realized when the goals in a branch can be successful.
 
-Listing `mk-basics-conde-exclusive`_, demonstrates when ``conde`` can behave more
+:numref:`mk-basics-conde-exclusive`, demonstrates when \ ``conde``\  can behave more
 like a traditional conditional statement.
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-basics-conde-exclusive
     :name: mk-basics-conde-exclusive
 
     mk_res = run(0, [q_lv, r_lv],
@@ -850,12 +884,13 @@ like a traditional conditional statement.
                           [eq(q_lv, 2), eq(r_lv, 20)],
                       )))
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-basics-conde-exclusive-print
     :name: mk-basics-conde-exclusive-print
 
     pprint(mk_res)
 
-.. code:: python
+.. code-block:: python
 
     ([1, 10],)
 
@@ -866,19 +901,21 @@ Since miniKanren uses unification and reification, we can apply its basic goals
 to TensorFlow graphs, as we did earlier, and reproduce the entire implementation
 in a much more concise manner.
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-distribute
     :name: mk-distribute
 
     mk_res = run(1, output_pat,
                  eq(matmul_pat, z_sexp),
                  eq(add_pat, B_lv))
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-distribute-print
     :name: mk-distribute-print
 
     tf_dprint(mk_res[0].eval_obj)
 
-.. code:: python
+.. code-block:: python
 
     Tensor(AddV2):0,	dtype=float32,	shape=~_14,	"add:0"
     |  Tensor(MatMul):0,	dtype=float32,	shape=~_15,	"MatMul:0"
@@ -888,9 +925,9 @@ in a much more concise manner.
     |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, None],	"A:0"
     |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"y:0"
 
-We didn't need to use the goal conjunction operator ``lall`` explicitly
-in Listing `mk-distribute`_, because all remaining goal arguments
-to ``run`` are automatically applied in conjunction.
+We didn't need to use the goal conjunction operator \ ``lall``\  explicitly
+in :numref:`mk-distribute`, because all remaining goal arguments
+to \ ``run``\  are automatically applied in conjunction.
 
 When combinations of miniKanren goals comprise logical units, we can wrap their
 construction in a functions which we call **goal constructors**.
@@ -901,9 +938,10 @@ Goal Constructors
 Using our distributive law example, we can create a goal constructor that
 creates our combined pattern and applies it in one go.  In this case, we'll
 construct goals that operate on meta graphs instead
-of ``etuple``s.
+of \ ``etuple``\ s.
 
-.. code:: python
+.. code-block:: python
+    :caption: matrix-inverse-goal
     :name: matrix-inverse-goal
 
     def distributeo(in_g, out_g):
@@ -927,21 +965,23 @@ matrix multiplication and addition.  In this sense, it can be run **both** ways:
 i.e. it can "expand" a multiplication by distributing it through addition, and
 it can "contract" by doing the opposite.
 
-In `mk-dist-goal-expand-distribute`_ we "expand" the distribution.
+In :numref:`mk-dist-goal-expand-distribute` we "expand" the distribution.
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-dist-goal-expand-distribute
     :name: mk-dist-goal-expand-distribute
 
     q_lv = var()
     mk_res = run(1, q_lv, distributeo(z_mt, q_lv))
     z_expanded_mt = mk_res[0]
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-dist-goal-expand-distribute-print
     :name: mk-dist-goal-expand-distribute-print
 
     tf_dprint(z_expanded_mt)
 
-.. code:: python
+.. code-block:: python
 
     Tensor(AddV2):0,	dtype=~_27,	shape=~_28,	"AddV2:0"
     |  Tensor(MatMul):0,	dtype=~_25,	shape=~_29,	"MatMul:0"
@@ -951,20 +991,30 @@ In `mk-dist-goal-expand-distribute`_ we "expand" the distribution.
     |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, None],	"A:0"
     |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"y:0"
 
-Now, in Listing `mk-dist-goal-contract-distribute`_ we "contract" the graph using
+Now, in :numref:`mk-dist-goal-contract-distribute` we "contract" the graph using
 the previously "expanded" results.
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-dist-goal-contract-distribute
     :name: mk-dist-goal-contract-distribute
 
     q_lv = var()
     mk_res = run(1, q_lv, distributeo(q_lv, z_expanded_mt))
     z_contracted_mt = mk_res[0]
 
-.. code:: python
-    :name: mk-dist-goal-contract-distribute
+.. code-block:: python
+    :caption: mk-dist-goal-contract-distribute-print
+    :name: mk-dist-goal-contract-distribute-print
 
     tf_dprint(z_contracted_mt)
+
+.. code-block:: python
+
+    Tensor(MatMul):0,	dtype=~_38,	shape=~_42,	"~_44"
+    |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, None],	"A:0"
+    |  Tensor(AddV2):0,	dtype=~_37,	shape=~_45,	"~_47"
+    |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"x:0"
+    |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[None, 1],	"y:0"
 
 Graph-based Goals
 ~~~~~~~~~~~~~~~~~
@@ -976,13 +1026,14 @@ Symbolic PyMC introduces some miniKanren goals that apply other goals throughout
 graphs until a fixed-point is reached.  This sequence of operations is generally
 necessary for graph simplification and rewriting.
 
-In Listing `mk-dist-goal-gapply-distribute`_ we create a new graph that
-contains ``tf.matmul(A, x + y)`` as a subgraph.
-Using ``graph_applyo``,
-our ``distributeo`` relation is applied all throughout the
+In :numref:`mk-dist-goal-gapply-distribute` we create a new graph that
+contains \ ``tf.matmul(A, x + y)``\  as a subgraph.
+Using \ ``graph_applyo``\ ,
+our \ ``distributeo``\  relation is applied all throughout the
 graph until the applicable subgraph is found (and replaced).
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-dist-goal-gapply-distribute
     :name: mk-dist-goal-gapply-distribute
 
     from symbolic_pymc.relations.graph import graph_applyo
@@ -993,12 +1044,13 @@ graph until the applicable subgraph is found (and replaced).
                       mt.matmul(mt(A_tf), mt(x_tf) + mt(y_tf)) +
                       np.array(1.0, dtype='float32'))
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-dist-goal-gapply-print
     :name: mk-dist-goal-gapply-print
 
     tf_dprint(z_graph_mt)
 
-.. code:: python
+.. code-block:: python
 
     Tensor(AddV2):0,	dtype=float32,	shape=[None, 1],	"add_2:0"
     |  Tensor(Mul):0,	dtype=float32,	shape=[None, 1],	"mul:0"
@@ -1012,7 +1064,8 @@ graph until the applicable subgraph is found (and replaced).
     |  Tensor(Const):0,	dtype=float32,	shape=[],	"add_2/y:0"
     |  |  1.
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-dist-goal-gapply-distribute-run
     :name: mk-dist-goal-gapply-distribute-run
 
     with graph_mode():
@@ -1020,12 +1073,13 @@ graph until the applicable subgraph is found (and replaced).
         mk_res = run(1, q_lv, graph_applyo(distributeo, z_graph_mt, q_lv))
         z_graph_expanded_mt = mk_res[0].eval_obj
 
-.. code:: python
+.. code-block:: python
+    :caption: mk-dist-goal-gapply-distribute-print
     :name: mk-dist-goal-gapply-distribute-print
 
     tf_dprint(z_graph_expanded_mt)
 
-.. code:: python
+.. code-block:: python
 
     Tensor(AddV2):0,	dtype=float32,	shape=~_197,	"add_2:0"
     |  Tensor(Mul):0,	dtype=float32,	shape=~_198,	"mul:0"
@@ -1041,12 +1095,12 @@ graph until the applicable subgraph is found (and replaced).
     |  Tensor(Const):0,	dtype=float32,	shape=[],	"add_2/y:0"
     |  |  1.
 
-The first result from ``graph_applyo`` is the graph with
-all applications of ``distributeo`` applied.  The other
+The first result from \ ``graph_applyo``\  is the graph with
+all applications of \ ``distributeo``\  applied.  The other
 goal results are all the successful applications leading up to the first one.
 In other words, we're given the entire sequence of all possible applications of
-``distributeo`` throughout the graph.
-Since ``run`` computes results lazily, we don't have to
+\ ``distributeo``\  throughout the graph.
+Since \ ``run``\  computes results lazily, we don't have to
 compute all those graphs unless we actually request them.
 
 Discussion
@@ -1055,18 +1109,18 @@ Discussion
 As the development of Symbolic PyMC goes on, the process of using the
 above elements will become easier and computationally more efficient.
 Much of the boilerplate work can be removed without affecting the extensibility
-of Symbolic PyMC and ``kanren``.
+of Symbolic PyMC and \ ``kanren``\ .
 
-For instance, the need to manually replace ``NodeDef``s
+For instance, the need to manually replace \ ``NodeDef``\ s
 with logic variables can be handled by context managers
-like ``enable_lvar_defaults``, or by updates to the
+like \ ``enable_lvar_defaults``\ , or by updates to the
 defaults of meta object creation.
 
 Likewise, there are tools available in Symbolic PyMC that make it easier to
 determine why to objects won't unify
-(i.e. ``symbolic_pymc.unify.debug_unify``) and exactly
+(i.e. \ ``symbolic_pymc.unify.debug_unify``\ ) and exactly
 which components are unequal between two meta objects
-(i.e. ``symbolic_pymc.utils.meta_parts_unequal``).
+(i.e. \ ``symbolic_pymc.utils.meta_parts_unequal``\ ).
 
 Symbolic PyMC's library of relevant mathematical and statistical relations is
 intended to evolve over time.  These relations will reflect useful properties
