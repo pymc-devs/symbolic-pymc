@@ -75,6 +75,11 @@ def test_disequality():
     assert isinstance(res[0], KanrenState)
     assert res[0].constraints[Disequality].mappings[var('a')] == {1}
 
+    res = list(lconj(neq(var('a'), 1), neq(var('a'), 2), neq(var('a'), 1))({}))
+    assert len(res) == 1
+    assert isinstance(res[0], KanrenState)
+    assert res[0].constraints[Disequality].mappings[var('a')] == {1, 2}
+
     res = list(lconj(neq(var('a'), 1), eq(var('a'), 2))({}))
     assert len(res) == 1
     assert isinstance(res[0], KanrenState)

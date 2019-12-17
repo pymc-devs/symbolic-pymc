@@ -1,6 +1,8 @@
+import weakref
+
 from abc import ABC, abstractmethod
 from types import MappingProxyType
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 
 from unification import unify, reify, Var
 from unification.core import _unify, _reify
@@ -8,6 +10,16 @@ from unification.core import _unify, _reify
 
 class KanrenConstraintStore(ABC):
     """A class that enforces constraints between logic variables in a miniKanren state."""
+
+    __slots__ = ("mappings",)
+
+    def __init__(self, mappings=None):
+        # Mappings between logic variables and their constraint values
+        # (e.g. the values against which they cannot be unified).
+        self.mappings = mappings if mappings is not None else dict()
+        # TODO: We can't use this until `Var` is a factory returning unique
+        # objects/references for a given `Var.token` value.
+        # self.mappings = weakref.WeakKeyDictionary(mappings)
 
     @abstractmethod
     def pre_check(self, state, key=None, value=None):
@@ -33,7 +45,7 @@ class KanrenConstraintStore(ABC):
 class KanrenState(dict):
     """A miniKanren state that holds unifications of logic variables and upholds constraints on logic variables."""
 
-    __slots__ = ("constraints",)
+    __slots__ = ("constraints", "__weakref__")
 
     def __init__(self, *s, constraints=None):
         super().__init__(*s)
@@ -68,11 +80,10 @@ class KanrenState(dict):
 class Disequality(KanrenConstraintStore):
     """A disequality constraint (i.e. two things do not unify)."""
 
-    def __init__(self, mappings=None):
-        # Unallowed mappings
-        self.mappings = mappings or defaultdict(set)
-
     def post_check(self, new_state, key=None, value=None, old_state=None):
+        # This implementation follows-up every addition to a `KanrenState` with
+        # a consistency check against all the disequality constraints.  It's
+        # not particularly scalable, but it works for now.
         return not any(
             any(new_state == unify(lvar, val, new_state) for val in vals)
             for lvar, vals in self.mappings.items()
@@ -82,7 +93,12 @@ class Disequality(KanrenConstraintStore):
         return True
 
     def update(self, key, value):
-        self.mappings[key].add(value)
+        # In this case, logic variables are mapped to a set of values against
+        # which they cannot unify.
+        if key not in self.mappings:
+            self.mappings[key] = {value}
+        else:
+            self.mappings[key].add(value)
 
     def constraints_str(self, var):
         if var in self.mappings:
@@ -121,15 +137,20 @@ class ConstrainedVar(Var):
 
     """
 
+    __slots__ = ("_id", "token", "S", "var")
+
     def __new__(cls, var, S):
         obj = super().__new__(cls, var.token)
-        obj.S = S
-        obj.var = var
+        obj.S = weakref.ref(S)
+        obj.var = weakref.ref(var)
         return obj
 
     def __repr__(self):
-        u_constraints = ",".join([c.constraints_str(self.var) for c in self.S.constraints.values()])
-        return f"{self.var}: {{{u_constraints}}}"
+        var = self.var()
+        S = self.S()
+        if var is not None and S is not None:
+            u_constraints = ",".join([c.constraints_str(var) for c in S.constraints.values()])
+            return f"{var}: {{{u_constraints}}}"
 
 
 def reify_KanrenState(u, S):
