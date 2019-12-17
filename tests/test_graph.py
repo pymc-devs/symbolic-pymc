@@ -269,8 +269,10 @@ def test_graph_applyo_reverse():
     assert test_res == (
         # Expansion of the term's root
         etuple(add, 5, 5),
+        # Expansion in the term's arguments
+        etuple(mul, etuple(log, etuple(exp, 2)), etuple(log, etuple(exp, 5))),
         # Two step expansion at the root
-        etuple(log, etuple(exp, etuple(add, 5, 5))),
+        # etuple(log, etuple(exp, etuple(add, 5, 5))),
         # Expansion into a sub-term
         # etuple(mul, 2, etuple(log, etuple(exp, 5)))
     )

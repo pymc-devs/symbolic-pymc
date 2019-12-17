@@ -8,19 +8,20 @@ from .meta import TFlowMetaSymbol
 from ..meta import metatize
 from ..unify import unify_MetaSymbol
 from ..etuple import etuplize
+from ..constraints import KanrenState
 
 tf_class_abstractions = tuple(c.base for c in TFlowMetaSymbol.base_subclasses())
 
 _unify.add(
-    (TFlowMetaSymbol, tf_class_abstractions, dict),
+    (TFlowMetaSymbol, tf_class_abstractions, (KanrenState, dict)),
     lambda u, v, s: unify_MetaSymbol(u, metatize(v), s),
 )
 _unify.add(
-    (tf_class_abstractions, TFlowMetaSymbol, dict),
+    (tf_class_abstractions, TFlowMetaSymbol, (KanrenState, dict)),
     lambda u, v, s: unify_MetaSymbol(metatize(u), v, s),
 )
 _unify.add(
-    (tf_class_abstractions, tf_class_abstractions, dict),
+    (tf_class_abstractions, tf_class_abstractions, (KanrenState, dict)),
     lambda u, v, s: unify_MetaSymbol(metatize(u), metatize(v), s),
 )
 
@@ -30,7 +31,7 @@ def _reify_TFlowClasses(o, s):
     return reify(meta_obj, s)
 
 
-_reify.add((tf_class_abstractions, dict), _reify_TFlowClasses)
+_reify.add((tf_class_abstractions, (KanrenState, dict)), _reify_TFlowClasses)
 
 operator.add((tf.Tensor,), lambda x: operator(metatize(x)))
 
