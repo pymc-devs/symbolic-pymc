@@ -3,9 +3,10 @@ import weakref
 from abc import ABC, abstractmethod
 from types import MappingProxyType
 from collections import OrderedDict
+from collections.abc import Mapping
 
 from unification import unify, reify, Var
-from unification.core import _unify, _reify
+from unification.core import _reify
 
 
 class KanrenConstraintStore(ABC):
@@ -120,14 +121,6 @@ def unify_KanrenState(u, v, S):
 
 
 unify.add((object, object, KanrenState), unify_KanrenState)
-unify.add(
-    (object, object, MappingProxyType),
-    lambda u, v, d: unify.dispatch(type(u), type(v), dict)(u, v, d),
-)
-_unify.add(
-    (object, object, MappingProxyType),
-    lambda u, v, d: _unify.dispatch(type(u), type(v), dict)(u, v, d),
-)
 
 
 class ConstrainedVar(Var):
@@ -137,13 +130,11 @@ class ConstrainedVar(Var):
 
     """
 
-    __slots__ = ("_id", "token", "S", "var")
+    __slots__ = ("S", "var")
 
-    def __new__(cls, var, S):
-        obj = super().__new__(cls, var.token)
-        obj.S = weakref.ref(S)
-        obj.var = weakref.ref(var)
-        return obj
+    def __init__(self, var, S):
+        self.S = weakref.ref(S)
+        self.var = weakref.ref(var)
 
     def __repr__(self):
         var = self.var()
@@ -161,8 +152,10 @@ def reify_KanrenState(u, S):
         return u_res
 
 
-_reify.add((tuple(p[0] for p in _reify.ordering if p[1] == dict), KanrenState), reify_KanrenState)
-_reify.add((object, MappingProxyType), lambda u, s: _reify.dispatch(type(u), dict)(u, s))
+_reify.add(
+    (tuple(p[0] for p in _reify.ordering if issubclass(p[1], Mapping)), KanrenState),
+    reify_KanrenState,
+)
 
 
 def neq(u, v):
