@@ -12,8 +12,6 @@ matrix:
 
 install:
   - pip install -r requirements.txt
-  - pip install -r requirements-dev.txt
-  - if [[ $NAME == UNIT ]]; then pip install coveralls; fi
   - pip freeze
 
 script:
