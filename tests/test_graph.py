@@ -14,7 +14,6 @@ from symbolic_pymc.relations.graph import reduceo, seq_apply_anyo, graph_applyo
 
 
 class OrderedFunction(object):
-
     def __init__(self, func):
         self.func = func
 
@@ -26,10 +25,10 @@ class OrderedFunction(object):
         return self.func.__name__
 
     def __lt__(self, other):
-        return self.__name__ < getattr(other, '__name__', str(other))
+        return self.__name__ < getattr(other, "__name__", str(other))
 
     def __gt__(self, other):
-        return self.__name__ > getattr(other, '__name__', str(other))
+        return self.__name__ > getattr(other, "__name__", str(other))
 
     def __repr__(self):
         return self.__name__
@@ -41,22 +40,30 @@ log = OrderedFunction(log)
 exp = OrderedFunction(exp)
 
 
-ExpressionTuple.__lt__ = lambda self, other: self < (other,) if isinstance(other, int) else tuple(self) < tuple(other)
-ExpressionTuple.__gt__ = lambda self, other: self > (other,) if isinstance(other, int) else tuple(self) > tuple(other)
+ExpressionTuple.__lt__ = (
+    lambda self, other: self < (other,) if isinstance(other, int) else tuple(self) < tuple(other)
+)
+ExpressionTuple.__gt__ = (
+    lambda self, other: self > (other,) if isinstance(other, int) else tuple(self) > tuple(other)
+)
 
 
 def math_reduceo(in_expr, out_expr):
     """Create a relation for a couple math-based identities."""
     x_lv = var()
-    x_lv.token = f'x{x_lv.token}'
+    x_lv.token = f"x{x_lv.token}"
 
-    return (lall,
-            conde([eq(in_expr, etuple(add, x_lv, x_lv)),
-                   eq(out_expr, etuple(mul, 2, x_lv))],
-                  [eq(in_expr, etuple(log, etuple(exp, x_lv))),
-                   eq(out_expr, x_lv)]),
-            conde([(isinstanceo, [in_expr, (float, int, ExpressionTuple)], True)],
-                  [(isinstanceo, [out_expr, (float, int, ExpressionTuple)], True)]))
+    return (
+        lall,
+        conde(
+            [eq(in_expr, etuple(add, x_lv, x_lv)), eq(out_expr, etuple(mul, 2, x_lv))],
+            [eq(in_expr, etuple(log, etuple(exp, x_lv))), eq(out_expr, x_lv)],
+        ),
+        conde(
+            [(isinstanceo, [in_expr, (float, int, ExpressionTuple)], True)],
+            [(isinstanceo, [out_expr, (float, int, ExpressionTuple)], True)],
+        ),
+    )
 
 
 def full_math_reduceo(a, b):
@@ -72,13 +79,13 @@ def test_reduceo():
     q_lv = var()
 
     # Reduce/forward
-    res = run(0, q_lv, full_math_reduceo(
-        etuple(log, etuple(exp, etuple(log, 1))), q_lv))
+    res = run(0, q_lv, full_math_reduceo(etuple(log, etuple(exp, etuple(log, 1))), q_lv))
     assert len(res) == 1
     assert res[0] == etuple(log, 1)
 
-    res = run(0, q_lv, full_math_reduceo(
-        etuple(log, etuple(exp, etuple(log, etuple(exp, 1)))), q_lv))
+    res = run(
+        0, q_lv, full_math_reduceo(etuple(log, etuple(exp, etuple(log, etuple(exp, 1)))), q_lv)
+    )
     assert res[0] == 1
     assert res[1] == etuple(log, etuple(exp, 1))
 
@@ -109,14 +116,19 @@ def test_seq_apply_anyo_types():
     assert len(res) == 0
     res = run(1, q_lv, seq_apply_anyo(lambda x, y: eq(x, y), [1, 2], (1, 2)))
     assert len(res) == 0
-    res = run(0, q_lv, seq_apply_anyo(lambda x, y: eq(y, etuple(mul, 2, x)),
-                                   etuple(add, 1, 2), q_lv, skip_op=True))
+    res = run(
+        0,
+        q_lv,
+        seq_apply_anyo(
+            lambda x, y: eq(y, etuple(mul, 2, x)), etuple(add, 1, 2), q_lv, skip_op=True
+        ),
+    )
     assert len(res) == 3
     assert all(r[0] == add for r in res)
 
 
 def test_seq_apply_anyo_misc():
-    q_lv = var('q')
+    q_lv = var("q")
 
     assert len(run(0, q_lv, seq_apply_anyo(eq, [1, 2, 3], [1, 2, 3]))) == 1
 
@@ -125,13 +137,11 @@ def test_seq_apply_anyo_misc():
     def one_to_threeo(x, y):
         return conde([eq(x, 1), eq(y, 3)])
 
-    res = run(0, q_lv, seq_apply_anyo(one_to_threeo,
-                                      [1, 2, 4, 1, 4, 1, 1],
-                                      q_lv))
+    res = run(0, q_lv, seq_apply_anyo(one_to_threeo, [1, 2, 4, 1, 4, 1, 1], q_lv))
 
     assert res[0] == [3, 2, 4, 3, 4, 3, 3]
 
-    assert len(run(4, q_lv, seq_apply_anyo(math_reduceo, [etuple(mul, 2, var('x'))], q_lv))) == 0
+    assert len(run(4, q_lv, seq_apply_anyo(math_reduceo, [etuple(mul, 2, var("x"))], q_lv))) == 0
 
     test_res = run(4, q_lv, seq_apply_anyo(math_reduceo, [etuple(add, 2, 2), 1], q_lv))
     assert test_res == ([etuple(mul, 2, 2), 1],)
@@ -139,34 +149,36 @@ def test_seq_apply_anyo_misc():
     test_res = run(4, q_lv, seq_apply_anyo(math_reduceo, [1, etuple(add, 2, 2)], q_lv))
     assert test_res == ([1, etuple(mul, 2, 2)],)
 
-    test_res = run(4, q_lv, seq_apply_anyo(math_reduceo, q_lv, var('z')))
+    test_res = run(4, q_lv, seq_apply_anyo(math_reduceo, q_lv, var("z")))
     assert all(isinstance(r, list) for r in test_res)
 
-    test_res = run(4, q_lv, seq_apply_anyo(math_reduceo, q_lv, var('z'), tuple()))
+    test_res = run(4, q_lv, seq_apply_anyo(math_reduceo, q_lv, var("z"), tuple()))
     assert all(isinstance(r, tuple) for r in test_res)
 
 
 @pytest.mark.parametrize(
-    'test_input, test_output',
-    [([], ()),
-     ([1], ()),
-     ([etuple(add, 1, 1),],
-      ([etuple(mul, 2, 1)],)),
-     ([1, etuple(add, 1, 1)],
-      ([1, etuple(mul, 2, 1)],)),
-     ([etuple(add, 1, 1), 1],
-      ([etuple(mul, 2, 1), 1],)),
-     ([etuple(mul, 2, 1), etuple(add, 1, 1), 1],
-      ([etuple(mul, 2, 1), etuple(mul, 2, 1), 1],)),
-     ([etuple(add, 1, 1), etuple(log, etuple(exp, 5)),],
-      ([etuple(mul, 2, 1), 5],
-       [etuple(add, 1, 1), 5],
-       [etuple(mul, 2, 1), etuple(log, etuple(exp, 5))]))])
+    "test_input, test_output",
+    [
+        ([], ()),
+        ([1], ()),
+        ([etuple(add, 1, 1),], ([etuple(mul, 2, 1)],)),
+        ([1, etuple(add, 1, 1)], ([1, etuple(mul, 2, 1)],)),
+        ([etuple(add, 1, 1), 1], ([etuple(mul, 2, 1), 1],)),
+        ([etuple(mul, 2, 1), etuple(add, 1, 1), 1], ([etuple(mul, 2, 1), etuple(mul, 2, 1), 1],)),
+        (
+            [etuple(add, 1, 1), etuple(log, etuple(exp, 5)),],
+            (
+                [etuple(mul, 2, 1), 5],
+                [etuple(add, 1, 1), 5],
+                [etuple(mul, 2, 1), etuple(log, etuple(exp, 5))],
+            ),
+        ),
+    ],
+)
 def test_seq_apply_anyo(test_input, test_output):
     """Test `seq_apply_anyo` with fully ground terms (i.e. no logic variables)."""
     q_lv = var()
-    test_res = run(0, q_lv,
-                   (seq_apply_anyo, full_math_reduceo, test_input, q_lv))
+    test_res = run(0, q_lv, (seq_apply_anyo, full_math_reduceo, test_input, q_lv))
 
     assert len(test_res) == len(test_output)
 
@@ -190,20 +202,18 @@ def test_seq_apply_anyo_reverse():
     q_lv = var()
     rev_input = [etuple(mul, 2, 1)]
     test_res = run(4, q_lv, (seq_apply_anyo, math_reduceo, q_lv, rev_input))
-    assert test_res == ([etuple(add, 1, 1)],
-                        [etuple(log, etuple(exp, etuple(mul, 2, 1)))])
+    assert test_res == ([etuple(add, 1, 1)], [etuple(log, etuple(exp, etuple(mul, 2, 1)))])
 
     # Guided reverse
-    test_res = run(4, q_lv,
-                   (seq_apply_anyo, math_reduceo,
-                    [etuple(add, q_lv, 1)],
-                    [etuple(mul, 2, 1)]))
+    test_res = run(
+        4, q_lv, (seq_apply_anyo, math_reduceo, [etuple(add, q_lv, 1)], [etuple(mul, 2, 1)])
+    )
 
     assert test_res == (1,)
 
 
 def test_graph_applyo_misc():
-    q_lv = var('q')
+    q_lv = var("q")
     expr = etuple(add, etuple(mul, 2, 1), etuple(add, 1, 1))
     assert len(run(0, q_lv, graph_applyo(eq, expr, expr, preprocess_graph=None))) == 1
 
@@ -215,32 +225,40 @@ def test_graph_applyo_misc():
     def one_to_threeo(x, y):
         return conde([eq(x, 1), eq(y, 3)])
 
-    res = run(0, q_lv, graph_applyo(one_to_threeo,
-                                    [1, [1, 2, 4], 2, [[4, 1, 1]], 1],
-                                    q_lv, preprocess_graph=None))
+    res = run(
+        0,
+        q_lv,
+        graph_applyo(one_to_threeo, [1, [1, 2, 4], 2, [[4, 1, 1]], 1], q_lv, preprocess_graph=None),
+    )
 
     assert res[0] == [3, [3, 2, 4], 2, [[4, 3, 3]], 3]
 
 
 @pytest.mark.parametrize(
-    'test_input, test_output',
-    [(1, ()),
-     (etuple(add, 1, 1),
-      (etuple(mul, 2, 1),)),
-     (etuple(add, etuple(mul, 2, 1), etuple(add, 1, 1)),
-      (etuple(mul, 2, etuple(mul, 2, 1)),
-       etuple(add, etuple(mul, 2, 1), etuple(mul, 2, 1)))),
-     (etuple(add, etuple(mul, etuple(log, etuple(exp, 2)), 1), etuple(add, 1, 1)),
-      (etuple(mul, 2, etuple(mul, 2, 1)),
-       etuple(add, etuple(mul, 2, 1), etuple(mul, 2, 1)),
-       etuple(add, etuple(mul, etuple(log, etuple(exp, 2)), 1), etuple(mul, 2, 1)),
-       etuple(add, etuple(mul, 2, 1), etuple(add, 1, 1))))])
+    "test_input, test_output",
+    [
+        (1, ()),
+        (etuple(add, 1, 1), (etuple(mul, 2, 1),)),
+        (
+            etuple(add, etuple(mul, 2, 1), etuple(add, 1, 1)),
+            (etuple(mul, 2, etuple(mul, 2, 1)), etuple(add, etuple(mul, 2, 1), etuple(mul, 2, 1))),
+        ),
+        (
+            etuple(add, etuple(mul, etuple(log, etuple(exp, 2)), 1), etuple(add, 1, 1)),
+            (
+                etuple(mul, 2, etuple(mul, 2, 1)),
+                etuple(add, etuple(mul, 2, 1), etuple(mul, 2, 1)),
+                etuple(add, etuple(mul, etuple(log, etuple(exp, 2)), 1), etuple(mul, 2, 1)),
+                etuple(add, etuple(mul, 2, 1), etuple(add, 1, 1)),
+            ),
+        ),
+    ],
+)
 def test_graph_applyo(test_input, test_output):
     """Test `graph_applyo` with fully ground terms (i.e. no logic variables)."""
 
     q_lv = var()
-    test_res = run(len(test_output), q_lv,
-                   fixedp_graph_applyo(full_math_reduceo, test_input, q_lv))
+    test_res = run(len(test_output), q_lv, fixedp_graph_applyo(full_math_reduceo, test_input, q_lv))
 
     assert len(test_res) == len(test_output)
 
@@ -257,11 +275,13 @@ def test_graph_applyo(test_input, test_output):
 
 def test_graph_applyo_reverse():
     """Test `graph_applyo` in "reverse" (i.e. specify the reduced form and generate the un-reduced form)."""
-    q_lv = var('q')
+    q_lv = var("q")
 
     test_res = run(2, q_lv, fixedp_graph_applyo(math_reduceo, q_lv, 5))
-    assert test_res == (etuple(log, etuple(exp, 5)),
-                        etuple(log, etuple(exp, etuple(log, etuple(exp, 5)))))
+    assert test_res == (
+        etuple(log, etuple(exp, 5)),
+        etuple(log, etuple(exp, etuple(log, etuple(exp, 5)))),
+    )
     assert all(e.eval_obj == 5.0 for e in test_res)
 
     # Make sure we get some variety in the results
@@ -278,12 +298,12 @@ def test_graph_applyo_reverse():
     )
     assert all(e.eval_obj == 10.0 for e in test_res)
 
-    r_lv = var('r')
+    r_lv = var("r")
     test_res = run(4, [q_lv, r_lv], fixedp_graph_applyo(math_reduceo, q_lv, r_lv))
-    expect_res = ([etuple(add, 1, 1), etuple(mul, 2, 1)],
-                  [etuple(log, etuple(exp, etuple(add, 1, 1))), etuple(mul, 2, 1)],
-                  [etuple(), etuple()],
-                  [etuple(add, etuple(mul, 2, 1), etuple(add, 1, 1)),
-                   etuple(mul, 2, etuple(mul, 2, 1))])
-    assert list(unify(a1, a2) and unify(b1, b2)
-                for [a1, b1], [a2, b2] in zip(test_res, expect_res))
+    expect_res = (
+        [etuple(add, 1, 1), etuple(mul, 2, 1)],
+        [etuple(log, etuple(exp, etuple(add, 1, 1))), etuple(mul, 2, 1)],
+        [etuple(), etuple()],
+        [etuple(add, etuple(mul, 2, 1), etuple(add, 1, 1)), etuple(mul, 2, etuple(mul, 2, 1))],
+    )
+    assert list(unify(a1, a2) and unify(b1, b2) for [a1, b1], [a2, b2] in zip(test_res, expect_res))

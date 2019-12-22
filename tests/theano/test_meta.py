@@ -7,19 +7,22 @@ import pytest
 
 from unification import var, isvar, variables
 from symbolic_pymc.meta import MetaSymbol, MetaOp
-from symbolic_pymc.theano.meta import (metatize,
-                                       TheanoMetaOp,
-                                       TheanoMetaApply,
-                                       TheanoMetaVariable,
-                                       TheanoMetaTensorConstant,
-                                       TheanoMetaTensorVariable,
-                                       TheanoMetaTensorType, mt)
+from symbolic_pymc.theano.meta import (
+    metatize,
+    TheanoMetaOp,
+    TheanoMetaApply,
+    TheanoMetaVariable,
+    TheanoMetaTensorConstant,
+    TheanoMetaTensorVariable,
+    TheanoMetaTensorType,
+    mt,
+)
 from symbolic_pymc.theano.utils import graph_equal
 
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_metatize():
-    vec_tt = tt.vector('vec')
+    vec_tt = tt.vector("vec")
     vec_m = metatize(vec_tt)
     assert vec_m.base == type(vec_tt)
 
@@ -65,7 +68,7 @@ def test_metatize():
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_meta_classes():
-    vec_tt = tt.vector('vec')
+    vec_tt = tt.vector("vec")
     vec_m = metatize(vec_tt)
     assert vec_m.obj == vec_tt
     assert type(vec_m) == TheanoMetaTensorVariable
@@ -132,7 +135,7 @@ def test_meta_classes():
     # svd_op_inst_mt(test_mat) == svd_mt
 
     # Apply node with logic variable as outputs
-    svd_apply_mt = TheanoMetaApply(svd_op_mt, [test_mat], outputs=var('out'))
+    svd_apply_mt = TheanoMetaApply(svd_op_mt, [test_mat], outputs=var("out"))
     assert isinstance(svd_apply_mt.inputs, tuple)
     assert isinstance(svd_apply_mt.inputs[0], MetaSymbol)
     assert isvar(svd_apply_mt.outputs)
@@ -140,7 +143,7 @@ def test_meta_classes():
     assert svd_apply_mt.nout is None
 
     # Apply node with logic variable as inputs
-    svd_apply_mt = TheanoMetaApply(svd_op_mt, var('in'), outputs=var('out'))
+    svd_apply_mt = TheanoMetaApply(svd_op_mt, var("in"), outputs=var("out"))
     assert svd_apply_mt.nin is None
 
     # A meta variable with None index
@@ -154,7 +157,7 @@ def test_meta_classes():
     assert reified_var_mt == svd_mt[0]
 
     # A meta variable with logic variable index
-    var_mt = TheanoMetaVariable(svd_mt[0].type, svd_mt[0].owner, var('index'), None)
+    var_mt = TheanoMetaVariable(svd_mt[0].type, svd_mt[0].owner, var("index"), None)
     assert isvar(var_mt.index)
     reified_var_mt = var_mt.reify()
     assert isvar(var_mt.index)
@@ -167,26 +170,26 @@ def test_meta_classes():
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_meta_str():
-    assert str(mt.add) == 'TheanoMetaElemwise(Elemwise{add,no_inplace})'
+    assert str(mt.add) == "TheanoMetaElemwise(Elemwise{add,no_inplace})"
 
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_meta_pretty():
     pretty_mod = pytest.importorskip("IPython.lib.pretty")
-    assert pretty_mod.pretty(mt.add) == 'TheanoMetaElemwise(Elemwise{add,no_inplace})'
+    assert pretty_mod.pretty(mt.add) == "TheanoMetaElemwise(Elemwise{add,no_inplace})"
 
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_meta_helpers():
     zeros_mt = mt.zeros(2)
-    assert np.array_equal(zeros_mt.reify().eval(), np.r_[0., 0.])
+    assert np.array_equal(zeros_mt.reify().eval(), np.r_[0.0, 0.0])
 
     zeros_mt = mt.zeros(2, dtype=int)
     assert np.array_equal(zeros_mt.reify().eval(), np.r_[0, 0])
 
     mat_mt = mt(np.eye(2))
     diag_mt = mt.diag(mat_mt)
-    assert np.array_equal(diag_mt.reify().eval(), np.r_[1., 1.])
+    assert np.array_equal(diag_mt.reify().eval(), np.r_[1.0, 1.0])
 
     diag_mt = mt.diag(mt(np.r_[1, 2, 3]))
     assert np.array_equal(diag_mt.reify().eval(), np.diag(np.r_[1, 2, 3]))

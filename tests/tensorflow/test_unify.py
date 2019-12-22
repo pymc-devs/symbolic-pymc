@@ -5,8 +5,8 @@ import tensorflow as tf
 from unification import unify, reify, var
 from kanren.term import term, operator, arguments
 
-from symbolic_pymc.tensorflow.meta import (mt, TFlowMetaOperator, TFlowMetaTensor, TFlowMetaNodeDef)
-from symbolic_pymc.etuple import (ExpressionTuple, etuple, etuplize)
+from symbolic_pymc.tensorflow.meta import mt, TFlowMetaOperator, TFlowMetaTensor, TFlowMetaNodeDef
+from symbolic_pymc.etuple import ExpressionTuple, etuple, etuplize
 
 from tests.tensorflow import run_in_graph_mode
 from tests.tensorflow.utils import assert_ops_equal
@@ -14,12 +14,12 @@ from tests.tensorflow.utils import assert_ops_equal
 
 @run_in_graph_mode
 def test_operator():
-    s = unify(TFlowMetaOperator(var('a'), var('b')), mt.add)
+    s = unify(TFlowMetaOperator(var("a"), var("b")), mt.add)
 
-    assert s[var('a')] == mt.add.op_def
-    assert s[var('b')] == mt.add.node_def
+    assert s[var("a")] == mt.add.op_def
+    assert s[var("b")] == mt.add.node_def
 
-    add_mt = reify(TFlowMetaOperator(var('a'), var('b')), s)
+    add_mt = reify(TFlowMetaOperator(var("a"), var("b")), s)
 
     assert add_mt == mt.add
 
@@ -32,8 +32,8 @@ def test_etuple_term():
 
     assert etuplize("blah", return_bad_args=True) == "blah"
 
-    a = tf.compat.v1.placeholder(tf.float64, name='a')
-    b = tf.compat.v1.placeholder(tf.float64, name='b')
+    a = tf.compat.v1.placeholder(tf.float64, name="a")
+    b = tf.compat.v1.placeholder(tf.float64, name="b")
 
     a_mt = mt(a)
     a_mt._obj = None
@@ -114,28 +114,30 @@ def test_etuple_term():
     # TODO FIXME: Because of the above two, this errs
     # add_lvar_et = etuplize(add_lvar_mt)
 
+
 @run_in_graph_mode
 def test_basic_unify_reify():
     # Test reification with manually constructed replacements
-    a = tf.compat.v1.placeholder(tf.float64, name='a')
-    x_l = var('x_l')
+    a = tf.compat.v1.placeholder(tf.float64, name="a")
+    x_l = var("x_l")
     a_reif = reify(x_l, {x_l: mt(a)})
     assert a_reif.obj is not None
     # Confirm that identity is preserved (i.e. that the underlying object
     # was properly tracked and not unnecessarily reconstructed)
     assert a == a_reif.reify()
 
-    test_expr = mt.add(tf.constant(1, dtype=tf.float64),
-                       mt.mul(tf.constant(2, dtype=tf.float64),
-                              x_l))
+    test_expr = mt.add(
+        tf.constant(1, dtype=tf.float64), mt.mul(tf.constant(2, dtype=tf.float64), x_l)
+    )
     test_reify_res = reify(test_expr, {x_l: a})
     test_base_res = test_reify_res.reify()
     assert isinstance(test_base_res, tf.Tensor)
 
     with tf.Graph().as_default():
-        a = tf.compat.v1.placeholder(tf.float64, name='a')
-        expected_res = tf.add(tf.constant(1, dtype=tf.float64),
-                              tf.multiply(tf.constant(2, dtype=tf.float64), a))
+        a = tf.compat.v1.placeholder(tf.float64, name="a")
+        expected_res = tf.add(
+            tf.constant(1, dtype=tf.float64), tf.multiply(tf.constant(2, dtype=tf.float64), a)
+        )
     assert_ops_equal(test_base_res, expected_res)
 
     # Simply make sure that unification succeeds
@@ -150,12 +152,9 @@ def test_basic_unify_reify():
 def test_sexp_unify_reify():
     """Make sure we can unify and reify etuples/S-exps."""
     # Unify `A . (x + y)`, for `x`, `y` logic variables
-    A = tf.compat.v1.placeholder(tf.float64, name='A',
-                                 shape=tf.TensorShape([None, None]))
-    x = tf.compat.v1.placeholder(tf.float64, name='x',
-                                 shape=tf.TensorShape([None, 1]))
-    y = tf.compat.v1.placeholder(tf.float64, name='y',
-                                 shape=tf.TensorShape([None, 1]))
+    A = tf.compat.v1.placeholder(tf.float64, name="A", shape=tf.TensorShape([None, None]))
+    x = tf.compat.v1.placeholder(tf.float64, name="x", shape=tf.TensorShape([None, 1]))
+    y = tf.compat.v1.placeholder(tf.float64, name="y", shape=tf.TensorShape([None, 1]))
 
     z = tf.matmul(A, tf.add(x, y))
 
@@ -166,22 +165,23 @@ def test_sexp_unify_reify():
     assert z_sexp[2][1].eval_obj.reify() == x
     assert z_sexp[2][2].eval_obj.reify() == y
 
-    dis_pat = etuple(etuple(TFlowMetaOperator, mt.matmul.op_def, var()),
-                     var('A'),
-                     etuple(etuple(TFlowMetaOperator, mt.add.op_def, var()),
-                            var('x'), var('y')))
+    dis_pat = etuple(
+        etuple(TFlowMetaOperator, mt.matmul.op_def, var()),
+        var("A"),
+        etuple(etuple(TFlowMetaOperator, mt.add.op_def, var()), var("x"), var("y")),
+    )
 
     s = unify(dis_pat, z_sexp, {})
 
-    assert s[var('A')].eval_obj == mt(A)
-    assert s[var('x')].eval_obj == mt(x)
-    assert s[var('y')].eval_obj == mt(y)
+    assert s[var("A")].eval_obj == mt(A)
+    assert s[var("x")].eval_obj == mt(x)
+    assert s[var("y")].eval_obj == mt(y)
 
     # Now, we construct a graph that reflects the distributive property and
     # reify with the substitutions from the un-distributed form
-    out_pat = etuple(mt.add,
-                     etuple(mt.matmul, var('A'), var('x')),
-                     etuple(mt.matmul, var('A'), var('y')))
+    out_pat = etuple(
+        mt.add, etuple(mt.matmul, var("A"), var("x")), etuple(mt.matmul, var("A"), var("y"))
+    )
     z_dist = reify(out_pat, s)
 
     # Evaluate the tuple-expression and get a meta object/graph

@@ -9,7 +9,7 @@ def rv_numpy_tester(rv, *params, size=None):
     """Test for correspondence between `RandomVariable` and NumPy shape and
     broadcast dimensions.
     """
-    tt.config.compute_test_value = 'ignore'
+    tt.config.compute_test_value = "ignore"
 
     test_rv = rv(*params, size=size)
     param_vals = [tt.gof.op.get_test_value(p) for p in params]
@@ -35,24 +35,25 @@ def rv_numpy_tester(rv, *params, size=None):
     test_bcast = [s == 1 for s in test_shp]
     np.testing.assert_array_equal(test_rv.type.broadcastable, test_bcast)
 
-    eval_args = {p: v for p, v in zip(params, param_vals)
-                 if isinstance(p, tt.Variable) and
-                 not isinstance(p, tt.Constant)}
+    eval_args = {
+        p: v
+        for p, v in zip(params, param_vals)
+        if isinstance(p, tt.Variable) and not isinstance(p, tt.Constant)
+    }
     np.testing.assert_array_equal(test_rv.shape.eval(eval_args), test_shp)
     np.testing.assert_array_equal(np.shape(test_rv.eval(eval_args)), test_shp)
 
 
 def test_normalrv():
-    rv_numpy_tester(NormalRV, 0., 1.)
-    rv_numpy_tester(NormalRV, 0., 1., size=[3])
+    rv_numpy_tester(NormalRV, 0.0, 1.0)
+    rv_numpy_tester(NormalRV, 0.0, 1.0, size=[3])
     # Broadcast sd over independent means...
-    rv_numpy_tester(NormalRV, [0., 1., 2.], 1.)
-    rv_numpy_tester(NormalRV, [0., 1., 2.], 1., size=[3, 3])
+    rv_numpy_tester(NormalRV, [0.0, 1.0, 2.0], 1.0)
+    rv_numpy_tester(NormalRV, [0.0, 1.0, 2.0], 1.0, size=[3, 3])
     rv_numpy_tester(NormalRV, [0], [1], size=[1])
 
     rv_numpy_tester(NormalRV, tt.as_tensor_variable([0]), [1], size=[1])
-    rv_numpy_tester(NormalRV, tt.as_tensor_variable([0]), [1],
-                    size=tt.as_tensor_variable([1]))
+    rv_numpy_tester(NormalRV, tt.as_tensor_variable([0]), [1], size=tt.as_tensor_variable([1]))
 
 
 def test_mvnormalrv():

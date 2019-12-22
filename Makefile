@@ -51,11 +51,11 @@ format:
 
 style:
 	@printf "Checking code style with pylint...\n"
-	pylint symbolic_pymc/
+	pylint symbolic_pymc/ tests/
 	@printf "\033[1;34mPylint passes!\033[0m\n\n"
 
 black:  # Format code in-place using black.
-	black symbolic_pymc/
+	black symbolic_pymc/ tests/
 
 test:  # Test code using pytest.
 	pytest -v tests/ --cov=symbolic_pymc/ --cov-report=xml --html=testing-report.html --self-contained-html

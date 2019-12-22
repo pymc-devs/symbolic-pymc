@@ -4,11 +4,12 @@ from operator import add
 
 from kanren.term import term, operator, arguments
 
-from symbolic_pymc.etuple import (ExpressionTuple, etuple, KwdPair)
+from symbolic_pymc.etuple import ExpressionTuple, etuple, KwdPair
 
 
 def test_etuple():
     """Test basic `etuple` functionality."""
+
     def test_op(*args):
         return tuple(object() for i in range(sum(args)))
 
@@ -78,29 +79,30 @@ def test_etuple_term():
 
 def test_etuple_kwargs():
     """Test keyword arguments and default argument values."""
-    def test_func(a, b, c=None, d='d-arg', **kwargs):
+
+    def test_func(a, b, c=None, d="d-arg", **kwargs):
         assert isinstance(c, (type(None), int))
         return [a, b, c, d]
 
     e1 = etuple(test_func, 1, 2)
-    assert e1.eval_obj == [1, 2, None, 'd-arg']
+    assert e1.eval_obj == [1, 2, None, "d-arg"]
 
     # Make sure we handle variadic args properly
-    def test_func2(*args, c=None, d='d-arg', **kwargs):
+    def test_func2(*args, c=None, d="d-arg", **kwargs):
         assert isinstance(c, (type(None), int))
         return list(args) + [c, d]
 
     e11 = etuple(test_func2, 1, 2)
-    assert e11.eval_obj == [1, 2, None, 'd-arg']
+    assert e11.eval_obj == [1, 2, None, "d-arg"]
 
     e2 = etuple(test_func, 1, 2, 3)
-    assert e2.eval_obj == [1, 2, 3, 'd-arg']
+    assert e2.eval_obj == [1, 2, 3, "d-arg"]
 
     e3 = etuple(test_func, 1, 2, 3, 4)
     assert e3.eval_obj == [1, 2, 3, 4]
 
     e4 = etuple(test_func, 1, 2, c=3)
-    assert e4.eval_obj == [1, 2, 3, 'd-arg']
+    assert e4.eval_obj == [1, 2, 3, "d-arg"]
 
     e5 = etuple(test_func, 1, 2, d=3)
     assert e5.eval_obj == [1, 2, None, 3]
@@ -109,14 +111,14 @@ def test_etuple_kwargs():
     assert e6.eval_obj == [1, 2, 3, 4]
 
     # Try evaluating nested etuples
-    e7 = etuple(test_func, etuple(add, 1, 0), 2,
-                c=etuple(add, 1, etuple(add, 1, 1)))
-    assert e7.eval_obj == [1, 2, 3, 'd-arg']
+    e7 = etuple(test_func, etuple(add, 1, 0), 2, c=etuple(add, 1, etuple(add, 1, 1)))
+    assert e7.eval_obj == [1, 2, 3, "d-arg"]
 
     # Try a function without an obtainable signature object
-    e8 = etuple(enumerate, etuple(list, ['a', 'b', 'c', 'd']),
-                start=etuple(add, 1, etuple(add, 1, 1)))
-    assert list(e8.eval_obj) == [(3, 'a'), (4, 'b'), (5, 'c'), (6, 'd')]
+    e8 = etuple(
+        enumerate, etuple(list, ["a", "b", "c", "d"]), start=etuple(add, 1, etuple(add, 1, 1))
+    )
+    assert list(e8.eval_obj) == [(3, "a"), (4, "b"), (5, "c"), (6, "d")]
 
     # Use "eval_obj" kwarg and make sure it doesn't end up in the `_tuple` object
     e9 = etuple(add, 1, 2, eval_obj=3)
@@ -127,15 +129,18 @@ def test_etuple_kwargs():
 def test_str():
     et = etuple(1, etuple("a", 2), etuple(3, "b"))
     assert repr(et) == "ExpressionTuple((1, ExpressionTuple(('a', 2)), ExpressionTuple((3, 'b'))))"
-    assert str(et) == 'e(1, e(a, 2), e(3, b))'
+    assert str(et) == "e(1, e(a, 2), e(3, b))"
 
-    kw = KwdPair('a', 1)
+    kw = KwdPair("a", 1)
 
     assert repr(kw) == "KwdPair('a', 1)"
-    assert str(kw) == 'a=1'
+    assert str(kw) == "a=1"
 
 
 def test_pprint():
     pretty_mod = pytest.importorskip("IPython.lib.pretty")
-    et = etuple(1, etuple("a", *range(20)), etuple(3, "b"), blah=etuple('c', 0))
-    assert pretty_mod.pretty(et) == "e(\n  1,\n  e('a', 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19),\n  e(3, 'b'),\n  blah=e(c, 0))"
+    et = etuple(1, etuple("a", *range(20)), etuple(3, "b"), blah=etuple("c", 0))
+    assert (
+        pretty_mod.pretty(et)
+        == "e(\n  1,\n  e('a', 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19),\n  e(3, 'b'),\n  blah=e(c, 0))"
+    )
