@@ -31,19 +31,18 @@ def test_eager_mode():
 def test_ascii_printing():
     """Make sure we can ascii/text print a TF graph."""
 
-    A = tf.compat.v1.placeholder('float', name='A',
-                                 shape=tf.TensorShape([None, None]))
-    x = tf.compat.v1.placeholder('float', name='x',
-                                 shape=tf.TensorShape([None, 1]))
-    y = tf.multiply(1.0, x, name='y')
+    A = tf.compat.v1.placeholder("float", name="A", shape=tf.TensorShape([None, None]))
+    x = tf.compat.v1.placeholder("float", name="x", shape=tf.TensorShape([None, 1]))
+    y = tf.multiply(1.0, x, name="y")
 
-    z = tf.matmul(A, tf.add(y, y, name='x_p_y'), name='A_dot')
+    z = tf.matmul(A, tf.add(y, y, name="x_p_y"), name="A_dot")
 
     std_out = io.StringIO()
     with redirect_stdout(std_out):
         tf_dprint(z)
 
-    expected_out = textwrap.dedent('''
+    expected_out = textwrap.dedent(
+        """
     Tensor(MatMul):0,\tdtype=float32,\tshape=[None, 1],\t"A_dot:0"
     |  Tensor(Placeholder):0,\tdtype=float32,\tshape=[None, None],\t"A:0"
     |  Tensor(Add):0,\tdtype=float32,\tshape=[None, 1],\t"x_p_y:0"
@@ -53,7 +52,8 @@ def test_ascii_printing():
     |  |  |  Tensor(Placeholder):0,\tdtype=float32,\tshape=[None, 1],\t"x:0"
     |  |  Tensor(Mul):0,\tdtype=float32,\tshape=[None, 1],\t"y:0"
     |  |  |  ...
-    ''')
+    """
+    )
 
     assert std_out.getvalue() == expected_out.lstrip()
 
@@ -66,7 +66,8 @@ def test_ascii_printing():
         test_mt = mt(1) + tt_lv_inputs_mt + tt_const_lv_nodedef_mt + tt_lv_op_mt
         tf_dprint(test_mt)
 
-    expected_out = textwrap.dedent('''
+    expected_out = textwrap.dedent(
+        """
     Tensor(AddV2):0,\tdtype=int32,\tshape=~_11,\t"add:0"
     |  Tensor(AddV2):0,\tdtype=int32,\tshape=~_12,\t"add:0"
     |  |  Tensor(AddV2):0,\tdtype=int32,\tshape=~_13,\t"add:0"
@@ -77,7 +78,8 @@ def test_ascii_printing():
     |  |  Tensor(Const):0,\tdtype=~_5,\tshape=~_18,\t"~_20"
     |  |  |  ~_4
     |  Tensor(~_6):0,\tdtype=~_7,\tshape=~_21,\t"~_22"
-    ''')
+    """
+    )
 
     assert std_out.getvalue() == expected_out.lstrip()
 
@@ -86,7 +88,7 @@ def test_ascii_printing():
 def test_unknown_shape():
     """Make sure we can ascii/text print a TF graph with unknown shapes."""
 
-    A = tf.compat.v1.placeholder(tf.float64, name='A')
+    A = tf.compat.v1.placeholder(tf.float64, name="A")
 
     std_out = io.StringIO()
     with redirect_stdout(std_out):
@@ -108,10 +110,12 @@ def test_numpy():
     with redirect_stdout(std_out):
         tf_dprint(A)
 
-    expected_out = textwrap.dedent('''
+    expected_out = textwrap.dedent(
+        """
     Tensor(Const):0,\tdtype=int64,\tshape=[100],\t"Const:0"
     |  [ 0  1  2 ... 97 98 99]
-    ''')
+    """
+    )
 
     assert std_out.getvalue() == expected_out.lstrip()
 
@@ -126,7 +130,8 @@ def test_numpy():
     with redirect_stdout(std_out):
         tf_dprint(X_tf)
 
-    expected_out = textwrap.dedent('''
+    expected_out = textwrap.dedent(
+        """
     Tensor(Const):0,\tdtype=float64,\tshape=[100, 2],\t"Const:0"
     |  [[-0.20470766  1.        ]
         [ 0.47894334  1.        ]
@@ -135,6 +140,7 @@ def test_numpy():
         [-0.74853155  1.        ]
         [ 0.58496974  1.        ]
         [ 0.15267657  1.        ]]
-    ''')
+    """
+    )
 
     assert std_out.getvalue() == expected_out.lstrip()

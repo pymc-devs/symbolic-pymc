@@ -4,24 +4,24 @@ import tensorflow as tf
 
 
 def assert_ops_equal(a, b, compare_fn=lambda a, b: a.op.type == b.op.type):
-    if hasattr(a, 'op') or hasattr(b, 'op'):
-        assert hasattr(a, 'op') and hasattr(b, 'op')
+    if hasattr(a, "op") or hasattr(b, "op"):
+        assert hasattr(a, "op") and hasattr(b, "op")
 
         assert compare_fn(a, b)
 
         if isinstance(a.op, tf.Operation):
-            a_inputs = a.op._reconstruct_sequence_inputs(a.op.op_def,
-                                                         a.op.inputs,
-                                                         a.op.node_def.attr)
+            a_inputs = a.op._reconstruct_sequence_inputs(
+                a.op.op_def, a.op.inputs, a.op.node_def.attr
+            )
         elif isinstance(a.op, Mapping):
             a_inputs = list(a.op.inputs.values())
         else:
             a_inputs = list(a.op.inputs)
 
         if isinstance(b.op, tf.Operation):
-            b_inputs = b.op._reconstruct_sequence_inputs(b.op.op_def,
-                                                         b.op.inputs,
-                                                         b.op.node_def.attr)
+            b_inputs = b.op._reconstruct_sequence_inputs(
+                b.op.op_def, b.op.inputs, b.op.node_def.attr
+            )
         elif isinstance(b.op, Mapping):
             b_inputs = list(b.op.inputs.values())
         else:

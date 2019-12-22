@@ -6,7 +6,8 @@ from cons.core import _cdr
 from kanren.term import term, operator, arguments
 
 from unification.more import unify
-from unification.core import reify, _unify, _reify, Var, isvar
+from unification.variable import Var
+from unification.core import reify, _unify, _reify, isvar
 
 from .meta import MetaSymbol, MetaVariable
 
@@ -117,9 +118,9 @@ _reify.add(
 )
 
 
-_isvar = isvar.dispatch(object)
-
-isvar.add((MetaSymbol,), lambda x: _isvar(x) or (not isinstance(x.obj, Var) and isvar(x.obj)))
+# _isvar = isvar.dispatch(object)
+#
+# isvar.add((MetaSymbol,), lambda x: _isvar(x) or (not isinstance(x.obj, Var) and isvar(x.obj)))
 
 
 # We don't want to lose special functionality (and caching) because `cdr` uses

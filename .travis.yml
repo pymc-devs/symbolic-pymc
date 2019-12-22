@@ -1,27 +1,23 @@
 dist: xenial
 language: python
 
-matrix:
-  include:
-  - name: "Python 3.6 Lint"
-    python: 3.6
-    env: PYTHON_VERSION=3.6 NAME="LINT"
-  - name: "Python 3.6 Unit Test"
-    python: 3.6
-    env: PYTHON_VERSION=3.6 NAME="UNIT"
+python:
+  - "3.6"
+  - "3.7"
+  # No tf-nightly for this version
+  # - "3.8"
+  # Cython and/or Numpy fails with permission errors
+  # - "pypy3"
 
 install:
   - pip install -r requirements.txt
-  - pip install -r requirements-dev.txt
-  - if [[ $NAME == UNIT ]]; then pip install coveralls; fi
-  - pip freeze
 
 script:
-  - if [[ $NAME == UNIT ]]; then pytest -v tests/ --cov=symbolic_pymc/; fi
-  - if [[ $NAME == LINT ]]; then make lint; fi
+  - pylint symbolic_pymc/ tests/
+  - if [[ `command -v black` ]]; then
+      black --check symbolic_pymc tests;
+    fi
+  - pytest -v tests/ --cov=symbolic_pymc/
 
 after_success:
-  - echo $(pwd)
-  - ls -la
-  - if [[ $NAME == UNIT ]]; then sed -i 's/\/opt\/symbolic-pymc/\/home\/travis\/build\/pymc-devs\/symbolic-pymc/g' .coverage; fi
-  - if [[ $NAME == UNIT ]]; then coveralls; fi
+  - coveralls

@@ -6,24 +6,24 @@ from unification import unify, reify, var, variables
 
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.utils import graph_equal
-from symbolic_pymc.etuple import (ExpressionTuple, etuple, etuplize)
+from symbolic_pymc.etuple import ExpressionTuple, etuple, etuplize
 
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_unification():
-    x, y, a, b = tt.dvectors('xyab')
-    x_s = tt.scalar('x_s')
-    y_s = tt.scalar('y_s')
-    c_tt = tt.constant(1, 'c')
-    d_tt = tt.constant(2, 'd')
+    x, y, a, b = tt.dvectors("xyab")
+    x_s = tt.scalar("x_s")
+    y_s = tt.scalar("y_s")
+    c_tt = tt.constant(1, "c")
+    d_tt = tt.constant(2, "d")
 
-    x_l = var('x_l')
-    y_l = var('y_l')
+    x_l = var("x_l")
+    y_l = var("y_l")
 
     assert a == reify(x_l, {x_l: a}).reify()
     test_expr = mt.add(1, mt.mul(2, x_l))
     test_reify_res = reify(test_expr, {x_l: a})
-    assert graph_equal(test_reify_res.reify(), 1 + 2*a)
+    assert graph_equal(test_reify_res.reify(), 1 + 2 * a)
 
     z = tt.add(b, a)
     assert {x_l: z} == unify(x_l, z)
@@ -56,21 +56,15 @@ def test_unification():
 
     # The parameters are vectors
     tt_expr_add_1 = tt.add(x, y)
-    assert graph_equal(tt_expr_add_1,
-                       reify(mt_expr_add,
-                             unify(mt_expr_add, tt_expr_add_1)).reify())
+    assert graph_equal(tt_expr_add_1, reify(mt_expr_add, unify(mt_expr_add, tt_expr_add_1)).reify())
 
     # The parameters are scalars
     tt_expr_add_2 = tt.add(x_s, y_s)
-    assert graph_equal(tt_expr_add_2,
-                       reify(mt_expr_add,
-                             unify(mt_expr_add, tt_expr_add_2)).reify())
+    assert graph_equal(tt_expr_add_2, reify(mt_expr_add, unify(mt_expr_add, tt_expr_add_2)).reify())
 
     # The parameters are constants
     tt_expr_add_3 = tt.add(c_tt, d_tt)
-    assert graph_equal(tt_expr_add_3,
-                       reify(mt_expr_add,
-                             unify(mt_expr_add, tt_expr_add_3)).reify())
+    assert graph_equal(tt_expr_add_3, reify(mt_expr_add, unify(mt_expr_add, tt_expr_add_3)).reify())
 
 
 @pytest.mark.usefixtures("run_with_theano")

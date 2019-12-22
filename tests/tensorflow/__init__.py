@@ -7,4 +7,5 @@ def run_in_graph_mode(f):
     def _f(*args, **kwargs):
         with graph_mode():
             return f()
+
     return _f
