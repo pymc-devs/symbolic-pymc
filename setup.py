@@ -40,7 +40,7 @@ setup(
         "tfp-nightly==0.9.0.dev20191003",
         "multipledispatch>=0.6.0",
         "logical-unification>=0.2.2",
-        "miniKanren>=0.2.5",
+        "miniKanren>=0.4.0",
         "cons>=0.1.3",
         "toolz>=0.9.0",
         "sympy>=1.3",
