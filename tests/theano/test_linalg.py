@@ -5,14 +5,15 @@ import theano.tensor as tt
 
 import numpy as np
 
+from etuples import etuple, etuplize
+
+from kanren import run, eq, var
+from kanren.graph import applyo
+
 from symbolic_pymc.theano.random_variables import NormalRV, observed
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.opt import eval_and_reify_meta
-from symbolic_pymc.etuple import etuple, etuplize
-from symbolic_pymc.relations import buildo
 from symbolic_pymc.relations.theano.linalg import normal_normal_regression, normal_qr_transform
-
-from kanren import run, eq, var
 
 
 @pytest.mark.usefixtures("run_with_theano")
@@ -50,16 +51,20 @@ def test_normal_normal_regression():
     #
     # Use the relation with identify/match `Y`, `X` and `beta`.
     #
-    b_lv = var()
     y_args_tail_lv, b_args_tail_lv = var(), var()
+    beta_lv = var()
+
+    y_args_lv, y_lv, Y_lv, X_lv = var(), var(), var(), var()
     (res,) = run(
         1,
-        (b_lv, y_args_tail_lv, b_args_tail_lv),
-        (buildo, mt.observed, var("y_args"), y_obs_rv),
-        (eq, var("y_args"), (var("y"), var("Y"))),
-        normal_normal_regression(var("Y"), var("X"), b_lv, y_args_tail_lv, b_args_tail_lv),
+        (beta_lv, y_args_tail_lv, b_args_tail_lv),
+        applyo(mt.observed, y_args_lv, y_obs_rv),
+        eq(y_args_lv, (y_lv, Y_lv)),
+        normal_normal_regression(Y_lv, X_lv, beta_lv, y_args_tail_lv, b_args_tail_lv),
     )
 
+    # TODO FIXME: This would work if non-op parameters (e.g. names) were covered by
+    # `operator`/`car`.  See `TheanoMetaOperator`.
     assert res[0].eval_obj.obj == beta_rv
     assert res[0] == etuplize(beta_rv)
     assert res[1] == etuplize(Y_rv)[2:]

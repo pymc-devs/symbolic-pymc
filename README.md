@@ -56,12 +56,11 @@ from functools import partial
 from unification import var
 
 from kanren import run
+from kanren.graph import reduceo, walko
 
 from symbolic_pymc.theano.printing import tt_pprint
 from symbolic_pymc.theano.pymc3 import model_graph
 
-from symbolic_pymc.relations.graph import reduceo
-from symbolic_pymc.relations.theano import tt_graph_applyo
 from symbolic_pymc.relations.theano.conjugates import conjugate
 
 theano.config.cxx = ''
@@ -97,7 +96,7 @@ def conjugate_graph(graph):
     """Apply conjugate relations throughout a graph."""
 
     def fixedp_conjugate_applyo(x, y):
-        return reduceo(partial(tt_graph_applyo, conjugate), x, y)
+        return reduceo(partial(walko, conjugate), x, y)
 
     expr_graph, = run(1, var('q'),
                       fixedp_conjugate_applyo(graph, var('q')))
@@ -147,13 +146,13 @@ from functools import partial
 from unification import var
 
 from kanren import run
+from kanren.graph import reduceo
 
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.pymc3 import model_graph, graph_model
 from symbolic_pymc.theano.utils import canonicalize
 
-from symbolic_pymc.relations.graph import reduceo
-from symbolic_pymc.relations.theano import non_obs_graph_applyo
+from symbolic_pymc.relations.theano import non_obs_walko
 from symbolic_pymc.relations.theano.distributions import scale_loc_transform
 
 
@@ -189,12 +188,12 @@ def reparam_graph(graph):
 
     graph_mt = mt(graph)
 
-    def scale_loc_fixedp_applyo(x, y):
-        return reduceo(partial(non_obs_graph_applyo, scale_loc_transform), x, y)
+    def scale_loc_fixedp_walko(x, y):
+        return reduceo(partial(non_obs_walko, scale_loc_transform), x, y)
 
     expr_graph = run(0, var('q'),
                      # Apply our transforms to unobserved RVs only
-                     scale_loc_fixedp_applyo(graph_mt, var('q')))
+                     scale_loc_fixedp_walko(graph_mt, var('q')))
 
     expr_graph = expr_graph[0]
     opt_graph_tt = expr_graph.reify()

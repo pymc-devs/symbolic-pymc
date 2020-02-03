@@ -3,17 +3,18 @@ import numpy as np
 import theano.tensor as tt
 
 from unification import var
-from kanren import conde, eq
-from kanren.facts import fact
-
 from unification.utils import transitive_get as walk
 
+from etuples import etuple
+
+from kanren import conde, eq
+from kanren.facts import fact, Relation
+from kanren.constraints import neq
+
 from .. import concat
-from ...etuple import etuple
 from ...utils import HashableNDArray
 from ...theano.meta import TheanoMetaConstant, mt
 
-from kanren.facts import Relation
 
 derived_dist = Relation("derived_dist")
 stable_dist = Relation("stable_dist")
@@ -60,18 +61,20 @@ def constant_neq(lvar, val):
     """Assert that a constant graph variable is not equal to a specific value.
 
     Scalar values are broadcast across arrays.
+
+    XXX: This goal is non-relational
     """
 
     if isinstance(val, np.ndarray):
         val = val.view(HashableNDArray)
 
-    def constant_neq_goal(s):
-        lvar_val = walk(lvar, s)
-        if isinstance(lvar_val, (tt.Constant, TheanoMetaConstant)):
-            if lvar_val.data != val:
-                yield s
+    def constant_neq_goal(S):
+        lvar_rf = walk(lvar, S)
+        if isinstance(lvar_rf, (tt.Constant, TheanoMetaConstant)):
+            # TODO: Can we get away with `neq(lvar_rf, val)` alone?
+            yield from neq(lvar_rf.data, val)(S)
         else:
-            yield s
+            yield S
 
     return constant_neq_goal
 
@@ -133,29 +136,28 @@ def scale_loc_transform(in_expr, out_expr):
     #                                          rng=u_rng_lv,
     #                                          name=offset_name_mt))
 
-    rels = (
-        conde,
+    rels = conde(
         [
-            (eq, in_expr, normal_mt),
-            (constant_neq, n_sd_lv, 1),
-            (constant_neq, n_mean_lv, 0),
-            (eq, out_expr, rct_norm_offset_mt),
-            (concat, [n_name_lv, "_offset"], offset_name_mt),
+            eq(in_expr, normal_mt),
+            constant_neq(n_sd_lv, 1),
+            constant_neq(n_mean_lv, 0),
+            eq(out_expr, rct_norm_offset_mt),
+            concat(n_name_lv, "_offset", offset_name_mt),
         ],
         [
-            (eq, in_expr, cauchy_mt),
-            (constant_neq, c_beta_lv, 1),
+            eq(in_expr, cauchy_mt),
+            constant_neq(c_beta_lv, 1),
             # TODO: Add a positivity constraint for the scale.
-            (constant_neq, c_mean_lv, 0),
-            (eq, out_expr, rct_cauchy_offset_mt),
-            (concat, [c_name_lv, "_offset"], offset_name_mt),
+            constant_neq(c_mean_lv, 0),
+            eq(out_expr, rct_cauchy_offset_mt),
+            concat(c_name_lv, "_offset", offset_name_mt),
         ],
         # TODO:
-        # [(eq, in_expr, uniform_mt),
-        #  (conde,
-        #   [(constant_eq, u_a_lv, 0),
-        #    (eq, out_expr, rct_uniform_scale_mt),
-        #    (concat, [u_name_lv, "_scale"], offset_name_mt)],
+        # [eq(in_expr, uniform_mt),
+        #  lall(
+        #    constant_eq(u_a_lv, 0),
+        #    eq(out_expr, rct_uniform_scale_mt),
+        #    concat(u_name_lv, "_scale", offset_name_mt),
         #  )],
     )
 

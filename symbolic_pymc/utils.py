@@ -1,8 +1,14 @@
 import numpy as np
 
-import symbolic_pymc as sp
+from operator import ne, attrgetter, itemgetter
+from collections import namedtuple
+from collections.abc import Hashable, Sequence, Mapping
 
-from collections import Hashable
+from unification import isvar, Var
+
+from toolz import compose
+
+import symbolic_pymc as sp
 
 
 class HashableNDArray(np.ndarray, Hashable):
@@ -31,16 +37,39 @@ class HashableNDArray(np.ndarray, Hashable):
         return NotImplemented
 
 
-def meta_parts_unequal(x, y, pdb=False):  # pragma: no cover
-    """Traverse meta objects and return the first pair of elements that are not equal."""
+UnequalMetaParts = namedtuple("UnequalMetaParts", ["path", "reason", "objects"])
+
+
+def meta_diff_seq(x, y, loc, path, is_map=False, **kwargs):
+    if len(x) != len(y):
+        return (path, f"{loc} len", (x, y))
+    else:
+        for i, (a, b) in enumerate(zip(x, y)):
+            if is_map:
+                if a[0] != b[0]:
+                    return (path, "map keys", (x, y))
+                this_path = compose(itemgetter(a[0]), path)
+                a, b = a[1], b[1]
+            else:
+                this_path = compose(itemgetter(i), path)
+
+            z = meta_diff(a, b, path=this_path, **kwargs)
+            if z is not None:
+                return z
+
+
+def meta_diff(x, y, pdb=False, ne_fn=ne, cmp_types=True, path=compose()):
+    """Traverse meta objects and return information about the first pair of elements that are not equal.
+
+    Returns a `UnequalMetaParts` object containing the object path, reason for
+    being unequal, and the unequal object pair; otherwise, `None`.
+    """
     res = None
-    if type(x) != type(y):
-        print("unequal types")
-        res = (x, y)
+    if cmp_types and ne_fn(type(x), type(y)) is True:
+        res = (path, "types", (x, y))
     elif isinstance(x, sp.meta.MetaSymbol):
-        if x.base != y.base:
-            print("unequal bases")
-            res = (x.base, y.base)
+        if ne_fn(x.base, y.base) is True:
+            res = (path, "bases", (x.base, y.base))
         else:
             try:
                 x_rands = x.rands
@@ -48,23 +77,51 @@ def meta_parts_unequal(x, y, pdb=False):  # pragma: no cover
             except NotImplementedError:
                 pass
             else:
-                for a, b in zip(x_rands, y_rands):
-                    z = meta_parts_unequal(a, b, pdb=pdb)
-                    if z is not None:
-                        res = z
-                        break
-    elif isinstance(x, (tuple, list)):
-        for a, b in zip(x, y):
-            z = meta_parts_unequal(a, b, pdb=pdb)
-            if z is not None:
-                res = z
-                break
-    elif not x == y:
-        res = (x, y)
+
+                path = compose(attrgetter("rands"), path)
+
+                res = meta_diff_seq(
+                    x_rands, y_rands, "rands", path, pdb=pdb, ne_fn=ne_fn, cmp_types=cmp_types
+                )
+
+    elif isinstance(x, Mapping) and isinstance(y, Mapping):
+
+        x_ = sorted(x.items(), key=itemgetter(0))
+        y_ = sorted(y.items(), key=itemgetter(0))
+
+        res = meta_diff_seq(
+            x_, y_, "map", path, is_map=True, pdb=pdb, ne_fn=ne_fn, cmp_types=cmp_types
+        )
+
+    elif (
+        isinstance(x, Sequence)
+        and isinstance(y, Sequence)
+        and not isinstance(x, str)
+        and not isinstance(y, str)
+    ):
+
+        res = meta_diff_seq(x, y, "seq", path, pdb=pdb, ne_fn=ne_fn, cmp_types=cmp_types)
+
+    elif ne_fn(x, y) is True:
+        res = (path, "ne_fn", (x, y))
 
     if res is not None:
-        if pdb:
+        if pdb:  # pragma: no cover
             import pdb
 
             pdb.set_trace()
-        return res
+        return UnequalMetaParts(*res)
+
+
+def lvar_ignore_ne(x, y):
+    if (isvar(x) and isvar(y)) or (
+        isinstance(x, type) and isinstance(y, type) and issubclass(x, Var) and issubclass(y, Var)
+    ):
+        return False
+    else:
+        return ne(x, y)
+
+
+def eq_lvar(x, y):
+    """Perform an equality check that considers all logic variables equal."""
+    return meta_diff(x, y, ne_fn=lvar_ignore_ne) is None

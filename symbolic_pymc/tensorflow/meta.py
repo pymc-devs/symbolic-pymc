@@ -679,12 +679,10 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
         if getattr(self, "_operator", None):
             return self._operator
 
-        if isvar(self.op):
-            # TODO:
-            # self._operator = TFlowMetaOperator(self.op.op_def, self.op.node_def)
-            return None
-        else:
-            self._operator = TFlowMetaOperator(self.op.op_def, self.op.node_def)
+        if isvar(self.op) or (not isvar(self.op.inputs) and len(self.op.inputs) == 0):
+            raise NotImplementedError(f"{self} does not have a base_operator.")
+
+        self._operator = TFlowMetaOperator(self.op.op_def, self.op.node_def)
 
         return self._operator
 
@@ -692,11 +690,12 @@ class TFlowMetaTensor(TFlowMetaSymbol, MetaVariable):
     def base_arguments(self):
         # TODO: In keeping with our desire to return logic variables in cases
         # where params aren't given/inferred, we could return something like
-        # `cons(var(), var())` here (although that wouldn't be necessarily imply
-        # that the result is a proper list/tuple).
-        if not isvar(self.op):
-            return self.op.inputs
-        raise NotImplementedError()
+        # `cons(var(), var())` here (although that wouldn't be necessarily
+        # imply that the result is a proper list/tuple).
+        if isvar(self.op) or (not isvar(self.op.inputs) and len(self.op.inputs) == 0):
+            raise NotImplementedError(f"{self} does not have base arguments.")
+
+        return self.op.inputs
 
     def reify(self):
         if self.obj is not None and not isinstance(self.obj, Var):

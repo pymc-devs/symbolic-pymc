@@ -3,16 +3,10 @@ from functools import reduce
 
 from toolz import interleave
 
-from unification import isvar, reify
-
-from kanren import eq
 from kanren.core import goaleval
 from kanren.facts import Relation
-from kanren.goals import goalify
-from kanren.term import term, operator, arguments
-from kanren.goals import conso
 
-from ..etuple import etuplize
+from unification import unify, reify, Var
 
 
 # Hierarchical models that we recognize.
@@ -22,7 +16,24 @@ hierarchical_model = Relation("hierarchical")
 conjugate = Relation("conjugate")
 
 
-concat = goalify(lambda *args: "".join(args))
+def concat(a, b, out):
+    """Construct a non-relational string concatenation goal."""
+
+    def concat_goal(S):
+        nonlocal a, b, out
+
+        a_rf, b_rf, out_rf = reify((a, b, out), S)
+
+        if isinstance(a_rf, str) and isinstance(b_rf, str):
+            S_new = unify(out_rf, a_rf + b_rf, S)
+
+            if S_new is not False:
+                yield S_new
+                return
+        elif isinstance(a_rf, (Var, str)) and isinstance(b_rf, (Var, str)):
+            yield S
+
+    return concat_goal
 
 
 def ldisj_seq(goals):
@@ -78,32 +89,3 @@ def conde(*goals):
 
 lall = lconj
 lany = ldisj
-
-
-def buildo(op, args, obj):
-    """Construct a goal that relates an object and its rand + rators decomposition.
-
-    This version uses etuples.
-
-    """
-
-    def buildo_goal(S):
-        nonlocal op, args, obj
-
-        op, args, obj = reify((op, args, obj), S)
-
-        if not isvar(obj):
-
-            if not isvar(args):
-                args = etuplize(args, shallow=True)
-
-            oop, oargs = operator(obj), arguments(obj)
-
-            yield from lall(eq(op, oop), eq(args, oargs))(S)
-
-        elif isvar(args) or isvar(op):
-            yield from conso(op, args, obj)(S)
-        else:
-            yield from eq(obj, term(op, args))(S)
-
-    return buildo_goal

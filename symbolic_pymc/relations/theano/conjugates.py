@@ -1,10 +1,12 @@
 import theano
 
 from unification import var
+
 from kanren.facts import fact
 
+from etuples import etuple
+
 from .. import conjugate
-from ...etuple import etuple
 from ...theano.meta import mt
 
 

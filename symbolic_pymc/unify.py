@@ -1,19 +1,17 @@
 from functools import wraps
-from operator import itemgetter
+from collections.abc import Mapping
 
-from cons.core import _cdr
+from cons.core import _car, _cdr, ConsError
 
-from kanren.term import term, operator, arguments
+from kanren.term import arguments, operator
 
 from unification.more import unify
 from unification.variable import Var
-from unification.core import reify, _unify, _reify, isvar
+from unification.core import _reify, _unify, reify
+
+from etuples import etuple
 
 from .meta import MetaSymbol, MetaVariable
-
-from .etuple import etuple, ExpressionTuple
-
-from .constraints import KanrenState
 
 
 class UnificationFailure(Exception):
@@ -70,16 +68,7 @@ def unify_MetaSymbol(u, v, s):
     return s
 
 
-_unify.add((MetaSymbol, MetaSymbol, (KanrenState, dict)), unify_MetaSymbol)
-
-_unify.add(
-    (ExpressionTuple, (tuple, ExpressionTuple), (KanrenState, dict)),
-    lambda x, y, s: _unify.dispatch(tuple, tuple, type(s))(x, y, s),
-)
-_unify.add(
-    (tuple, ExpressionTuple, (KanrenState, dict)),
-    lambda x, y, s: _unify.dispatch(tuple, tuple, type(s))(x, y, s),
-)
+_unify.add((MetaSymbol, MetaSymbol, Mapping), unify_MetaSymbol)
 
 
 def _reify_MetaSymbol(o, s):
@@ -111,101 +100,64 @@ def _reify_MetaSymbol(o, s):
         return newobj
 
 
-_reify.add((MetaSymbol, (KanrenState, dict)), _reify_MetaSymbol)
-
-_reify.add(
-    (ExpressionTuple, (KanrenState, dict)), lambda x, s: _reify.dispatch(tuple, type(s))(x, s)
-)
+_reify.add((MetaSymbol, Mapping), _reify_MetaSymbol)
 
 
-# _isvar = isvar.dispatch(object)
-#
-# isvar.add((MetaSymbol,), lambda x: _isvar(x) or (not isinstance(x.obj, Var) and isvar(x.obj)))
+# def car_MetaSymbol(x):
+#     """Return the operator/head/CAR of a meta symbol."""
+#     return type(x)
 
 
-# We don't want to lose special functionality (and caching) because `cdr` uses
-# `islice`.
-_cdr.add((ExpressionTuple,), itemgetter(slice(1, None)))
-
-
-def operator_MetaSymbol(x):
-    """Return the operator/head/CAR of a meta symbol."""
-    return type(x)
-
-
-def operator_MetaVariable(x):
+def car_MetaVariable(x):
     """Return the operator/head/CAR of a meta variable."""
-    return x.base_operator
+    try:
+        return x.base_operator
+    except NotImplementedError:
+        raise ConsError("Not a cons pair.")
 
 
-operator.add((MetaSymbol,), operator_MetaSymbol)
-operator.add((MetaVariable,), operator_MetaVariable)
-operator.add((ExpressionTuple,), itemgetter(0))
+# _car.add((MetaSymbol,), car_MetaSymbol)
+_car.add((MetaVariable,), car_MetaVariable)
+
+# operator.add((MetaSymbol,), car_MetaSymbol)
+operator.add((MetaVariable,), car_MetaVariable)
 
 
-def arguments_MetaSymbol(x):
-    """Return the arguments/tail/CDR of a meta symbol.
+# def cdr_MetaSymbol(x):
+#     """Return the arguments/tail/CDR of a meta symbol.
+#
+#     We build the full `etuple` for the argument, then return the
+#     `cdr`/tail, so that the original object is retained when/if the
+#     original object is later reconstructed and evaluated (e.g. using
+#     `term`).
+#
+#     """
+#     try:
+#         x_e = etuple(_car(x), *x.rands, eval_obj=x)
+#     except NotImplementedError:
+#         raise ConsError("Not a cons pair.")
+#
+#     return x_e[1:]
 
-    We build the full `etuple` for the argument, then return the
-    `cdr`/tail, so that the original object is retained when/if the
-    original object is later reconstructed and evaluated (e.g. using
-    `term`).
 
+def cdr_MetaVariable(x):
+    """Return the arguments/tail/CDR of a variable object.
+
+    See `cdr_MetaSymbol`
     """
-    x_e = etuple(type(x), *x.rands, eval_obj=x)
+    try:
+        x_e = etuple(_car(x), *x.base_arguments, eval_obj=x)
+    except NotImplementedError:
+        raise ConsError("Not a cons pair.")
+
     return x_e[1:]
 
 
-def arguments_MetaVariable(x):
-    """Return the arguments/tail/CDR of a variable object.
+# _cdr.add((MetaSymbol,), cdr_MetaSymbol)
+_cdr.add((MetaVariable,), cdr_MetaVariable)
 
-    See `arguments_MetaSymbol`
-    """
-    x_op = x.base_operator
-    if x_op is not None:
-        x_e = etuple(x_op, *x.base_arguments, eval_obj=x)
-        return x_e[1:]
-
-
-arguments.add((MetaSymbol,), arguments_MetaSymbol)
-arguments.add((MetaVariable,), arguments_MetaVariable)
-arguments.add((ExpressionTuple,), itemgetter(slice(1, None)))
-
-
-def _term_ExpressionTuple(rand, rators):
-    res = (rand,) + rators
-    return res.eval_obj
-
-
-term.add((object, ExpressionTuple), _term_ExpressionTuple)
-
-
-@_reify.register(ExpressionTuple, (KanrenState, dict))
-def _reify_ExpressionTuple(t, s):
-    """When `kanren` reifies `etuple`s, we don't want them to turn into regular `tuple`s.
-
-    We also don't want to lose the expression tracking/caching
-    information.
-
-    """
-    res = tuple(reify(iter(t), s))
-    t_chg = tuple(a == b for a, b in zip(t, res) if not isvar(a) and not isvar(b))
-
-    if all(t_chg):
-        if len(t_chg) == len(t):
-            # Nothing changed/updated; return the original `etuple`.
-            return t
-
-        if hasattr(t, "_orig_expr"):
-            # Everything is equal and/or there are some non-logic variables in
-            # the result.  Keep tracking the original expression information,
-            # in case the original expression is reproduced.
-            res = etuple(*res)
-            res._orig_expr = t._orig_expr
-            return res
-
-    res = etuple(*res)
-    return res
+# arguments.add((MetaSymbol,), cdr_MetaSymbol)
+arguments.add((MetaVariable,), cdr_MetaVariable)
 
 
 __all__ = ["debug_unify"]

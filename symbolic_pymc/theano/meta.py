@@ -108,9 +108,11 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
     """
 
     base = tt.Op
+    # TODO: Couldn't we just add an `Op`'s `__props__` to these `__slots__`?
     __slots__ = ["_op_sig"]
 
     def __init__(self, *args, obj=None, **kwargs):
+        """Initialize a meta `Op`."""
 
         if obj is None:
             # This might be a dynamically generated `Op`, so let's try to
@@ -254,7 +256,7 @@ class TheanoMetaDimShuffle(TheanoMetaOp):
         self.input_broadcastable = input_broadcastable
         self.new_order = new_order
         self.inplace = inplace
-        super().__init__(obj=obj)
+        super().__init__(self.input_broadcastable, self.new_order, inplace=self.inplace, obj=obj)
 
 
 class TheanoMetaRandomVariable(TheanoMetaOp):
@@ -343,17 +345,17 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
 
     @property
     def base_operator(self):
-        if self.owner is not None:
-            return self.owner.op
-        # else:
-        #     return type(self)
+        if self.owner is None:
+            raise NotImplementedError(f"{self} does not have a base_operator.")
+
+        return self.owner.op
 
     @property
     def base_arguments(self):
-        if self.owner is not None:
-            return self.owner.inputs
-        # else:
-        #     return self.rands
+        if self.owner is None:
+            raise NotImplementedError(f"{self} does not have base_arguments.")
+
+        return self.owner.inputs
 
     def reify(self):
         if self.obj and not isinstance(self.obj, Var):
