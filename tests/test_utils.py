@@ -1,7 +1,9 @@
+import numpy as np
+
 from unification import var
 
 from symbolic_pymc.meta import MetaSymbol, MetaOp
-from symbolic_pymc.utils import meta_diff, eq_lvar
+from symbolic_pymc.utils import meta_diff, eq_lvar, HashableNDArray
 
 
 class SomeOp(object):
@@ -163,3 +165,19 @@ def test_eq_lvar():
     a = SomeOtherMetaSymbol(1, [3, var()])
     b = SomeOtherMetaSymbol(1, [2, var()])
     assert eq_lvar(a, b) is False
+
+
+def test_HashableNDArray():
+    a = np.r_[[1, 2], 3]
+    a_h = a.view(HashableNDArray)
+    b = np.r_[[1, 2], 3]
+    b_h = b.view(HashableNDArray)
+
+    assert hash(a_h) == hash(b_h)
+    assert a_h == b_h
+    assert not a_h != b_h
+
+    c = np.r_[[1, 2], 4]
+    c_h = c.view(HashableNDArray)
+    assert hash(a_h) != hash(c_h)
+    assert a_h != c_h

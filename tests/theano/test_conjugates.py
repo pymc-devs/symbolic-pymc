@@ -1,13 +1,15 @@
 import pytest
+
 import theano.tensor as tt
+
 import numpy as np
 
 from unification import var
 
 from kanren import run
+from kanren.graph import walko
 
 from symbolic_pymc.theano.random_variables import MvNormalRV, observed
-from symbolic_pymc.relations.theano import tt_graph_applyo
 from symbolic_pymc.relations.theano.conjugates import conjugate
 
 
@@ -40,7 +42,7 @@ def test_mvnormal_mvnormal():
 
     q_lv = var()
 
-    (expr_graph,) = run(1, q_lv, (tt_graph_applyo, conjugate, Y_obs, q_lv))
+    (expr_graph,) = run(1, q_lv, walko(conjugate, Y_obs, q_lv))
 
     fgraph_opt = expr_graph.eval_obj
     fgraph_opt_tt = fgraph_opt.reify()

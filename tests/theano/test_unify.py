@@ -4,9 +4,13 @@ import theano.tensor as tt
 
 from unification import unify, reify, var, variables
 
+from cons.core import ConsError
+
+from etuples import etuple, etuplize, rator, rands
+from etuples.core import ExpressionTuple
+
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.utils import graph_equal
-from symbolic_pymc.etuple import ExpressionTuple, etuple, etuplize
 
 
 @pytest.mark.usefixtures("run_with_theano")
@@ -69,8 +73,7 @@ def test_unification():
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_etuple_term():
-    """Test `etuplize` and `etuple` interaction with `term`
-    """
+    """Test `etuplize` and `etuple` interaction with `term`."""
     # Take apart an already constructed/evaluated meta
     # object.
     e2 = mt.add(mt.vector(), mt.vector())
@@ -111,3 +114,34 @@ def test_etuple_term():
     assert e2_et_2 == e3 == e2_et
     assert isinstance(e2_et_2, ExpressionTuple)
     assert e2_et_2.eval_obj == tt_expr
+
+    test_expr = mt(tt.vector("z") * 7)
+    assert rator(test_expr) == mt.mul
+    assert rands(test_expr)[0] == mt(tt.vector("z"))
+
+    dim_shuffle_op = rator(rands(test_expr)[1])
+
+    assert isinstance(dim_shuffle_op, mt.DimShuffle)
+    assert rands(rands(test_expr)[1]) == etuple(mt(7))
+
+    with pytest.raises(ConsError):
+        rator(dim_shuffle_op)
+    # assert rator(dim_shuffle_op) == mt.DimShuffle
+    # assert rands(dim_shuffle_op) == etuple((), ("x",), True)
+
+    const_tensor = rands(rands(test_expr)[1])[0]
+    with pytest.raises(ConsError):
+        rator(const_tensor)
+    with pytest.raises(ConsError):
+        rands(const_tensor)
+
+    et_expr = etuplize(test_expr)
+    exp_res = etuple(
+        mt.mul,
+        mt(tt.vector("z")),
+        etuple(mt.DimShuffle((), ("x",), True), mt(7))
+        # etuple(etuple(mt.DimShuffle, (), ("x",), True), mt(7))
+    )
+
+    assert et_expr == exp_res
+    assert exp_res.eval_obj == test_expr

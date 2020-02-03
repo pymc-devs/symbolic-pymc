@@ -56,7 +56,6 @@ def meta_diff_seq(x, y, loc, path, is_map=False, **kwargs):
             z = meta_diff(a, b, path=this_path, **kwargs)
             if z is not None:
                 return z
-                break
 
 
 def meta_diff(x, y, pdb=False, ne_fn=ne, cmp_types=True, path=compose()):

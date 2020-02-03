@@ -1,14 +1,18 @@
 import pytest
+
 import theano.tensor as tt
 
+from unification import var
+
+from etuples import etuple
+
 from kanren import run, eq, variables
+from kanren.graph import applyo
 from kanren.term import term, operator, arguments
 from kanren.assoccomm import eq_assoc, eq_comm
-from unification import var
 
 from symbolic_pymc.theano.random_variables import MvNormalRV
 from symbolic_pymc.theano.meta import mt
-from symbolic_pymc.etuple import etuple
 from symbolic_pymc.theano.utils import graph_equal
 
 
@@ -24,7 +28,7 @@ def test_terms():
 
     # Implicit `etuple` conversion should retain the original object
     # (within the implicitly introduced meta object, of course).
-    assert test_expr == arguments(test_expr)._orig_expr._eval_obj.obj
+    assert test_expr == arguments(test_expr)._parent._eval_obj.obj
 
     assert graph_equal(test_expr, term(operator(test_expr), arguments(test_expr)))
     assert mt(test_expr) == term(operator(test_expr), arguments(test_expr))
@@ -76,36 +80,28 @@ def test_kanren():
 
 @pytest.mark.usefixtures("run_with_theano")
 def test_assoccomm():
-    from symbolic_pymc.relations import buildo
-
     x, a, b, c = tt.dvectors("xabc")
     test_expr = x + 1
-    q = var("q")
+    q = var()
 
-    res = run(1, q, buildo(tt.add, test_expr.owner.inputs, test_expr))
+    res = run(1, q, applyo(tt.add, etuple(*test_expr.owner.inputs), test_expr))
     assert q == res[0]
 
-    res = run(1, q, buildo(q, test_expr.owner.inputs, test_expr))
+    res = run(1, q, applyo(q, etuple(*test_expr.owner.inputs), test_expr))
     assert tt.add == res[0].reify()
 
-    res = run(1, q, buildo(tt.add, q, test_expr))
+    res = run(1, q, applyo(tt.add, q, test_expr))
     assert mt(tuple(test_expr.owner.inputs)) == res[0]
 
-    res = run(0, var("x"), eq_comm(mt.mul(a, b), mt.mul(b, var("x"))))
+    x = var()
+    res = run(0, x, eq_comm(mt.mul(a, b), mt.mul(b, x)))
     assert (mt(a),) == res
 
-    res = run(0, var("x"), eq_comm(mt.add(a, b), mt.add(b, var("x"))))
+    res = run(0, x, eq_comm(mt.add(a, b), mt.add(b, x)))
     assert (mt(a),) == res
 
-    res = run(0, var("x"), (eq_assoc, mt.add(a, b, c), mt.add(a, var("x"))))
+    (res,) = run(0, x, eq_assoc(mt.add(a, b, c), mt.add(a, x)))
+    assert res == mt(b + c)
 
-    # TODO: `res[0]` should return `etuple`s.  Since `eq_assoc` effectively
-    # picks apart the results of `arguments(...)`, I don't know if we can
-    # keep the `etuple`s around.  We might be able to convert the results
-    # to `etuple`s automatically by wrapping `eq_assoc`, though.
-    res_obj = etuple(*res[0]).eval_obj
-    assert res_obj == mt(b + c)
-
-    res = run(0, var("x"), (eq_assoc, mt.mul(a, b, c), mt.mul(a, var("x"))))
-    res_obj = etuple(*res[0]).eval_obj
-    assert res_obj == mt(b * c)
+    (res,) = run(0, x, eq_assoc(mt.mul(a, b, c), mt.mul(a, x)))
+    assert res == mt(b * c)

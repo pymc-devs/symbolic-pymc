@@ -4,14 +4,16 @@ import theano
 import theano.tensor as tt
 
 from functools import wraps
+
+from theano.gof.opt import LocalOptimizer
+
 from unification import var, variables
 
 from kanren import run
 
-from theano.gof.opt import LocalOptimizer
+from etuples.core import ExpressionTuple
 
 from .meta import MetaSymbol
-from ..etuple import ExpressionTuple
 
 
 def eval_and_reify_meta(x):
@@ -189,7 +191,7 @@ class KanrenRelationSub(LocalOptimizer):
 
         with variables(*self.relation_lvars):
             q = var()
-            kanren_results = run(None, q, (self.kanren_relation, input_expr, q))
+            kanren_results = run(None, q, self.kanren_relation(input_expr, q))
 
         chosen_res = self.results_filter(kanren_results)
 

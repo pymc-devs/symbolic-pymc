@@ -8,16 +8,13 @@ from functools import partial
 from unification import var
 
 from kanren import run, eq
+from kanren.graph import reduceo
 
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.random_variables import observed, NormalRV, HalfCauchyRV
-from symbolic_pymc.relations.graph import reduceo
-from symbolic_pymc.relations.theano import non_obs_graph_applyo
+
+from symbolic_pymc.relations.theano import non_obs_walko
 from symbolic_pymc.relations.theano.distributions import scale_loc_transform, constant_neq
-
-
-def non_obs_fixedp_graph_applyo(r, x, y):
-    return reduceo(partial(non_obs_graph_applyo, r), x, y)
 
 
 @pytest.mark.usefixtures("run_with_theano")
@@ -39,9 +36,10 @@ def test_pymc_normals():
     radon_like = NormalRV(radon_est, eps, name="radon_like", rng=rand_state)
     radon_like_rv = observed(tt.as_tensor_variable(np.r_[1.0, 2.0, 3.0, 4.0]), radon_like)
 
-    graph_mt = mt(radon_like_rv)
+    q_lv = var()
+
     (expr_graph,) = run(
-        1, var("q"), non_obs_fixedp_graph_applyo(scale_loc_transform, graph_mt, var("q"))
+        1, q_lv, non_obs_walko(partial(reduceo, scale_loc_transform), radon_like_rv, q_lv)
     )
 
     radon_like_rv_opt = expr_graph.reify()
@@ -85,10 +83,18 @@ def test_pymc_normals():
 
 
 def test_distributions():
-    res = run(0, var("q"), eq(var("q"), mt(1)), constant_neq(var("q"), np.array(1.0)))
+    q_lv = var()
 
+    res = run(0, q_lv, eq(q_lv, mt(1)), constant_neq(q_lv, np.array(1.0)))
     assert not res
 
-    res = run(0, var("q"), eq(var("q"), mt(2)), constant_neq(var("q"), np.array(1.0)))
+    # TODO: If `constant_neq` was a true constraint, this would work.
+    # res = run(0, q_lv, constant_neq(q_lv, np.array(1.0)), eq(q_lv, mt(1)))
+    # assert not res
 
-    assert res
+    res = run(0, q_lv, eq(q_lv, mt(2)), constant_neq(q_lv, np.array(1.0)))
+    assert res == (mt(2),)
+
+    # TODO: If `constant_neq` was a true constraint, this would work.
+    # res = run(0, q_lv, constant_neq(q_lv, np.array(1.0)), eq(q_lv, mt(2)))
+    # assert res == (mt(2),)
