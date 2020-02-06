@@ -13,14 +13,6 @@ Subpackages
 Submodules
 ----------
 
-symbolic\_pymc.etuple module
-----------------------------
-
-.. automodule:: symbolic_pymc.etuple
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 symbolic\_pymc.meta module
 --------------------------
 

@@ -9,18 +9,6 @@ Subpackages
    symbolic_pymc.relations.tensorflow
    symbolic_pymc.relations.theano
 
-Submodules
-----------
-
-symbolic\_pymc.relations.graph module
--------------------------------------
-
-.. automodule:: symbolic_pymc.relations.graph
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
 Module contents
 ---------------
 
