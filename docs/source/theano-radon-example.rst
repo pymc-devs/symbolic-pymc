@@ -10,7 +10,6 @@ transformation in `"Why hierarchical models are awesome, tricky, and Bayesian" <
 and improve sample chain quality.
 
 .. code-block:: python
-    :caption: recenter-radon-model
     :name: recenter-radon-model
 
     import numpy as np
@@ -26,13 +25,13 @@ and improve sample chain quality.
     from unification import var
 
     from kanren import run
+    from kanren.graph import reduceo
 
     from symbolic_pymc.theano.meta import mt
     from symbolic_pymc.theano.pymc3 import model_graph, graph_model
     from symbolic_pymc.theano.utils import canonicalize
 
-    from symbolic_pymc.relations.graph import reduceo
-    from symbolic_pymc.relations.theano import non_obs_graph_applyo
+    from symbolic_pymc.relations.theano import non_obs_walko
     from symbolic_pymc.relations.theano.distributions import scale_loc_transform
 
 
@@ -69,11 +68,12 @@ and improve sample chain quality.
         graph_mt = mt(graph)
 
         def scale_loc_fixedp_applyo(x, y):
-            return reduceo(partial(non_obs_graph_applyo, scale_loc_transform), x, y)
+            return reduceo(partial(non_obs_walko, scale_loc_transform), x, y)
 
-        expr_graph = run(0, var('q'),
+        q = var()
+        expr_graph = run(0, q,
                          # Apply our transforms to unobserved RVs only
-                         scale_loc_fixedp_applyo(graph_mt, var('q')))
+                         scale_loc_fixedp_applyo(graph_mt, q))
 
         expr_graph = expr_graph[0]
         opt_graph_tt = expr_graph.reify()
@@ -101,7 +101,6 @@ Before
 ------
 
 .. code-block:: python
-    :caption: before-recenter-plot
     :name: before-recenter-plot
 
     >>> pm.traceplot(centered_trace, varnames=['sigma_b'])
@@ -120,7 +119,6 @@ After
 -----
 
 .. code-block:: python
-    :caption: after-recenter-plot
     :name: after-recenter-plot
 
     >>> pm.traceplot(recentered_trace, varnames=['sigma_b'])

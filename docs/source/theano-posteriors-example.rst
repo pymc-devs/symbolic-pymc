@@ -6,7 +6,6 @@ Compute Symbolic Closed-form Posteriors
     :Date: 2019-11-24
 
 .. code-block:: python
-    :caption: compute-symbolic-posterior
     :name: compute-symbolic-posterior
 
     import numpy as np
@@ -21,12 +20,11 @@ Compute Symbolic Closed-form Posteriors
     from unification import var
 
     from kanren import run
+    from kanren.graph import reduceo, walko
 
     from symbolic_pymc.theano.printing import tt_pprint
     from symbolic_pymc.theano.pymc3 import model_graph
 
-    from symbolic_pymc.relations.graph import reduceo
-    from symbolic_pymc.relations.theano import tt_graph_applyo
     from symbolic_pymc.relations.theano.conjugates import conjugate
 
     theano.config.cxx = ''
@@ -61,11 +59,11 @@ Compute Symbolic Closed-form Posteriors
     def conjugate_graph(graph):
         """Apply conjugate relations throughout a graph."""
 
-        def fixedp_conjugate_applyo(x, y):
-            return reduceo(partial(tt_graph_applyo, conjugate), x, y)
+        def fixedp_conjugate_walko(x, y):
+            return reduceo(partial(walko, conjugate), x, y)
 
         expr_graph, = run(1, var('q'),
-                          fixedp_conjugate_applyo(graph, var('q')))
+                          fixedp_conjugate_walko(graph, var('q')))
 
         fgraph_opt = expr_graph.eval_obj
         fgraph_opt_tt = fgraph_opt.reify()
@@ -78,7 +76,6 @@ Before
 ------
 
 .. code-block:: python
-    :caption: posterior-before-print
     :name: posterior-before-print
 
     >>> print(tt_pprint(fgraph))
@@ -91,7 +88,6 @@ After
 -----
 
 .. code-block:: python
-    :caption: posterior-after-print
     :name: posterior-after-print
 
     >>> print(tt_pprint(fgraph_conj))

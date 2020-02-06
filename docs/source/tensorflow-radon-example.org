@@ -113,18 +113,20 @@ county_idx = data['county_code'].values.astype(np.int32)
 @pm.model
 def hierarchical_model(data, county_idx):
     # Hyperpriors
-    mu_a = yield pm.Normal('mu_alpha', mu=0., sigma=1)
-    sigma_a = yield pm.HalfCauchy('sigma_alpha', beta=1)
-    mu_b = yield pm.Normal('mu_beta', mu=0., sigma=1)
-    sigma_b = yield pm.HalfCauchy('sigma_beta', beta=1)
+    mu_a = yield pm.Normal(loc=0., scale=1, name='mu_alpha')
+    sigma_a = yield pm.HalfCauchy(scale=1, name='sigma_alpha')
+    mu_b = yield pm.Normal(loc=0., scale=1, name='mu_beta')
+    sigma_b = yield pm.HalfCauchy(scale=1, name='sigma_beta')
 
     # Intercept for each county, distributed around group mean mu_a
-    a = yield pm.Normal('alpha', mu=mu_a, sigma=sigma_a, plate=len(data.county.unique()))
+    a = yield pm.Normal(loc=mu_a, scale=sigma_a, plate=len(data.county.unique()),
+                        name='alpha')
     # Intercept for each county, distributed around group mean mu_a
-    b = yield pm.Normal('beta', mu=mu_b, sigma=sigma_b, plate=len(data.county.unique()))
+    b = yield pm.Normal(loc=mu_b, scale=sigma_b, plate=len(data.county.unique()),
+                        name='beta')
 
     # Model error
-    eps = yield pm.HalfCauchy('eps', beta=1)
+    eps = yield pm.HalfCauchy(scale=1, name='eps')
 
     # Expected value
     #radon_est = a[county_idx] + b[county_idx] * data.floor.values
@@ -132,8 +134,7 @@ def hierarchical_model(data, county_idx):
         b, county_idx) * data.floor.values
 
     # Data likelihood
-    y_like = yield pm.Normal('y_like', mu=radon_est, sigma=eps, observed=data.log_radon)
-
+    y_like = yield pm.Normal(loc=radon_est, scale=eps, observed=data.log_radon, name='y_like')
 
 init_num_chains = 50
 model = hierarchical_model(data, county_idx)
@@ -274,9 +275,8 @@ for the parameters.
 state = None
 observed = None
 
-logpfn, init = pm.inference.sampling.build_logp_function(model,
-                                                         state=state,
-                                                         observed=observed)
+logpfn, init, _, det_names = pm.inference.sampling.build_logp_and_deterministic_functions(
+    model, observed=observed, state=state)
 #+END_SRC
 
 From here we need src_python[:eval never]{FuncGraph}s for each input
@@ -490,20 +490,20 @@ for t in square_diff_outs:
 #+RESULTS: show-squared-diff-terms
 #+begin_SRC text :eval never
 Tensor(GatherV2):0,	dtype=float32,	shape=[919],	"GatherV2:0"
-|  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_1:0"
+|  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_0:0"
 |  Tensor(Const):0,	dtype=int32,	shape=[919],	"GatherV2/indices:0"
 |  |  [ 0  0  0 ... 83 84 84]
 |  Tensor(Const):0,	dtype=int32,	shape=[],	"GatherV2/axis:0"
 |  |  0
 Tensor(GatherV2):0,	dtype=float32,	shape=[919],	"GatherV2_1:0"
-|  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_3:0"
+|  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_6:0"
 |  Tensor(Const):0,	dtype=int32,	shape=[919],	"GatherV2_1/indices:0"
 |  |  [ 0  0  0 ... 83 84 84]
 |  Tensor(Const):0,	dtype=int32,	shape=[],	"GatherV2_1/axis:0"
 |  |  0
 Tensor(SquaredDifference):0,	dtype=float32,	shape=[],	"Normal_5/log_prob/SquaredDifference:0"
 |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"Normal_5/log_prob/truediv:0"
-|  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_0:0"
+|  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_1:0"
 |  |  Tensor(Const):0,	dtype=float32,	shape=[],	"Normal/scale:0"
 |  |  |  1.
 |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"Normal_5/log_prob/truediv_1:0"
@@ -513,7 +513,7 @@ Tensor(SquaredDifference):0,	dtype=float32,	shape=[],	"Normal_5/log_prob/Squared
 |  |  |  1.
 Tensor(SquaredDifference):0,	dtype=float32,	shape=[],	"Normal_1_1/log_prob/SquaredDifference:0"
 |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"Normal_1_1/log_prob/truediv:0"
-|  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_6:0"
+|  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_3:0"
 |  |  Tensor(Const):0,	dtype=float32,	shape=[],	"Normal_1/scale:0"
 |  |  |  1.
 |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"Normal_1_1/log_prob/truediv_1:0"
@@ -525,30 +525,30 @@ Tensor(SquaredDifference):0,	dtype=float32,	shape=[85],	"SampleNormal_2_1/log_pr
 |  Tensor(RealDiv):0,	dtype=float32,	shape=[85],	"SampleNormal_2_1/log_prob/Normal_2/log_prob/truediv:0"
 |  |  Tensor(Transpose):0,	dtype=float32,	shape=[85],	"SampleNormal_2_1/log_prob/transpose:0"
 |  |  |  Tensor(Reshape):0,	dtype=float32,	shape=[85],	"SampleNormal_2_1/log_prob/Reshape:0"
-|  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_1:0"
+|  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_0:0"
 |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[1],	"SampleNormal_2_1/log_prob/Reshape/shape:0"
 |  |  |  |  |  [85]
 |  |  |  Tensor(Const):0,	dtype=int32,	shape=[1],	"SampleNormal_2_1/log_prob/transpose/perm:0"
 |  |  |  |  [0]
 |  |  Tensor(Exp):0,	dtype=float32,	shape=[],	"exp_1/forward/Exp:0"
-|  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_5:0"
+|  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_2:0"
 |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"SampleNormal_2_1/log_prob/Normal_2/log_prob/truediv_1:0"
-|  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_0:0"
+|  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_1:0"
 |  |  Tensor(Exp):0,	dtype=float32,	shape=[],	"exp_1/forward/Exp:0"
 |  |  |  ...
 Tensor(SquaredDifference):0,	dtype=float32,	shape=[85],	"SampleNormal_3_1/log_prob/Normal_3/log_prob/SquaredDifference:0"
 |  Tensor(RealDiv):0,	dtype=float32,	shape=[85],	"SampleNormal_3_1/log_prob/Normal_3/log_prob/truediv:0"
 |  |  Tensor(Transpose):0,	dtype=float32,	shape=[85],	"SampleNormal_3_1/log_prob/transpose:0"
 |  |  |  Tensor(Reshape):0,	dtype=float32,	shape=[85],	"SampleNormal_3_1/log_prob/Reshape:0"
-|  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_3:0"
+|  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_6:0"
 |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[1],	"SampleNormal_3_1/log_prob/Reshape/shape:0"
 |  |  |  |  |  [85]
 |  |  |  Tensor(Const):0,	dtype=int32,	shape=[1],	"SampleNormal_3_1/log_prob/transpose/perm:0"
 |  |  |  |  [0]
 |  |  Tensor(Exp):0,	dtype=float32,	shape=[],	"exp_2_1/forward/Exp:0"
-|  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_2:0"
+|  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_4:0"
 |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"SampleNormal_3_1/log_prob/Normal_3/log_prob/truediv_1:0"
-|  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_6:0"
+|  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_3:0"
 |  |  Tensor(Exp):0,	dtype=float32,	shape=[],	"exp_2_1/forward/Exp:0"
 |  |  |  ...
 Tensor(SquaredDifference):0,	dtype=float32,	shape=[919],	"Normal_4_1/log_prob/SquaredDifference:0"
@@ -556,18 +556,18 @@ Tensor(SquaredDifference):0,	dtype=float32,	shape=[919],	"Normal_4_1/log_prob/Sq
 |  |  Tensor(Const):0,	dtype=float32,	shape=[919],	"Normal_4_1/log_prob/value:0"
 |  |  |  [0.8329091 0.8329091 1.0986123 ... 1.6292405 1.3350011 1.0986123]
 |  |  Tensor(Exp):0,	dtype=float32,	shape=[],	"exp_3_1/forward/Exp:0"
-|  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_4:0"
+|  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_5:0"
 |  Tensor(RealDiv):0,	dtype=float32,	shape=[919],	"Normal_4_1/log_prob/truediv_1:0"
 |  |  Tensor(AddV2):0,	dtype=float32,	shape=[919],	"add:0"
 |  |  |  Tensor(GatherV2):0,	dtype=float32,	shape=[919],	"GatherV2:0"
-|  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_1:0"
+|  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_0:0"
 |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[919],	"GatherV2/indices:0"
 |  |  |  |  |  [ 0  0  0 ... 83 84 84]
 |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[],	"GatherV2/axis:0"
 |  |  |  |  |  0
 |  |  |  Tensor(Mul):0,	dtype=float32,	shape=[919],	"mul:0"
 |  |  |  |  Tensor(GatherV2):0,	dtype=float32,	shape=[919],	"GatherV2_1:0"
-|  |  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_3:0"
+|  |  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_6:0"
 |  |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[919],	"GatherV2_1/indices:0"
 |  |  |  |  |  |  [ 0  0  0 ... 83 84 84]
 |  |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[],	"GatherV2_1/axis:0"
@@ -599,13 +599,13 @@ pprint(tfp_names_to_pymc)
 
 #+RESULTS: model-names-to-tfp-names
 #+begin_SRC python :eval never
-{'values_0': 'hierarchical_model/mu_alpha',
- 'values_1': 'hierarchical_model/alpha',
- 'values_2': 'hierarchical_model/__log_sigma_beta',
- 'values_3': 'hierarchical_model/beta',
- 'values_4': 'hierarchical_model/__log_eps',
- 'values_5': 'hierarchical_model/__log_sigma_alpha',
- 'values_6': 'hierarchical_model/mu_beta'}
+{'values_0': 'hierarchical_model/alpha',
+ 'values_1': 'hierarchical_model/mu_alpha',
+ 'values_2': 'hierarchical_model/__log_sigma_alpha',
+ 'values_3': 'hierarchical_model/mu_beta',
+ 'values_4': 'hierarchical_model/__log_sigma_beta',
+ 'values_5': 'hierarchical_model/__log_eps',
+ 'values_6': 'hierarchical_model/beta'}
 
 
 #+end_SRC
@@ -781,14 +781,14 @@ from collections import Sequence
 from unification import var, reify, unify
 
 from kanren import run, eq, lall, conde
-from kanren.goals import not_equalo
-from kanren.core import goaleval
+from kanren.graph import reduceo, walko, applyo
+from kanren.constraints import neq
+
+from etuples import etuple, etuplize
+from etuples.core import ExpressionTuple
 
 from symbolic_pymc.meta import enable_lvar_defaults
 from symbolic_pymc.tensorflow.meta import mt
-from symbolic_pymc.relations import buildo
-from symbolic_pymc.relations.graph import graph_applyo, reduceo
-from symbolic_pymc.etuple import ExpressionTuple, etuple, etuplize
 
 
 def onceo(goal):
@@ -796,67 +796,18 @@ def onceo(goal):
     def onceo_goal(s):
         nonlocal goal
         g = reify(goal, s)
-        g_stream = goaleval(g)(s)
+        g_stream = g(s)
         s = next(g_stream)
         yield s
 
     return onceo_goal
 
-
-def tf_graph_applyo(relation, a, b):
-    """Construct a `graph_applyo` goal that evaluates a relation only at tensor nodes in a meta graph.
-
-    Parameters
-    ----------
-    relation: function
-      A binary relation/goal constructor function
-    a: lvar, meta graph, or etuple
-      The left-hand side of the relation.
-    b: lvar, meta graph, or etuple
-      The right-hand side of the relation
-    """
-
-    def _expand_some_nodes(node):
-        if isinstance(node, mt.Tensor) and node.op is not None:
-            return etuple(node.base_operator, *node.base_arguments, eval_obj=node)
-        elif isinstance(node, Sequence):
-            return node
-
-        return None
-
-    gapplyo = partial(graph_applyo, relation, preprocess_graph=_expand_some_nodes)
-    return gapplyo(a, b)
-
-
-def eval_objo(x, y, shallow=True):
-    """Create a goal that relates an ExpressionTuple to its evaluated result.
-
-    It's not an `evalo`-like relation, because it won't generate
-    `ExpressionTuple`s that evaluate to any value.
-    """
-    def eval_objo_goal(s):
-        nonlocal x, y, shallow
-
-        x_ref, y_ref, shallow = reify((x, y, shallow), s)
-
-        if isinstance(x_ref, ExpressionTuple):
-            x_ref = x_ref.eval_obj
-            yield from eq(x_ref, y_ref)(s)
-        else:
-            try:
-                y_ref = etuplize(y_ref, shallow=shallow)
-                yield from eq(x_ref, y_ref)(s)
-            except TypeError:
-                pass
-
-    return eval_objo_goal
-
 #+END_SRC
 
 The function src_python[:eval never]{onceo} is a goal that provides a convenient way to
 extract only the first result from a goal stream.  This is useful when one only needs
-the first result from a fixed-point-producing goal like src_python[:eval never]{graph_applyo} (and
-or TF-specific src_python[:eval never]{tf_graph_applyo}), since the first result
+the first result from a fixed-point-producing goal like src_python[:eval never]{walko} (and
+or TF-specific src_python[:eval never]{walko}), since the first result
 from such goals is the fixed-point--in certain cases--and the rest is a stream of goals
 producing all the possible paths leading up to that point.
 
@@ -946,10 +897,18 @@ from kanren.assoccomm import eq_comm
 with graph_mode(), enable_lvar_defaults('names', 'node_attrs'):
     tfp_normal_pattern_mt = mt_normal_log_prob(var(), var(), var())
 
-res = run(0, var('q'), eq_comm(tfp_normal_pattern_mt, mt(normal_log_lik_opt)))
+tf_dprint(tfp_normal_pattern_mt)
+tf_dprint(mt(normal_log_lik_opt))
+
+q_lv = var()
+
+res = run(1, q_lv, eq_comm(tfp_normal_pattern_mt, mt(normal_log_lik_opt)))
 assert res
 
-res = run(0, var('q'), eq_comm(tfp_normal_pattern_mt, mt(normal_log_lik)))
+tf_dprint(tfp_normal_pattern_mt)
+tf_dprint(mt(normal_log_lik))
+
+res = run(1, q_lv, eq_comm(tfp_normal_pattern_mt, mt(normal_log_lik)))
 assert res
 #+END_SRC
 
@@ -1022,30 +981,25 @@ def shift_squared_subso(in_graph, out_graph):
 
     # A logic variable that corresponds to a partially transformed output
     # graph.
-    loglik_replaced_et, loglik_replaced_mt = var(), var()
-    y_transed_graph_et = var()
+    loglik_replaced_mt = var()
 
     res = lall(
         # The first (y - x/a)**2 (anywhere in the graph)
-        tf_graph_applyo(y_loglik, in_graph, in_graph),
+        walko(y_loglik, in_graph, in_graph),
 
         # The corresponding (x/b - z)**2 (also anywhere else in the graph)
-        tf_graph_applyo(x_loglik, in_graph, in_graph),
+        walko(x_loglik, in_graph, in_graph),
 
         # Not sure if we need this, but we definitely don't want X == Y
-        (not_equalo, [y_lv, x_lv], True),
+        neq(y_lv, x_lv),
 
         # Replace Y's log-likelihood subgraph with the standardized version
-        # onceo(reduceo(partial(tf_graph_applyo, trans_disto), in_graph, mid_graph)),
-        onceo(tf_graph_applyo(trans_disto, in_graph, loglik_replaced_et)),
-
-        # Evaluate the resulting expression tuples
-        eval_objo(loglik_replaced_et, loglik_replaced_mt),
+        # onceo(reduceo(partial(walko, trans_disto), in_graph, mid_graph)),
+        onceo(walko(trans_disto, in_graph, loglik_replaced_mt)),
 
         # Replace any other references to Y with the transformed version and
         # any occurrences of our temporary Y variable.
-        conde([onceo(tf_graph_applyo(trans_varo, loglik_replaced_mt, y_transed_graph_et)),
-               eval_objo(y_transed_graph_et, out_graph)],
+        conde([onceo(walko(trans_varo, loglik_replaced_mt, out_graph))],
               # Y might only appear in its log-likelihood subgraph, so that no
               # transformations are necessary/possible.  We address that
               # possibility here.
@@ -1267,7 +1221,7 @@ assert logpfn_trans_tf is not None
 with graph_mode(), logpfn_trans_tf.graph.as_default():
 
     res = run(1, var('q'),
-              reduceo(lambda x, y: tf_graph_applyo(recenter_sqrdiffo, x, y),
+              reduceo(lambda x, y: walko(recenter_sqrdiffo, x, y),
                       logpfn_trans_tf, var('q')))
 
     logpfn_trans_tf = normalize_tf_graph(res[0].eval_obj.reify())
@@ -1629,7 +1583,7 @@ hierarchical normal distributions.
 As a result, we had a non-trivial structure/"pattern" to express--and execute.  Using
 conventional graph search-and-replace functionality would've required much more orchestration
 and resulted considerably less flexible code with little-to-no reusability.
-In our case, the goals src_python[:eval never]{onceo} and src_python[:eval never]{tf_graph_applyo}
+In our case, the goals src_python[:eval never]{onceo} and src_python[:eval never]{walko}
 are universal and the forms in src_python[:eval never]{shift_squared_subso} can be easily
 changed to account for more sophisticated (or entirely distinct) patterns and substitutions.
 
@@ -1999,119 +1953,3 @@ Tensor(Identity):0,	shape=[]	"Identity:0"
 
 
 #+end_SRC
-
-** Commutative Goals
-
-#+NAME: commutative-goals-testing
-#+BEGIN_SRC python :exports none :results none :eval never
-from itertools import permutations
-from collections.abc import Sequence
-from collections import Counter
-
-from kanren.facts import fact, Relation
-from kanren.term import term, operator, arguments
-
-# from kanren.assoccomm import eq_comm
-from kanren.assoccomm import commutative, associative
-
-from symbolic_pymc.tensorflow.meta import TFlowMetaTensor, TFlowMetaOp
-from symbolic_pymc.etuple import etuplize, ExpressionTuple, etuple
-
-from multipledispatch import dispatch
-
-# commutative = Relation('commutative')
-# associative = Relation('associative')
-
-fact(commutative, mt.addv2)
-fact(commutative, mt.addn)
-fact(commutative, mt.mul)
-fact(associative, mt.addv2)
-fact(associative, mt.addn)
-fact(associative, mt.mul)
-
-
-def eq_comm(u, v, eq=None):
-    """ Goal for commutative equality
-
-    >>> from kanren import run, var, fact
-    >>> from kanren.assoccomm import eq_comm as eq
-    >>> from kanren.assoccomm import commutative, associative
-
-    >>> fact(commutative, 'add')    # declare that 'add' is commutative
-    >>> fact(associative, 'add')    # declare that 'add' is associative
-
-    >>> x = var()
-    >>> run(0, x, eq(('add', 1, 2, 3), ('add', 2, x, 1)))
-    (3,)
-    """
-    eq = eq or eq_comm
-    vtail = var()
-    if isvar(u) and isvar(v):
-        return (core.eq, u, v)
-    uop, uargs = op_args(u)
-    vop, vargs = op_args(v)
-    if not uop and not vop:
-        return (core.eq, u, v)
-    if vop and not uop:
-        uop, uargs = vop, vargs
-        v, u = u, v
-    return (conde, ((core.eq, u, v), ),
-            ((commutative, uop), (buildo, uop, vtail, v),
-             (permuteq, uargs, vtail, eq)))
-
-
-def permuteq(a, b, eq2=eq):
-    """ Equality under permutation
-
-    For example (1, 2, 2) equates to (2, 1, 2) under permutation
-    >>> from kanren import var, run, permuteq
-    >>> x = var()
-    >>> run(0, x, permuteq(x, (1, 2)))
-    ((1, 2), (2, 1))
-
-    >>> run(0, x, permuteq((2, 1, x), (2, 1, 2)))
-    (2,)
-    """
-    if isinstance(a, Sequence) and isinstance(b, Sequence):
-        if len(a) != len(b):
-            return fail
-        elif Counter(a) == Counter(b):
-            return success
-        else:
-            c, d = list(a), list(b)
-            for x in list(c):
-                # TODO: This is quadratic in the number items in the sequence.
-                # Need something like a multiset. Maybe use
-                # collections.Counter?
-                try:
-                    d.remove(x)
-                    c.remove(x)
-                except ValueError:
-                    pass
-
-            if len(c) == 1:
-                return (eq2, c[0], d[0])
-            return condeseq(
-                ((eq2, x, d[0]), (permuteq, c[0:i] + c[i + 1:], d[1:], eq2))
-                for i, x in enumerate(c)
-            )
-    elif not (isinstance(a, Sequence) or isinstance(b, Sequence)):
-        raise ValueError(
-            'Neither a nor b is a Sequence: {}, {}'.format(type(a), type(b)))
-
-    if isvar(a) and isvar(b):
-        raise EarlyGoalError()
-
-    if isvar(a) or isvar(b):
-        if isinstance(b, Sequence):
-            c, d = a, b
-        elif isinstance(a, Sequence):
-            c, d = b, a
-
-        return (condeseq, ([eq(c, perm)]
-                           for perm in unique(permutations(d, len(d)))))
-
-
-with enable_lvar_defaults('names', 'node_attrs'):
-    assert run(0, var('q'), eq_comm(mt.add(1, 2), mt.add(2, 1)))
-#+END_SRC

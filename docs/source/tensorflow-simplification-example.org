@@ -296,40 +296,16 @@ from unification import var
 from kanren import run, eq, lall, conde
 from kanren.facts import fact
 from kanren.assoccomm import eq_comm, commutative
+from kanren.graph import walko
+
+from etuples import etuple, etuplize
+from etuples.core import ExpressionTuple
 
 from symbolic_pymc.meta import enable_lvar_defaults
 from symbolic_pymc.tensorflow.meta import mt, TFlowMetaOperator
 
-from symbolic_pymc.relations.graph import graph_applyo
-from symbolic_pymc.etuple import ExpressionTuple, etuple, etuplize
-
 
 fact(commutative, TFlowMetaOperator(mt.SquaredDifference.op_def, var()))
-
-
-def tf_graph_applyo(relation, a, b):
-    """Construct a `graph_applyo` goal that evaluates a relation only at tensor nodes in a meta graph.
-
-    Parameters
-    ----------
-    relation: function
-      A binary relation/goal constructor function
-    a: lvar, meta graph, or etuple
-      The left-hand side of the relation.
-    b: lvar, meta graph, or etuple
-      The right-hand side of the relation
-    """
-
-    def _expand_some_nodes(node):
-        if isinstance(node, mt.Tensor) and node.op is not None:
-            return etuple(node.base_operator, *node.base_arguments, eval_obj=node)
-        elif isinstance(node, Sequence):
-            return node
-
-        return None
-
-    gapplyo = partial(graph_applyo, relation, preprocess_graph=_expand_some_nodes)
-    return gapplyo(a, b)
 
 
 def recenter_sqrdiffo(in_g, out_g):
@@ -389,13 +365,14 @@ the results in [[further-simplify-test-graph-print]].
 
 #+NAME: further-simplify-test-graph
 #+BEGIN_SRC python :exports code :results silent
-from symbolic_pymc.relations.graph import reduceo
+from kanren.graph import reduceo
 
 
 with graph_mode(), hier_norm_lik.graph.as_default():
-    res = run(1, var('q'),
-              reduceo(lambda x, y: tf_graph_applyo(recenter_sqrdiffo, x, y),
-                      hier_norm_lik, var('q')))
+    q = var()
+    res = run(1, q,
+              reduceo(lambda x, y: walko(recenter_sqrdiffo, x, y),
+                      hier_norm_lik, q))
 
 with graph_mode(), tf.Graph().as_default() as result_graph:
     hn_simplified_tf = res[0].eval_obj.reify()

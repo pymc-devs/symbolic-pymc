@@ -226,10 +226,10 @@ TFlowMetaTensor(
 
 * S-expressions
 As an alternative approach to full meta graph conversion, we can also convert
-TensorFlow graphs into an [[https://en.wikipedia.org/wiki/S-expression][S-expression-like]] form.
+TensorFlow graphs into an [[https://en.wikipedia.org/wiki/S-expression][S-expression-like]] form using [[https://github.com/pythological/etuples][src_python[:eval never]{etuples}]].
 #+NAME: etuplize-graph
 #+BEGIN_SRC python :exports code :results none
-from symbolic_pymc.etuple import etuple, etuplize
+from etuples import etuple, etuplize
 
 
 z_sexp = etuplize(z_tf)
@@ -1042,7 +1042,7 @@ graph until the applicable subgraph is found (and replaced).
 
 #+NAME: mk-dist-goal-gapply-distribute
 #+BEGIN_SRC python :exports code :results none
-from symbolic_pymc.relations.graph import graph_applyo
+from kanren.graph import walko
 
 
 with graph_mode():
