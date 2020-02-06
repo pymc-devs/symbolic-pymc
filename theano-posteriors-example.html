@@ -72,9 +72,7 @@
 </dd>
 </dl>
 </div></blockquote>
-<div class="literal-block-wrapper docutils container" id="compute-symbolic-posterior">
-<div class="code-block-caption"><span class="caption-number">Listing 47 </span><span class="caption-text">compute-symbolic-posterior</span><a class="headerlink" href="#compute-symbolic-posterior" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<div class="highlight-python notranslate" id="compute-symbolic-posterior"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
 <span class="kn">import</span> <span class="nn">theano</span>
 <span class="kn">import</span> <span class="nn">theano.tensor</span> <span class="kn">as</span> <span class="nn">tt</span>
@@ -140,12 +138,9 @@
 <span class="n">fgraph_conj</span> <span class="o">=</span> <span class="n">conjugate_graph</span><span class="p">(</span><span class="n">fgraph</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </pre></div>
 </div>
-</div>
 <div class="section" id="before">
 <h2>Before<a class="headerlink" href="#before" title="Permalink to this headline">¶</a></h2>
-<div class="literal-block-wrapper docutils container" id="posterior-before-print">
-<div class="code-block-caption"><span class="caption-number">Listing 48 </span><span class="caption-text">posterior-before-print</span><a class="headerlink" href="#posterior-before-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">tt_pprint</span><span class="p">(</span><span class="n">fgraph</span><span class="p">))</span>
+<div class="highlight-python notranslate" id="posterior-before-print"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">tt_pprint</span><span class="p">(</span><span class="n">fgraph</span><span class="p">))</span>
 <span class="go">F in R**(N^F_0 x N^F_1), a in R**(N^a_0), R in R**(N^R_0 x N^R_1)</span>
 <span class="go">V in R**(N^V_0 x N^V_1)</span>
 <span class="go">beta ~ N(a, R) in R**(N^beta_0), Y ~ N((F * beta), V) in R**(N^Y_0)</span>
@@ -153,19 +148,15 @@
 </pre></div>
 </div>
 </div>
-</div>
 <div class="section" id="after">
 <h2>After<a class="headerlink" href="#after" title="Permalink to this headline">¶</a></h2>
-<div class="literal-block-wrapper docutils container" id="posterior-after-print">
-<div class="code-block-caption"><span class="caption-number">Listing 49 </span><span class="caption-text">posterior-after-print</span><a class="headerlink" href="#posterior-after-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">tt_pprint</span><span class="p">(</span><span class="n">fgraph_conj</span><span class="p">))</span>
+<div class="highlight-python notranslate" id="posterior-after-print"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">tt_pprint</span><span class="p">(</span><span class="n">fgraph_conj</span><span class="p">))</span>
 <span class="go">a in R**(N^a_0), R in R**(N^R_0 x N^R_1), F in R**(N^F_0 x N^F_1)</span>
 <span class="go">c in R**(N^c_0 x N^c_1), d in R**(N^d_0 x N^d_1)</span>
 <span class="go">V in R**(N^V_0 x N^V_1), e in R**(N^e_0 x N^e_1)</span>
 <span class="go">b ~ N((a + (((R * F.T) * c) * ([-3.] - (F * a)))), (R - ((((R * F.T) * d) * (V + (F * (R * F.T)))) * ((R * F.T) * e).T))) in R**(N^b_0)</span>
 <span class="go">b</span>
 </pre></div>
-</div>
 </div>
 </div>
 </div>

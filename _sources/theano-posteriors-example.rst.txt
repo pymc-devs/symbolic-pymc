@@ -6,7 +6,6 @@ Compute Symbolic Closed-form Posteriors
     :Date: 2019-11-24
 
 .. code-block:: python
-    :caption: compute-symbolic-posterior
     :name: compute-symbolic-posterior
 
     import numpy as np
@@ -78,7 +77,6 @@ Before
 ------
 
 .. code-block:: python
-    :caption: posterior-before-print
     :name: posterior-before-print
 
     >>> print(tt_pprint(fgraph))
@@ -91,7 +89,6 @@ After
 -----
 
 .. code-block:: python
-    :caption: posterior-after-print
     :name: posterior-after-print
 
     >>> print(tt_pprint(fgraph_conj))

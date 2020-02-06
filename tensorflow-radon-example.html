@@ -82,11 +82,9 @@ another equivalent model with better sampling properties.</p>
 on TensorFlow (TF) graphs via PyMC4 and approximate the same optimization using
 a very different approach targeted toward the log-likelihood graph.</p>
 <p>To get started, we need to download the radon dataset.  We do this setup in
-<a class="reference internal" href="#python-setup"><span class="std std-numref">Listing 53</span></a> and <a class="reference internal" href="#radon-data-download"><span class="std std-numref">Listing 54</span></a>, then we define the initial model
-in <a class="reference internal" href="#pymc4-radon-model"><span class="std std-numref">Listing 55</span></a>.</p>
-<div class="literal-block-wrapper docutils container" id="python-setup">
-<div class="code-block-caption"><span class="caption-number">Listing 53 </span><span class="caption-text">python-setup</span><a class="headerlink" href="#python-setup" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="xref std std-ref">python-setup</span> and <span class="xref std std-ref">radon-data-download</span>, then we define the initial model
+in <span class="xref std std-ref">pymc4-radon-model</span>.</p>
+<div class="highlight-python notranslate" id="python-setup"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="kn">as</span> <span class="nn">tf</span>
 
@@ -94,19 +92,13 @@ in <a class="reference internal" href="#pymc4-radon-model"><span class="std std-
 <span class="kn">import</span> <span class="nn">arviz</span> <span class="kn">as</span> <span class="nn">az</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="radon-data-download">
-<div class="code-block-caption"><span class="caption-number">Listing 54 </span><span class="caption-text">radon-data-download</span><a class="headerlink" href="#radon-data-download" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;https://github.com/pymc-devs/pymc3/raw/master/pymc3/examples/data/radon.csv&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="radon-data-download"><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;https://github.com/pymc-devs/pymc3/raw/master/pymc3/examples/data/radon.csv&#39;</span><span class="p">)</span>
 
 <span class="n">county_names</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">county</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
 <span class="n">county_idx</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;county_code&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="pymc4-radon-model">
-<div class="code-block-caption"><span class="caption-number">Listing 55 </span><span class="caption-text">pymc4-radon-model</span><a class="headerlink" href="#pymc4-radon-model" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@pm.model</span>
+<div class="highlight-python notranslate" id="pymc4-radon-model"><div class="highlight"><pre><span></span><span class="nd">@pm.model</span>
 <span class="k">def</span> <span class="nf">hierarchical_model</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">county_idx</span><span class="p">):</span>
     <span class="c1"># Hyperpriors</span>
     <span class="n">mu_a</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s1">&#39;mu_alpha&#39;</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -135,15 +127,12 @@ in <a class="reference internal" href="#pymc4-radon-model"><span class="std std-
 <span class="n">model</span> <span class="o">=</span> <span class="n">hierarchical_model</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">county_idx</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<p>In <a class="reference internal" href="#pymc4-radon-model-sample"><span class="std std-numref">Listing 57</span></a>, we estimate the model using the sample
+<p>In <span class="xref std std-ref">pymc4-radon-model-sample</span>, we estimate the model using the sample
 routine from <a class="reference external" href="https://github.com/pymc-devs/pymc4/blob/master/notebooks/radon_hierarchical.ipynb">PyMC4’s Radon example Notebook</a> (reproduced in
-<a class="reference internal" href="#pymc4-sample-function"><span class="std std-numref">Listing 56</span></a>).  The same plots from the aforementioned notebook are
+<span class="xref std std-ref">pymc4-sample-function</span>).  The same plots from the aforementioned notebook are
 also reproduced here in <a class="reference internal" href="#fig-pymc4-radon-plot-energy">fig:pymc4-radon-plot-energy</a> and
 <a class="reference internal" href="#fig-pymc4-radon-plot-trace">fig:pymc4-radon-plot-trace</a>.</p>
-<div class="literal-block-wrapper docutils container" id="pymc4-sample-function">
-<div class="code-block-caption"><span class="caption-number">Listing 56 </span><span class="caption-text">pymc4-sample-function</span><a class="headerlink" href="#pymc4-sample-function" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">init_num_chains</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">num_samples</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">burn_in</span><span class="o">=</span><span class="mi">500</span><span class="p">):</span>
+<div class="highlight-python notranslate" id="pymc4-sample-function"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">init_num_chains</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">num_samples</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">burn_in</span><span class="o">=</span><span class="mi">500</span><span class="p">):</span>
     <span class="n">init_num_chains</span> <span class="o">=</span> <span class="mi">50</span>
     <span class="n">pm4_trace</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">inference</span><span class="o">.</span><span class="n">sampling</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
         <span class="n">model</span><span class="p">,</span> <span class="n">num_chains</span><span class="o">=</span><span class="n">init_num_chains</span><span class="p">,</span> <span class="n">num_samples</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">burn_in</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">xla</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
@@ -173,16 +162,10 @@ also reproduced here in <a class="reference internal" href="#fig-pymc4-radon-plo
     <span class="k">return</span> <span class="n">az_trace</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="pymc4-radon-model-sample">
-<div class="code-block-caption"><span class="caption-number">Listing 57 </span><span class="caption-text">pymc4-radon-model-sample</span><a class="headerlink" href="#pymc4-radon-model-sample" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">az_trace</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="pymc4-radon-model-sample"><div class="highlight"><pre><span></span><span class="n">az_trace</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="pymc4-radon-plot-setup">
-<div class="code-block-caption"><span class="caption-number">Listing 58 </span><span class="caption-text">pymc4-radon-plot-setup</span><a class="headerlink" href="#pymc4-radon-plot-setup" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<div class="highlight-python notranslate" id="pymc4-radon-plot-setup"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
 
 <span class="kn">import</span> <span class="nn">seaborn</span> <span class="kn">as</span> <span class="nn">sns</span>
 
@@ -196,12 +179,8 @@ also reproduced here in <a class="reference internal" href="#fig-pymc4-radon-plo
 <span class="n">sns</span><span class="o">.</span><span class="n">set_context</span><span class="p">(</span><span class="s2">&quot;paper&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="pymc4-radon-plot-energy">
-<div class="code-block-caption"><span class="caption-number">Listing 59 </span><span class="caption-text">pymc4-radon-plot-energy</span><a class="headerlink" href="#pymc4-radon-plot-energy" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">plot_energy</span><span class="p">(</span><span class="n">az_trace</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="pymc4-radon-plot-energy"><div class="highlight"><pre><span></span><span class="n">_</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">plot_energy</span><span class="p">(</span><span class="n">az_trace</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="align-center figure" id="id2">
 <span id="fig-pymc4-radon-plot-energy"></span><a class="reference internal image-reference" href="_images/pymc4-radon-plot-energy.png"><img alt="_images/pymc4-radon-plot-energy.png" src="_images/pymc4-radon-plot-energy.png" style="width: 800px;" /></a>
@@ -215,7 +194,7 @@ also reproduced here in <a class="reference internal" href="#fig-pymc4-radon-plo
 <div class="section" id="the-model-s-log-likelihood-graph">
 <h2>The Model’s Log-likelihood Graph<a class="headerlink" href="#the-model-s-log-likelihood-graph" title="Permalink to this headline">¶</a></h2>
 <p>In order to apply our optimization, we need to obtain a graph of the
-log-likelihood function generated by the model in <a class="reference internal" href="#pymc4-radon-model"><span class="std std-numref">Listing 55</span></a>.
+log-likelihood function generated by the model in <span class="xref std std-ref">pymc4-radon-model</span>.
 With the graph in-hand, we can perform the re-centering and re-scaling
 transform–in log-space–and produce a new log-likelihood graph that improves
 sampling.</p>
@@ -227,19 +206,16 @@ sampling.</p>
 Theano’s
 <code class="docutils literal notranslate"><span class="pre">FunctionGraph</span></code>s, <code class="docutils literal notranslate"><span class="pre">FuncGraph</span></code>simply specializes a generic graph by specifying which constituent tensors are
 considered inputs and outputs.</p>
-<p>In <a class="reference internal" href="#logp-func"><span class="std std-numref">Listing 60</span></a>, we use PyMC4’s internal mechanisms to build the
+<p>In <span class="xref std std-ref">logp-func</span>, we use PyMC4’s internal mechanisms to build the
 log-likelihood function for our model and a corresponding list of initial values
 for the parameters.</p>
-<div class="literal-block-wrapper docutils container" id="logp-func">
-<div class="code-block-caption"><span class="caption-number">Listing 60 </span><span class="caption-text">logp-func</span><a class="headerlink" href="#logp-func" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="bp">None</span>
+<div class="highlight-python notranslate" id="logp-func"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="bp">None</span>
 <span class="n">observed</span> <span class="o">=</span> <span class="bp">None</span>
 
 <span class="n">logpfn</span><span class="p">,</span> <span class="n">init</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">inference</span><span class="o">.</span><span class="n">sampling</span><span class="o">.</span><span class="n">build_logp_function</span><span class="p">(</span><span class="n">model</span><span class="p">,</span>
                                                          <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span>
                                                          <span class="n">observed</span><span class="o">=</span><span class="n">observed</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <p>From here we need <code class="docutils literal notranslate"><span class="pre">FuncGraph</span></code>s for each input
 to <code class="docutils literal notranslate"><span class="pre">logpfn</span></code>.  Since <code class="docutils literal notranslate"><span class="pre">logpfn</span></code> is
@@ -250,13 +226,10 @@ words, it dynamically generates function objects based on the inputs it’s give
 using <code class="docutils literal notranslate"><span class="pre">logpfn.get_concrete_function(*args)</span></code>, which
 necessarily produces
 a <code class="docutils literal notranslate"><span class="pre">tensorflow.python.eager.function.ConcreteFunction</span></code>with the desired <code class="docutils literal notranslate"><span class="pre">FuncGraph</span></code>.
-<a class="reference internal" href="#fgraph-specializations"><span class="std std-numref">Listing 61</span></a> creates and extracts these two objects.</p>
-<div class="literal-block-wrapper docutils container" id="fgraph-specializations">
-<div class="code-block-caption"><span class="caption-number">Listing 61 </span><span class="caption-text">fgraph-specializations</span><a class="headerlink" href="#fgraph-specializations" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">logpfn_cf</span> <span class="o">=</span> <span class="n">logpfn</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">(</span><span class="o">*</span><span class="n">init</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+<span class="xref std std-ref">fgraph-specializations</span> creates and extracts these two objects.</p>
+<div class="highlight-python notranslate" id="fgraph-specializations"><div class="highlight"><pre><span></span><span class="n">logpfn_cf</span> <span class="o">=</span> <span class="n">logpfn</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">(</span><span class="o">*</span><span class="n">init</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 <span class="n">logpfn_fg</span> <span class="o">=</span> <span class="n">logpfn_cf</span><span class="o">.</span><span class="n">graph</span>
 </pre></div>
-</div>
 </div>
 <p>The outputs are now available in graph form
 as <code class="docutils literal notranslate"><span class="pre">logpfn_fg.outputs</span></code>.</p>
@@ -353,11 +326,9 @@ library (TFP)– uses <code class="docutils literal notranslate"><span class="pr
 construct the “squared error” term in the exponential of a normal distribution.
 This term contains everything we need to construct the substitution as a pair
 of TF graph objects.</p>
-<p><a class="reference internal" href="#tfp-normal-log-lik-graph"><span class="std std-numref">Listing 62</span></a> shows the graph produced by a normal
+<p><span class="xref std std-ref">tfp-normal-log-lik-graph</span> shows the graph produced by a normal
 distribution in TFP.</p>
-<div class="literal-block-wrapper docutils container" id="tfp-normal-log-lik-graph">
-<div class="code-block-caption"><span class="caption-number">Listing 62 </span><span class="caption-text">tfp-normal-log-lik-graph</span><a class="headerlink" href="#tfp-normal-log-lik-graph" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tensorflow_probability</span> <span class="kn">as</span> <span class="nn">tfp</span>
+<div class="highlight-python notranslate" id="tfp-normal-log-lik-graph"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tensorflow_probability</span> <span class="kn">as</span> <span class="nn">tfp</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.eager.context</span> <span class="kn">import</span> <span class="n">graph_mode</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework.ops</span> <span class="kn">import</span> <span class="n">disable_tensor_equality</span>
@@ -381,12 +352,8 @@ distribution in TFP.</p>
     <span class="n">normal_log_lik</span> <span class="o">=</span> <span class="n">normal_tfp</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">value_tf</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="tfp-normal-log-lik-graph-print">
-<div class="code-block-caption"><span class="caption-number">Listing 63 </span><span class="caption-text">tfp-normal-log-lik-graph-print</span><a class="headerlink" href="#tfp-normal-log-lik-graph-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">normal_log_lik</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="tfp-normal-log-lik-graph-print"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">normal_log_lik</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Tensor(Sub):0,      dtype=float32,  shape=[None],   &quot;Normal_1/log_prob/sub:0&quot;
 |  Tensor(Mul):0,   dtype=float32,  shape=[None],   &quot;Normal_1/log_prob/mul:0&quot;
@@ -413,17 +380,14 @@ since they contain all the relevant terms for our transformation.</p>
 i.e.  <code class="docutils literal notranslate"><span class="pre">SquaredDifference(y,</span> <span class="pre">x)</span></code>and <code class="docutils literal notranslate"><span class="pre">SquaredDifference(x,</span> <span class="pre">mu)</span></code>, then we might be able to
 assume that the corresponding subgraph was formed from such a hierarchical
 normal model.</p>
-<p><a class="reference internal" href="#show-squared-diff-terms"><span class="std std-numref">Listing 64</span></a> shows the <code class="docutils literal notranslate"><span class="pre">SquaredDifference</span></code>sub-graphs in the log-likelihood graph for our radon model.  It demonstrates two
+<p><span class="xref std std-ref">show-squared-diff-terms</span> shows the <code class="docutils literal notranslate"><span class="pre">SquaredDifference</span></code>sub-graphs in the log-likelihood graph for our radon model.  It demonstrates two
 instances of said <code class="docutils literal notranslate"><span class="pre">SquaredDifference</span></code>”chains”: they involve tensors named <code class="docutils literal notranslate"><span class="pre">values_5</span></code> and <code class="docutils literal notranslate"><span class="pre">values_1</span></code>.</p>
-<div class="literal-block-wrapper docutils container" id="show-squared-diff-terms">
-<div class="code-block-caption"><span class="caption-number">Listing 64 </span><span class="caption-text">show-squared-diff-terms</span><a class="headerlink" href="#show-squared-diff-terms" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">square_diff_outs</span> <span class="o">=</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">logpfn_fg</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()</span>
+<div class="highlight-python notranslate" id="show-squared-diff-terms"><div class="highlight"><pre><span></span><span class="n">square_diff_outs</span> <span class="o">=</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">logpfn_fg</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;SquaredDifference&#39;</span> <span class="ow">or</span> <span class="n">o</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;Gather&#39;</span><span class="p">)]</span>
 
 <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">square_diff_outs</span><span class="p">:</span>
     <span class="n">tf_dprint</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Tensor(GatherV2):0, dtype=float32,  shape=[919],    &quot;GatherV2:0&quot;
 |  Tensor(Placeholder):0,   dtype=float32,  shape=[85],     &quot;values_1:0&quot;
@@ -516,10 +480,8 @@ Tensor(SquaredDifference):0,        dtype=float32,  shape=[919],    &quot;Normal
 </div>
 <p>The names in the TFP graph are not based on the PyMC4 model objects, so, to make
 the graph output slightly more interpretable,
-<a class="reference internal" href="#model-names-to-tfp-names"><span class="std std-numref">Listing 65</span></a> attempts to re-associate the TF and PyMC4 object names.</p>
-<div class="literal-block-wrapper docutils container" id="model-names-to-tfp-names">
-<div class="code-block-caption"><span class="caption-number">Listing 65 </span><span class="caption-text">model-names-to-tfp-names</span><a class="headerlink" href="#model-names-to-tfp-names" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pprint</span> <span class="kn">import</span> <span class="n">pprint</span>
+<span class="xref std std-ref">model-names-to-tfp-names</span> attempts to re-associate the TF and PyMC4 object names.</p>
+<div class="highlight-python notranslate" id="model-names-to-tfp-names"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pprint</span> <span class="kn">import</span> <span class="n">pprint</span>
 
 <span class="n">tfp_names_to_pymc</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">logpfn_cf</span><span class="o">.</span><span class="n">structured_input_signature</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">init</span><span class="o">.</span><span class="n">keys</span><span class="p">())}</span>
 <span class="n">pymc_names_to_tfp</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tfp_names_to_pymc</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
@@ -529,7 +491,6 @@ the graph output slightly more interpretable,
 
 <span class="n">pprint</span><span class="p">(</span><span class="n">tfp_names_to_pymc</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;values_0&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/mu_alpha&#39;</span><span class="p">,</span>
  <span class="s1">&#39;values_1&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/alpha&#39;</span><span class="p">,</span>
@@ -554,11 +515,9 @@ base the subgraphs used in our relations.</p>
 algebraic normalizations, the extent to which these are performed and their
 breadth of relevant operator coverage isn’t clear; however, the normalizations
 that it does provide are worth using, so we’ll make use of them throughout.</p>
-<p><a class="reference internal" href="#grappler-normalize-function"><span class="std std-numref">Listing 66</span></a> provides a simple means of
+<p><span class="xref std std-ref">grappler-normalize-function</span> provides a simple means of
 applying <code class="docutils literal notranslate"><span class="pre">grappler</span></code>.</p>
-<div class="literal-block-wrapper docutils container" id="grappler-normalize-function">
-<div class="code-block-caption"><span class="caption-number">Listing 66 </span><span class="caption-text">grappler-normalize-function</span><a class="headerlink" href="#grappler-normalize-function" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">config_pb2</span>
+<div class="highlight-python notranslate" id="grappler-normalize-function"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">config_pb2</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">importer</span>
@@ -613,21 +572,15 @@ applying <code class="docutils literal notranslate"><span class="pre">grappler</
     <span class="k">return</span> <span class="n">opt_graph_output</span>
 </pre></div>
 </div>
-</div>
-<p>In <a class="reference internal" href="#grappler-normalize-function"><span class="std std-numref">Listing 66</span></a> we
+<p>In <span class="xref std std-ref">grappler-normalize-function</span> we
 run <code class="docutils literal notranslate"><span class="pre">grappler</span></code> on the log-likelihood graph for a normal
-random variable from <a class="reference internal" href="#tfp-normal-log-lik-graph"><span class="std std-numref">Listing 62</span></a>.</p>
-<div class="literal-block-wrapper docutils container" id="grappler-normalize-test-graph">
-<div class="code-block-caption"><span class="caption-number">Listing 67 </span><span class="caption-text">grappler-normalize-test-graph</span><a class="headerlink" href="#grappler-normalize-test-graph" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">normal_log_lik_opt</span> <span class="o">=</span> <span class="n">normalize_tf_graph</span><span class="p">(</span><span class="n">normal_log_lik</span><span class="p">)</span>
+random variable from <span class="xref std std-ref">tfp-normal-log-lik-graph</span>.</p>
+<div class="highlight-python notranslate" id="grappler-normalize-test-graph"><div class="highlight"><pre><span></span><span class="n">normal_log_lik_opt</span> <span class="o">=</span> <span class="n">normalize_tf_graph</span><span class="p">(</span><span class="n">normal_log_lik</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<p><a class="reference internal" href="#opt-graph-output-cmp"><span class="std std-numref">Listing 68</span></a> compares the computed outputs for the original and
+<p><span class="xref std std-ref">opt-graph-output-cmp</span> compares the computed outputs for the original and
 normalized graphs–given identical inputs.</p>
-<div class="literal-block-wrapper docutils container" id="opt-graph-output-cmp">
-<div class="code-block-caption"><span class="caption-number">Listing 68 </span><span class="caption-text">opt-graph-output-cmp</span><a class="headerlink" href="#opt-graph-output-cmp" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">res_unopt</span> <span class="o">=</span> <span class="n">normal_log_lik</span><span class="o">.</span><span class="n">eval</span><span class="p">({</span><span class="s1">&#39;mu:0&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="s1">&#39;tau:0&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;value:0&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">1</span><span class="p">]},</span>
+<div class="highlight-python notranslate" id="opt-graph-output-cmp"><div class="highlight"><pre><span></span><span class="n">res_unopt</span> <span class="o">=</span> <span class="n">normal_log_lik</span><span class="o">.</span><span class="n">eval</span><span class="p">({</span><span class="s1">&#39;mu:0&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="s1">&#39;tau:0&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;value:0&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">1</span><span class="p">]},</span>
                                  <span class="n">session</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">normal_log_lik</span><span class="o">.</span><span class="n">graph</span><span class="p">))</span>
 
 <span class="n">res_opt</span> <span class="o">=</span> <span class="n">normal_log_lik_opt</span><span class="o">.</span><span class="n">eval</span><span class="p">({</span><span class="s1">&#39;mu:0&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="s1">&#39;tau:0&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;value:0&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mi">1</span><span class="p">]},</span>
@@ -639,15 +592,11 @@ normalized graphs–given identical inputs.</p>
 <span class="n">_</span> <span class="o">=</span> <span class="p">[</span><span class="n">res_unopt</span><span class="p">,</span> <span class="n">res_opt</span><span class="p">]</span>
 </pre></div>
 </div>
-</div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">2.9189386</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">),</span> <span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">2.9189386</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">)]</span>
 </pre></div>
 </div>
-<div class="literal-block-wrapper docutils container" id="opt-graph-print">
-<div class="code-block-caption"><span class="caption-number">Listing 69 </span><span class="caption-text">opt-graph-print</span><a class="headerlink" href="#opt-graph-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">normal_log_lik_opt</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="opt-graph-print"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">normal_log_lik_opt</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Tensor(Sub):0,      dtype=float32,  shape=[None],   &quot;Normal_1/log_prob/sub:0&quot;
 |  Tensor(Mul):0,   dtype=float32,  shape=[None],   &quot;Normal_1/log_prob/mul:0&quot;
@@ -667,18 +616,16 @@ normalized graphs–given identical inputs.</p>
 |  |  |  0.9189385
 </pre></div>
 </div>
-<p>From the output of <a class="reference internal" href="#opt-graph-print"><span class="std std-numref">Listing 69</span></a>, we can see
+<p>From the output of <span class="xref std std-ref">opt-graph-print</span>, we can see
 that <code class="docutils literal notranslate"><span class="pre">grappler</span></code> has performed some constant folding and
 has reordered the inputs in <code class="docutils literal notranslate"><span class="pre">&quot;add_1_1&quot;</span></code>–among other
 things.</p>
 </div>
 <div class="section" id="minikanren-transform-relations">
 <h3>miniKanren Transform Relations<a class="headerlink" href="#minikanren-transform-relations" title="Permalink to this headline">¶</a></h3>
-<p>In <a class="reference internal" href="#kanren-shift-squaredo-func"><span class="std std-numref">Listing 70</span></a> and <a class="reference internal" href="#tfp-normal-log-prob"><span class="std std-numref">Listing 71</span></a> we perform all
+<p>In <span class="xref std std-ref">kanren-shift-squaredo-func</span> and <span class="xref std std-ref">tfp-normal-log-prob</span> we perform all
 the necessary imports and create a few useful helper functions.</p>
-<div class="literal-block-wrapper docutils container" id="kanren-shift-squaredo-func">
-<div class="code-block-caption"><span class="caption-number">Listing 70 </span><span class="caption-text">kanren-shift-squaredo-func</span><a class="headerlink" href="#kanren-shift-squaredo-func" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
+<div class="highlight-python notranslate" id="kanren-shift-squaredo-func"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Sequence</span>
 
@@ -687,12 +634,13 @@ the necessary imports and create a few useful helper functions.</p>
 <span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">eq</span><span class="p">,</span> <span class="n">lall</span><span class="p">,</span> <span class="n">conde</span>
 <span class="kn">from</span> <span class="nn">kanren.goals</span> <span class="kn">import</span> <span class="n">not_equalo</span>
 <span class="kn">from</span> <span class="nn">kanren.core</span> <span class="kn">import</span> <span class="n">goaleval</span>
+<span class="kn">from</span> <span class="nn">kanren.graph</span> <span class="kn">import</span> <span class="n">reduceo</span><span class="p">,</span> <span class="n">walko</span><span class="p">,</span> <span class="n">applyo</span>
+
+<span class="kn">from</span> <span class="nn">etuples</span> <span class="kn">import</span> <span class="n">etuple</span><span class="p">,</span> <span class="n">etuplize</span>
+<span class="kn">from</span> <span class="nn">etuples.core</span> <span class="kn">import</span> <span class="n">ExpressionTuple</span>
 
 <span class="kn">from</span> <span class="nn">symbolic_pymc.meta</span> <span class="kn">import</span> <span class="n">enable_lvar_defaults</span>
 <span class="kn">from</span> <span class="nn">symbolic_pymc.tensorflow.meta</span> <span class="kn">import</span> <span class="n">mt</span>
-<span class="kn">from</span> <span class="nn">symbolic_pymc.relations</span> <span class="kn">import</span> <span class="n">buildo</span>
-<span class="kn">from</span> <span class="nn">symbolic_pymc.relations.graph</span> <span class="kn">import</span> <span class="n">graph_applyo</span><span class="p">,</span> <span class="n">reduceo</span>
-<span class="kn">from</span> <span class="nn">symbolic_pymc.etuple</span> <span class="kn">import</span> <span class="n">ExpressionTuple</span><span class="p">,</span> <span class="n">etuple</span><span class="p">,</span> <span class="n">etuplize</span>
 
 
 <span class="k">def</span> <span class="nf">onceo</span><span class="p">(</span><span class="n">goal</span><span class="p">):</span>
@@ -705,31 +653,6 @@ the necessary imports and create a few useful helper functions.</p>
         <span class="k">yield</span> <span class="n">s</span>
 
     <span class="k">return</span> <span class="n">onceo_goal</span>
-
-
-<span class="k">def</span> <span class="nf">tf_graph_applyo</span><span class="p">(</span><span class="n">relation</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Construct a `graph_applyo` goal that evaluates a relation only at tensor nodes in a meta graph.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    relation: function</span>
-<span class="sd">      A binary relation/goal constructor function</span>
-<span class="sd">    a: lvar, meta graph, or etuple</span>
-<span class="sd">      The left-hand side of the relation.</span>
-<span class="sd">    b: lvar, meta graph, or etuple</span>
-<span class="sd">      The right-hand side of the relation</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">_expand_some_nodes</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">mt</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">etuple</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">base_operator</span><span class="p">,</span> <span class="o">*</span><span class="n">node</span><span class="o">.</span><span class="n">base_arguments</span><span class="p">,</span> <span class="n">eval_obj</span><span class="o">=</span><span class="n">node</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">node</span>
-
-        <span class="k">return</span> <span class="bp">None</span>
-
-    <span class="n">gapplyo</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">graph_applyo</span><span class="p">,</span> <span class="n">relation</span><span class="p">,</span> <span class="n">preprocess_graph</span><span class="o">=</span><span class="n">_expand_some_nodes</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">gapplyo</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">eval_objo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">shallow</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
@@ -756,16 +679,13 @@ the necessary imports and create a few useful helper functions.</p>
     <span class="k">return</span> <span class="n">eval_objo_goal</span>
 </pre></div>
 </div>
-</div>
 <p>The function <code class="docutils literal notranslate"><span class="pre">onceo</span></code> is a goal that provides a convenient way to
 extract only the first result from a goal stream.  This is useful when one only needs
-the first result from a fixed-point-producing goal like <code class="docutils literal notranslate"><span class="pre">graph_applyo</span></code> (and
-or TF-specific <code class="docutils literal notranslate"><span class="pre">tf_graph_applyo</span></code>), since the first result
+the first result from a fixed-point-producing goal like <code class="docutils literal notranslate"><span class="pre">walko</span></code> (and
+or TF-specific <code class="docutils literal notranslate"><span class="pre">walko</span></code>), since the first result
 from such goals is the fixed-point–in certain cases–and the rest is a stream of goals
 producing all the possible paths leading up to that point.</p>
-<div class="literal-block-wrapper docutils container" id="tfp-normal-log-prob">
-<div class="code-block-caption"><span class="caption-number">Listing 71 </span><span class="caption-text">tfp-normal-log-prob</span><a class="headerlink" href="#tfp-normal-log-prob" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">mt_normal_log_prob</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
+<div class="highlight-python notranslate" id="tfp-normal-log-prob"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">mt_normal_log_prob</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a meta graph for canonicalized standard and non-standard TFP normal log-likelihoods.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">loc</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">log_unnormalized_mt</span> <span class="o">=</span> <span class="n">mt</span><span class="o">.</span><span class="n">squareddifference</span><span class="p">(</span>
@@ -786,15 +706,12 @@ producing all the possible paths leading up to that point.</p>
     <span class="k">return</span> <span class="n">log_unnormalized_mt</span> <span class="o">-</span> <span class="n">log_normalization_mt</span>
 </pre></div>
 </div>
-</div>
-<p><a class="reference internal" href="#tfp-normal-log-prob"><span class="std std-numref">Listing 71</span></a> is a function that will produce a meta graph for the
+<p><span class="xref std std-ref">tfp-normal-log-prob</span> is a function that will produce a meta graph for the
 normalized form of a TFP normal log-likelihood.</p>
-<p>In <a class="reference internal" href="#shift-squared-subso"><span class="std std-numref">Listing 72</span></a>, we create the miniKanren goals that identify the
+<p>In <span class="xref std std-ref">shift-squared-subso</span>, we create the miniKanren goals that identify the
 aforementioned normal log-likelihood “chains” and create the
 re-centering/scaling substitutions.</p>
-<div class="literal-block-wrapper docutils container" id="shift-squared-subso">
-<div class="code-block-caption"><span class="caption-number">Listing 72 </span><span class="caption-text">shift-squared-subso</span><a class="headerlink" href="#shift-squared-subso" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kanren.assoccomm</span> <span class="kn">import</span> <span class="n">eq_comm</span>
+<div class="highlight-python notranslate" id="shift-squared-subso"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kanren.assoccomm</span> <span class="kn">import</span> <span class="n">eq_comm</span>
 
 
 <span class="k">def</span> <span class="nf">shift_squared_subso</span><span class="p">(</span><span class="n">in_graph</span><span class="p">,</span> <span class="n">out_graph</span><span class="p">):</span>
@@ -862,24 +779,24 @@ re-centering/scaling substitutions.</p>
 
     <span class="n">res</span> <span class="o">=</span> <span class="n">lall</span><span class="p">(</span>
         <span class="c1"># The first (y - x/a)**2 (anywhere in the graph)</span>
-        <span class="n">tf_graph_applyo</span><span class="p">(</span><span class="n">y_loglik</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">),</span>
+        <span class="n">walko</span><span class="p">(</span><span class="n">y_loglik</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">),</span>
 
         <span class="c1"># The corresponding (x/b - z)**2 (also anywhere else in the graph)</span>
-        <span class="n">tf_graph_applyo</span><span class="p">(</span><span class="n">x_loglik</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">),</span>
+        <span class="n">walko</span><span class="p">(</span><span class="n">x_loglik</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">),</span>
 
         <span class="c1"># Not sure if we need this, but we definitely don&#39;t want X == Y</span>
         <span class="p">(</span><span class="n">not_equalo</span><span class="p">,</span> <span class="p">[</span><span class="n">y_lv</span><span class="p">,</span> <span class="n">x_lv</span><span class="p">],</span> <span class="bp">True</span><span class="p">),</span>
 
         <span class="c1"># Replace Y&#39;s log-likelihood subgraph with the standardized version</span>
-        <span class="c1"># onceo(reduceo(partial(tf_graph_applyo, trans_disto), in_graph, mid_graph)),</span>
-        <span class="n">onceo</span><span class="p">(</span><span class="n">tf_graph_applyo</span><span class="p">(</span><span class="n">trans_disto</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">,</span> <span class="n">loglik_replaced_et</span><span class="p">)),</span>
+        <span class="c1"># onceo(reduceo(partial(walko, trans_disto), in_graph, mid_graph)),</span>
+        <span class="n">onceo</span><span class="p">(</span><span class="n">walko</span><span class="p">(</span><span class="n">trans_disto</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">,</span> <span class="n">loglik_replaced_et</span><span class="p">)),</span>
 
         <span class="c1"># Evaluate the resulting expression tuples</span>
         <span class="n">eval_objo</span><span class="p">(</span><span class="n">loglik_replaced_et</span><span class="p">,</span> <span class="n">loglik_replaced_mt</span><span class="p">),</span>
 
         <span class="c1"># Replace any other references to Y with the transformed version and</span>
         <span class="c1"># any occurrences of our temporary Y variable.</span>
-        <span class="n">conde</span><span class="p">([</span><span class="n">onceo</span><span class="p">(</span><span class="n">tf_graph_applyo</span><span class="p">(</span><span class="n">trans_varo</span><span class="p">,</span> <span class="n">loglik_replaced_mt</span><span class="p">,</span> <span class="n">y_transed_graph_et</span><span class="p">)),</span>
+        <span class="n">conde</span><span class="p">([</span><span class="n">onceo</span><span class="p">(</span><span class="n">walko</span><span class="p">(</span><span class="n">trans_varo</span><span class="p">,</span> <span class="n">loglik_replaced_mt</span><span class="p">,</span> <span class="n">y_transed_graph_et</span><span class="p">)),</span>
                <span class="n">eval_objo</span><span class="p">(</span><span class="n">y_transed_graph_et</span><span class="p">,</span> <span class="n">out_graph</span><span class="p">)],</span>
               <span class="c1"># Y might only appear in its log-likelihood subgraph, so that no</span>
               <span class="c1"># transformations are necessary/possible.  We address that</span>
@@ -890,10 +807,7 @@ re-centering/scaling substitutions.</p>
     <span class="k">return</span> <span class="n">res</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="shift-squared-terms">
-<div class="code-block-caption"><span class="caption-number">Listing 73 </span><span class="caption-text">shift-squared-terms</span><a class="headerlink" href="#shift-squared-terms" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">shift_squared_terms</span><span class="p">(</span><span class="n">in_obj</span><span class="p">):</span>
+<div class="highlight-python notranslate" id="shift-squared-terms"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">shift_squared_terms</span><span class="p">(</span><span class="n">in_obj</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Re-center/scale hierarchical normals.&quot;&quot;&quot;</span>
 
     <span class="c1"># Normalize and convert to a meta graph</span>
@@ -926,14 +840,11 @@ re-centering/scaling substitutions.</p>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Results could not be fully reified to a base object.&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
 <div class="section" id="testing-the-new-goals">
 <h4>Testing the new Goals<a class="headerlink" href="#testing-the-new-goals" title="Permalink to this headline">¶</a></h4>
 <p>As a test, we will run our miniKanren relations on the log-likelihood graph for a
-normal-normal hierarchical model in <a class="reference internal" href="#non-trivial-transform-test-graph"><span class="std std-numref">Listing 74</span></a>.</p>
-<div class="literal-block-wrapper docutils container" id="non-trivial-transform-test-graph">
-<div class="code-block-caption"><span class="caption-number">Listing 74 </span><span class="caption-text">non-trivial-transform-test-graph</span><a class="headerlink" href="#non-trivial-transform-test-graph" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">()</span> <span class="k">as</span> <span class="n">demo_graph</span><span class="p">:</span>
+normal-normal hierarchical model in <span class="xref std std-ref">non-trivial-transform-test-graph</span>.</p>
+<div class="highlight-python notranslate" id="non-trivial-transform-test-graph"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">()</span> <span class="k">as</span> <span class="n">demo_graph</span><span class="p">:</span>
     <span class="n">X_tfp</span> <span class="o">=</span> <span class="n">tfp</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">normal</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;X&#39;</span><span class="p">)</span>
 
     <span class="n">x_tf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;value_x&#39;</span><span class="p">,</span>
@@ -959,15 +870,11 @@ normal-normal hierarchical model in <a class="reference internal" href="#non-tri
     <span class="n">hier_norm_lik</span> <span class="o">=</span> <span class="n">normalize_tf_graph</span><span class="p">(</span><span class="n">hier_norm_lik</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<p><a class="reference internal" href="#non-trivial-transform-test-graph-print"><span class="std std-numref">Listing 75</span></a> shows the form that
+<p><span class="xref std std-ref">non-trivial-transform-test-graph-print</span> shows the form that
 a graph representing a hierarchical normal-normal model will generally take
 in TFP.</p>
-<div class="literal-block-wrapper docutils container" id="non-trivial-transform-test-graph-print">
-<div class="code-block-caption"><span class="caption-number">Listing 75 </span><span class="caption-text">non-trivial-transform-test-graph-print</span><a class="headerlink" href="#non-trivial-transform-test-graph-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">hier_norm_lik</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="non-trivial-transform-test-graph-print"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">hier_norm_lik</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Tensor(AddV2):0,    dtype=float32,  shape=[None],   &quot;add_1:0&quot;
 |  Tensor(SquaredDifference):0,     dtype=float32,  shape=[None],   &quot;SquaredDifference:0&quot;
@@ -1011,21 +918,15 @@ in TFP.</p>
 |  |  |  |  |  0.9189385
 </pre></div>
 </div>
-<p><a class="reference internal" href="#non-trivial-transform-test-apply"><span class="std std-numref">Listing 76</span></a> runs our transformation and
-<a class="reference internal" href="#non-trivial-transform-test-print-graph"><span class="std std-numref">Listing 77</span></a> prints the resulting graph.</p>
-<div class="literal-block-wrapper docutils container" id="non-trivial-transform-test-apply">
-<div class="code-block-caption"><span class="caption-number">Listing 76 </span><span class="caption-text">non-trivial-transform-test-apply</span><a class="headerlink" href="#non-trivial-transform-test-apply" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">hier_norm_lik</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+<p><span class="xref std std-ref">non-trivial-transform-test-apply</span> runs our transformation and
+<span class="xref std std-ref">non-trivial-transform-test-print-graph</span> prints the resulting graph.</p>
+<div class="highlight-python notranslate" id="non-trivial-transform-test-apply"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">hier_norm_lik</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
     <span class="n">test_output_res</span> <span class="o">=</span> <span class="n">shift_squared_terms</span><span class="p">(</span><span class="n">hier_norm_lik</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">test_output_res</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="non-trivial-transform-test-print-graph">
-<div class="code-block-caption"><span class="caption-number">Listing 77 </span><span class="caption-text">non-trivial-transform-test-print-graph</span><a class="headerlink" href="#non-trivial-transform-test-print-graph" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">test_output_res</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="non-trivial-transform-test-print-graph"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">test_output_res</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Tensor(AddV2):0,    dtype=float32,  shape=[None],   &quot;add_1_1:0&quot;
 |  Tensor(SquaredDifference):0,     dtype=float32,  shape=[None],   &quot;SquaredDifference_5:0&quot;
@@ -1074,9 +975,7 @@ in TFP.</p>
 <div class="section" id="transforming-the-log-likelihood-graph">
 <h2>Transforming the Log-likelihood Graph<a class="headerlink" href="#transforming-the-log-likelihood-graph" title="Permalink to this headline">¶</a></h2>
 <p>Now, we’re ready to apply the transform to the radon model log-likelihood graph.</p>
-<div class="literal-block-wrapper docutils container" id="transform-logpfn">
-<div class="code-block-caption"><span class="caption-number">Listing 78 </span><span class="caption-text">transform-logpfn</span><a class="headerlink" href="#transform-logpfn" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">()</span> <span class="k">as</span> <span class="n">trans_graph</span><span class="p">:</span>
+<div class="highlight-python notranslate" id="transform-logpfn"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">()</span> <span class="k">as</span> <span class="n">trans_graph</span><span class="p">:</span>
 
     <span class="n">logpfn_fg_out</span> <span class="o">=</span> <span class="n">normalize_tf_graph</span><span class="p">(</span><span class="n">logpfn_fg</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">logpfn_trans_tf</span> <span class="o">=</span> <span class="n">shift_squared_terms</span><span class="p">(</span><span class="n">logpfn_fg_out</span><span class="p">)</span>
@@ -1094,32 +993,25 @@ in TFP.</p>
 <span class="k">assert</span> <span class="n">logpfn_trans_tf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="simplify-transformed-logpfn">
-<div class="code-block-caption"><span class="caption-number">Listing 79 </span><span class="caption-text">simplify-transformed-logpfn</span><a class="headerlink" href="#simplify-transformed-logpfn" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">logpfn_trans_tf</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+<div class="highlight-python notranslate" id="simplify-transformed-logpfn"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">logpfn_trans_tf</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
 
     <span class="n">res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">),</span>
-              <span class="n">reduceo</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">tf_graph_applyo</span><span class="p">(</span><span class="n">recenter_sqrdiffo</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span>
+              <span class="n">reduceo</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">walko</span><span class="p">(</span><span class="n">recenter_sqrdiffo</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span>
                       <span class="n">logpfn_trans_tf</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)))</span>
 
     <span class="n">logpfn_trans_tf</span> <span class="o">=</span> <span class="n">normalize_tf_graph</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval_obj</span><span class="o">.</span><span class="n">reify</span><span class="p">())</span>
 </pre></div>
 </div>
-</div>
-<p><a class="reference internal" href="#print-transformed-remaps"><span class="std std-numref">Listing 80</span></a> shows the replacements that were made
+<p><span class="xref std std-ref">print-transformed-remaps</span> shows the replacements that were made
 throughout the graph.  Two replacements were found and they appear to correspond
 to the un-centered normal distribution terms <code class="docutils literal notranslate"><span class="pre">a</span></code>and <code class="docutils literal notranslate"><span class="pre">b</span></code> in our model–as intended.</p>
-<div class="literal-block-wrapper docutils container" id="print-transformed-remaps">
-<div class="code-block-caption"><span class="caption-number">Listing 80 </span><span class="caption-text">print-transformed-remaps</span><a class="headerlink" href="#print-transformed-remaps" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">rm</span> <span class="ow">in</span> <span class="n">logpfn_remaps</span><span class="p">:</span>
+<div class="highlight-python notranslate" id="print-transformed-remaps"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">rm</span> <span class="ow">in</span> <span class="n">logpfn_remaps</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rm</span><span class="p">:</span>
       <span class="n">tf_dprint</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
       <span class="k">print</span><span class="p">(</span><span class="s2">&quot;-&gt;&quot;</span><span class="p">)</span>
       <span class="n">tf_dprint</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
       <span class="k">print</span><span class="p">(</span><span class="s2">&quot;------&quot;</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Tensor(Placeholder):0,      shape=[85]      &quot;values_2:0&quot;
 -&gt;
@@ -1138,19 +1030,16 @@ Tensor(Log):0,      shape=~_175065  &quot;SampleNormal_3_1/log_prob/Normal_3/log
 ------
 </pre></div>
 </div>
-<p>Likewise, <a class="reference internal" href="#show-squared-diff-terms-in-trans"><span class="std std-numref">Listing 81</span></a> shows
+<p>Likewise, <span class="xref std std-ref">show-squared-diff-terms-in-trans</span> shows
 <code class="docutils literal notranslate"><span class="pre">SquaredDifference</span></code> subgraphs that appear in the
 transformed log-likelihood.</p>
-<div class="literal-block-wrapper docutils container" id="show-squared-diff-terms-in-trans">
-<div class="code-block-caption"><span class="caption-number">Listing 81 </span><span class="caption-text">show-squared-diff-terms-in-trans</span><a class="headerlink" href="#show-squared-diff-terms-in-trans" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">square_diff_outs</span> <span class="o">=</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">logpfn_trans_tf</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()</span>
+<div class="highlight-python notranslate" id="show-squared-diff-terms-in-trans"><div class="highlight"><pre><span></span><span class="n">square_diff_outs</span> <span class="o">=</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">logpfn_trans_tf</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;SquaredDifference&#39;</span> <span class="ow">or</span>
                     <span class="n">o</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;Gather&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">o</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;Log&#39;</span><span class="p">]</span>
 
 <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">square_diff_outs</span><span class="p">:</span>
     <span class="n">tf_dprint</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Tensor(GatherV2):0, shape=[919]     &quot;GatherV2:0&quot;
 |  Tensor(Placeholder):0,   shape=[85]      &quot;values_3:0&quot;
@@ -1245,12 +1134,10 @@ Tensor(SquaredDifference):0,        shape=[919]     &quot;Normal_4_1/log_prob/Sq
 <h2>Creating a new Log-likelihood Function<a class="headerlink" href="#creating-a-new-log-likelihood-function" title="Permalink to this headline">¶</a></h2>
 <p>Now that we have a transformed version of the original log-likelihood graph
 (i.e. <code class="docutils literal notranslate"><span class="pre">logpfn_trans_tf</span></code>), we need to create a
-new <code class="docutils literal notranslate"><span class="pre">FuncGraph</span></code> from it.  <a class="reference internal" href="#create-new-func-graph"><span class="std std-numref">Listing 83</span></a>
+new <code class="docutils literal notranslate"><span class="pre">FuncGraph</span></code> from it.  <span class="xref std std-ref">create-new-func-graph</span>
 provides a simple function that creates a
 new <code class="docutils literal notranslate"><span class="pre">ConcreteFunction</span></code> from an updated output node.</p>
-<div class="literal-block-wrapper docutils container" id="new-tf-function">
-<div class="code-block-caption"><span class="caption-number">Listing 82 </span><span class="caption-text">new_tf_function</span><a class="headerlink" href="#new-tf-function" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tensorflow.python.framework.func_graph</span> <span class="kn">import</span> <span class="n">FuncGraph</span>
+<div class="highlight-python notranslate" id="new-tf-function"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tensorflow.python.framework.func_graph</span> <span class="kn">import</span> <span class="n">FuncGraph</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.eager.function</span> <span class="kn">import</span> <span class="n">ConcreteFunction</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.eager.lift_to_graph</span> <span class="kn">import</span> <span class="n">lift_to_graph</span>
 
@@ -1290,37 +1177,28 @@ new <code class="docutils literal notranslate"><span class="pre">ConcreteFunctio
     <span class="k">return</span> <span class="n">logpfn_new_cf</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="create-new-func-graph">
-<div class="code-block-caption"><span class="caption-number">Listing 83 </span><span class="caption-text">create-new-func-graph</span><a class="headerlink" href="#create-new-func-graph" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">logpfn_new_cf</span> <span class="o">=</span> <span class="n">new_tf_function</span><span class="p">(</span><span class="n">logpfn_trans_tf</span><span class="p">,</span> <span class="n">logpfn_cf</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="create-new-func-graph"><div class="highlight"><pre><span></span><span class="n">logpfn_new_cf</span> <span class="o">=</span> <span class="n">new_tf_function</span><span class="p">(</span><span class="n">logpfn_trans_tf</span><span class="p">,</span> <span class="n">logpfn_cf</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <p>The new TF function, <code class="docutils literal notranslate"><span class="pre">logpfn_new_cf</span></code>, in
-<a class="reference internal" href="#create-new-func-graph"><span class="std std-numref">Listing 83</span></a> is the function we are going to use for sampling
+<span class="xref std std-ref">create-new-func-graph</span> is the function we are going to use for sampling
 from the new log-likelihood.</p>
-<div class="literal-block-wrapper docutils container" id="demo-diff-fgraph-output">
-<div class="code-block-caption"><span class="caption-number">Listing 84 </span><span class="caption-text">demo-diff-fgraph-output</span><a class="headerlink" href="#demo-diff-fgraph-output" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_</span> <span class="o">=</span> <span class="n">logpfn_cf</span><span class="p">(</span><span class="o">*</span><span class="n">init</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">-</span> <span class="n">logpfn_new_cf</span><span class="p">(</span><span class="o">*</span><span class="n">init</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+<div class="highlight-python notranslate" id="demo-diff-fgraph-output"><div class="highlight"><pre><span></span><span class="n">_</span> <span class="o">=</span> <span class="n">logpfn_cf</span><span class="p">(</span><span class="o">*</span><span class="n">init</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">-</span> <span class="n">logpfn_new_cf</span><span class="p">(</span><span class="o">*</span><span class="n">init</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="mf">153.41016</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><a class="reference internal" href="#demo-diff-fgraph-output"><span class="std std-numref">Listing 84</span></a> shows the difference between a transformed and
+<p><span class="xref std std-ref">demo-diff-fgraph-output</span> shows the difference between a transformed and
 non-transformed log-likelihood value given the same inputs.</p>
 </div>
 <div class="section" id="sampling-from-the-new-log-likelihood">
 <h2>Sampling from the new Log-likelihood<a class="headerlink" href="#sampling-from-the-new-log-likelihood" title="Permalink to this headline">¶</a></h2>
-<p>In <a class="reference internal" href="#sample-transformed-model"><span class="std std-numref">Listing 86</span></a>, we reproduce the remaining steps
+<p>In <span class="xref std std-ref">sample-transformed-model</span>, we reproduce the remaining steps
 of <code class="docutils literal notranslate"><span class="pre">pm.inference.sampling.sample</span></code> and–unnaturally–force
 the PyMC4 machinery to draw samples from our new transformed log-likelihood
 function.</p>
-<div class="literal-block-wrapper docutils container" id="hijack-build-logp">
-<div class="code-block-caption"><span class="caption-number">Listing 85 </span><span class="caption-text">hijack-build-logp</span><a class="headerlink" href="#hijack-build-logp" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<div class="highlight-python notranslate" id="hijack-build-logp"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
 
 
 <span class="c1"># We need to create new initial values for our transformed variables.</span>
@@ -1353,13 +1231,9 @@ function.</p>
         <span class="n">pm</span><span class="o">.</span><span class="n">inference</span><span class="o">.</span><span class="n">sampling</span><span class="o">.</span><span class="n">build_logp_function</span> <span class="o">=</span> <span class="n">_old_fn</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="sample-transformed-model">
-<div class="code-block-caption"><span class="caption-number">Listing 86 </span><span class="caption-text">sample-transformed-model</span><a class="headerlink" href="#sample-transformed-model" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">pymc4_force_logp</span><span class="p">(</span><span class="n">logpfn_new_cf</span><span class="p">,</span> <span class="n">new_init</span><span class="p">):</span>
+<div class="highlight-python notranslate" id="sample-transformed-model"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">pymc4_force_logp</span><span class="p">(</span><span class="n">logpfn_new_cf</span><span class="p">,</span> <span class="n">new_init</span><span class="p">):</span>
     <span class="n">az_trace</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="align-center figure" id="id4">
 <span id="fig-transformed-model-plot-energy"></span><a class="reference internal image-reference" href="_images/transformed-model-plot-energy.png"><img alt="_images/transformed-model-plot-energy.png" src="_images/transformed-model-plot-energy.png" style="width: 800px;" /></a>
@@ -1373,7 +1247,7 @@ function.</p>
 <div class="section" id="discussion">
 <h2>Discussion<a class="headerlink" href="#discussion" title="Permalink to this headline">¶</a></h2>
 <p>The goals in the two separate <code class="docutils literal notranslate"><span class="pre">run</span></code> calls we used in
-<a class="reference internal" href="#kanren-shift-squaredo-func"><span class="std std-numref">Listing 70</span></a> could have been combined into a
+<span class="xref std std-ref">kanren-shift-squaredo-func</span> could have been combined into a
 single <code class="docutils literal notranslate"><span class="pre">run</span></code>.  This could’ve been accomplished using some
 “meta” steps (e.g. construct and evaluate a goal on-the-fly within a
 miniKanren) or special goals for reading from a
@@ -1386,7 +1260,7 @@ Instead, we wanted to demonstrate how a non-trivial “pattern” can be specifi
 and matched using <code class="docutils literal notranslate"><span class="pre">symbolic-pymc</span></code>, and how easily those results
 could be used to transform a graph.</p>
 <p>More specifically, our goal <code class="docutils literal notranslate"><span class="pre">shift_squared_subso</span></code> in
-<a class="reference internal" href="#kanren-shift-squaredo-func"><span class="std std-numref">Listing 70</span></a> demonstrates <strong>the way in which we were able to specify desired structure(s) within a graph</strong>.
+<span class="xref std std-ref">kanren-shift-squaredo-func</span> demonstrates <strong>the way in which we were able to specify desired structure(s) within a graph</strong>.
 We defined one pattern, <code class="docutils literal notranslate"><span class="pre">Y_sqrdiffo</span></code>, to match anywhere
 in the graph then another pattern, <code class="docutils literal notranslate"><span class="pre">X_sqrdiffo</span></code>, that
 relied on matched terms from <code class="docutils literal notranslate"><span class="pre">Y_sqrdiffo</span></code> and could also
@@ -1406,7 +1280,7 @@ hierarchical normal distributions.</p>
 <p>As a result, we had a non-trivial structure/”pattern” to express–and execute.  Using
 conventional graph search-and-replace functionality would’ve required much more orchestration
 and resulted considerably less flexible code with little-to-no reusability.
-In our case, the goals <code class="docutils literal notranslate"><span class="pre">onceo</span></code> and <code class="docutils literal notranslate"><span class="pre">tf_graph_applyo</span></code>are universal and the forms in <code class="docutils literal notranslate"><span class="pre">shift_squared_subso</span></code> can be easily
+In our case, the goals <code class="docutils literal notranslate"><span class="pre">onceo</span></code> and <code class="docutils literal notranslate"><span class="pre">walko</span></code>are universal and the forms in <code class="docutils literal notranslate"><span class="pre">shift_squared_subso</span></code> can be easily
 changed to account for more sophisticated (or entirely distinct) patterns and substitutions.</p>
 <p>Most related graph manipulation offerings make it easy to find a single subgraph that
 matches a pattern, but not potentially “co-dependent” and/or distinct subgraphs.

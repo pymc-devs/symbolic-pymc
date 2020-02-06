@@ -84,55 +84,55 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="module-symbolic_pymc.relations.graph">
-<span id="symbolic-pymc-relations-graph-module"></span><h2>symbolic_pymc.relations.graph module<a class="headerlink" href="#module-symbolic_pymc.relations.graph" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="symbolic_pymc.relations.graph.graph_applyo">
-<code class="sig-prename descclassname">symbolic_pymc.relations.graph.</code><code class="sig-name descname">graph_applyo</code><span class="sig-paren">(</span><em class="sig-param">relation</em>, <em class="sig-param">in_graph</em>, <em class="sig-param">out_graph</em>, <em class="sig-param">preprocess_graph=functools.partial(&lt;dispatched etuplize&gt;</em>, <em class="sig-param">shallow=True</em>, <em class="sig-param">return_bad_args=True)</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.graph.graph_applyo" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply a relation to a graph and its subgraphs.</p>
-<dl class="simple">
-<dt>relation: callable</dt><dd><p>A relation to apply on a graph and its subgraphs.</p>
-</dd>
-<dt>in_graph: object</dt><dd><p>The graph for which the left-hand side of a binary relation holds.</p>
-</dd>
-<dt>out_graph: object</dt><dd><p>The graph for which the right-hand side of a binary relation holds.</p>
-</dd>
-<dt>preprocess_graph: callable (optional)</dt><dd><p>A unary function that produces an iterable upon which <cite>seq_apply_anyo</cite>
-can be applied in order to traverse a graph’s subgraphs.  The default
-function converts the graph to expression-tuple form.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="symbolic_pymc.relations.graph.reduceo">
-<code class="sig-prename descclassname">symbolic_pymc.relations.graph.</code><code class="sig-name descname">reduceo</code><span class="sig-paren">(</span><em class="sig-param">relation</em>, <em class="sig-param">in_term</em>, <em class="sig-param">out_term</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.graph.reduceo" title="Permalink to this definition">¶</a></dt>
-<dd><p>Relate a term and the fixed-point of that term under a given relation.</p>
-<p>This includes the “identity” relation.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="symbolic_pymc.relations.graph.seq_apply_anyo">
-<code class="sig-prename descclassname">symbolic_pymc.relations.graph.</code><code class="sig-name descname">seq_apply_anyo</code><span class="sig-paren">(</span><em class="sig-param">relation</em>, <em class="sig-param">l_in</em>, <em class="sig-param">l_out</em>, <em class="sig-param">null_type=False</em>, <em class="sig-param">skip_op=True</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.graph.seq_apply_anyo" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply a relation to at least one pair of corresponding elements in two sequences.</p>
-<dl class="simple">
-<dt>null_type: optional</dt><dd><p>An object that’s a valid cdr for the collection type desired.  If
-<cite>False</cite> (i.e. the default value), the cdr will be inferred from the
-inputs, or defaults to an empty list.</p>
-</dd>
-<dt>skip_op: boolean (optional)</dt><dd><p>When both inputs are <cite>etuple`s and this value is `True</cite>, the relation
-will not be applied to the operators (i.e. the cars) of the inputs.</p>
-</dd>
-</dl>
-</dd></dl>
-
+<div class="section" id="symbolic-pymc-relations-graph-module">
+<h2>symbolic_pymc.relations.graph module<a class="headerlink" href="#symbolic-pymc-relations-graph-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-symbolic_pymc.relations">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-symbolic_pymc.relations" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="symbolic_pymc.relations.buildo">
-<code class="sig-prename descclassname">symbolic_pymc.relations.</code><code class="sig-name descname">buildo</code><span class="sig-paren">(</span><em class="sig-param">op</em>, <em class="sig-param">args</em>, <em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.buildo" title="Permalink to this definition">¶</a></dt>
+<dt id="symbolic_pymc.relations.concat">
+<code class="sig-prename descclassname">symbolic_pymc.relations.</code><code class="sig-name descname">concat</code><span class="sig-paren">(</span><em class="sig-param">a</em>, <em class="sig-param">b</em>, <em class="sig-param">out</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.concat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a non-relational string concatenation goal.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.conde">
+<code class="sig-prename descclassname">symbolic_pymc.relations.</code><code class="sig-name descname">conde</code><span class="sig-paren">(</span><em class="sig-param">*goals</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.conde" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.lall">
+<code class="sig-prename descclassname">symbolic_pymc.relations.</code><code class="sig-name descname">lall</code><span class="sig-paren">(</span><em class="sig-param">*goals</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.lall" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.lany">
+<code class="sig-prename descclassname">symbolic_pymc.relations.</code><code class="sig-name descname">lany</code><span class="sig-paren">(</span><em class="sig-param">*goals</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.lany" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.lconj">
+<code class="sig-prename descclassname">symbolic_pymc.relations.</code><code class="sig-name descname">lconj</code><span class="sig-paren">(</span><em class="sig-param">*goals</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.lconj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.lconj_seq">
+<code class="sig-prename descclassname">symbolic_pymc.relations.</code><code class="sig-name descname">lconj_seq</code><span class="sig-paren">(</span><em class="sig-param">goals</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.lconj_seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produce a goal that returns the appended state stream in which all goals are necessarily successful.</p>
+<p>In other words, it behaves like logical conjunction/AND for goals.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.ldisj">
+<code class="sig-prename descclassname">symbolic_pymc.relations.</code><code class="sig-name descname">ldisj</code><span class="sig-paren">(</span><em class="sig-param">*goals</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.ldisj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.relations.ldisj_seq">
+<code class="sig-prename descclassname">symbolic_pymc.relations.</code><code class="sig-name descname">ldisj_seq</code><span class="sig-paren">(</span><em class="sig-param">goals</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.ldisj_seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produce a goal that returns the appended state stream from all successful goal arguments.</p>
+<p>In other words, it behaves like logical disjunction/OR for goals.</p>
+</dd></dl>
 
 </div>
 </div>

@@ -179,6 +179,7 @@ object from a subclass.</p>
 <dt id="symbolic_pymc.theano.meta.TheanoMetaDimShuffle">
 <em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.meta.</code><code class="sig-name descname">TheanoMetaDimShuffle</code><span class="sig-paren">(</span><em class="sig-param">input_broadcastable</em>, <em class="sig-param">new_order</em>, <em class="sig-param">inplace=True</em>, <em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaDimShuffle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.theano.meta.TheanoMetaOp" title="symbolic_pymc.theano.meta.TheanoMetaOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.meta.TheanoMetaOp</span></code></a></p>
+<p>Initialize a meta <cite>Op</cite>.</p>
 <dl class="attribute">
 <dt id="symbolic_pymc.theano.meta.TheanoMetaDimShuffle.base">
 <code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaDimShuffle.base" title="Permalink to this definition">¶</a></dt>
@@ -211,6 +212,7 @@ object from a subclass.</p>
 <dt id="symbolic_pymc.theano.meta.TheanoMetaElemwise">
 <em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.meta.</code><code class="sig-name descname">TheanoMetaElemwise</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">obj=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaElemwise" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.theano.meta.TheanoMetaOp" title="symbolic_pymc.theano.meta.TheanoMetaOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.meta.TheanoMetaOp</span></code></a></p>
+<p>Initialize a meta <cite>Op</cite>.</p>
 <dl class="attribute">
 <dt id="symbolic_pymc.theano.meta.TheanoMetaElemwise.base">
 <code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaElemwise.base" title="Permalink to this definition">¶</a></dt>
@@ -235,6 +237,7 @@ object from a subclass.</p>
 inputs.  See <cite>MetaOp.__call__</cite> for more details.</p>
 <p>Also, make sure to override <cite>Op.output_meta_types</cite> and make it return the
 expected meta variable types, if it isn’t the default: <cite>TheanoMetaTensorVariable</cite>.</p>
+<p>Initialize a meta <cite>Op</cite>.</p>
 <dl class="attribute">
 <dt id="symbolic_pymc.theano.meta.TheanoMetaOp.base">
 <code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaOp.base" title="Permalink to this definition">¶</a></dt>
@@ -277,6 +280,7 @@ expected meta variable types, if it isn’t the default: <cite>TheanoMetaTensorV
 <dt id="symbolic_pymc.theano.meta.TheanoMetaRandomVariable">
 <em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.meta.</code><code class="sig-name descname">TheanoMetaRandomVariable</code><span class="sig-paren">(</span><em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaRandomVariable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.theano.meta.TheanoMetaOp" title="symbolic_pymc.theano.meta.TheanoMetaOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.meta.TheanoMetaOp</span></code></a></p>
+<p>Initialize a meta <cite>Op</cite>.</p>
 <dl class="attribute">
 <dt id="symbolic_pymc.theano.meta.TheanoMetaRandomVariable.base">
 <code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaRandomVariable.base" title="Permalink to this definition">¶</a></dt>
@@ -831,6 +835,29 @@ from old variables to new variables to replace.</p></li>
 <dt id="symbolic_pymc.theano.opt.eval_and_reify_meta">
 <code class="sig-prename descclassname">symbolic_pymc.theano.opt.</code><code class="sig-name descname">eval_and_reify_meta</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.opt.eval_and_reify_meta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get Theano objects from combinations of <a href="#id5"><span class="problematic" id="id6">`</span></a>etuple`s and meta objects.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.theano.opt.run">
+<code class="sig-prename descclassname">symbolic_pymc.theano.opt.</code><code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">n</em>, <em class="sig-param">x</em>, <em class="sig-param">*goals</em>, <em class="sig-param">results_filter=functools.partial(&lt;function unique&gt;</em>, <em class="sig-param">key=&lt;function multihash&gt;)</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.opt.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run a logic program and obtain n solutions that satisfy the given goals.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">kanren</span> <span class="k">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">eq</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">eq</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="go">(1,)</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>n: int</dt><dd><p>The number of desired solutions (see <cite>take</cite>). <cite>n=0</cite> returns a tuple
+with all results and <cite>n=None</cite> returns a lazy sequence of all results.</p>
+</dd>
+<dt>x: object</dt><dd><p>The form to reify and output.  Usually contains logic variables used in
+the given goals.</p>
+</dd>
+<dt>goals: Callables</dt><dd><p>A sequence of goals that must be true in logical conjunction
+(i.e. <cite>lall</cite>).</p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>

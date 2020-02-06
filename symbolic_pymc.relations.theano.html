@@ -76,6 +76,7 @@
 <code class="sig-prename descclassname">symbolic_pymc.relations.theano.distributions.</code><code class="sig-name descname">constant_neq</code><span class="sig-paren">(</span><em class="sig-param">lvar</em>, <em class="sig-param">val</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.distributions.constant_neq" title="Permalink to this definition">¶</a></dt>
 <dd><p>Assert that a constant graph variable is not equal to a specific value.</p>
 <p>Scalar values are broadcast across arrays.</p>
+<p>XXX: This goal is non-relational</p>
 </dd></dl>
 
 <dl class="function">
@@ -95,7 +96,7 @@ approach, which involves separate scale and location rewrites.</p>
 <dl class="function">
 <dt id="symbolic_pymc.relations.theano.linalg.normal_normal_regression">
 <code class="sig-prename descclassname">symbolic_pymc.relations.theano.linalg.</code><code class="sig-name descname">normal_normal_regression</code><span class="sig-paren">(</span><em class="sig-param">Y</em>, <em class="sig-param">X</em>, <em class="sig-param">beta</em>, <em class="sig-param">Y_args_tail=None</em>, <em class="sig-param">beta_args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.linalg.normal_normal_regression" title="Permalink to this definition">¶</a></dt>
-<dd><p>Produce a relation for a normal-normal regression of the form <cite>Y ~ N(X * beta, sd**2)</cite>.</p>
+<dd><p>Create a goal for a normal-normal regression of the form <cite>Y ~ N(X * beta, sd**2)</cite>.</p>
 </dd></dl>
 
 <dl class="function">
@@ -116,8 +117,8 @@ functionality for this kind of model reformulation.</p>
 <div class="section" id="module-symbolic_pymc.relations.theano">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-symbolic_pymc.relations.theano" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="symbolic_pymc.relations.theano.non_obs_graph_applyo">
-<code class="sig-prename descclassname">symbolic_pymc.relations.theano.</code><code class="sig-name descname">non_obs_graph_applyo</code><span class="sig-paren">(</span><em class="sig-param">relation</em>, <em class="sig-param">a</em>, <em class="sig-param">b</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.non_obs_graph_applyo" title="Permalink to this definition">¶</a></dt>
+<dt id="symbolic_pymc.relations.theano.non_obs_walko">
+<code class="sig-prename descclassname">symbolic_pymc.relations.theano.</code><code class="sig-name descname">non_obs_walko</code><span class="sig-paren">(</span><em class="sig-param">relation</em>, <em class="sig-param">a</em>, <em class="sig-param">b</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.non_obs_walko" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a goal that applies a relation to all nodes above an observed random variable.</p>
 <p>This is useful if you don’t want to apply relations to an observed random
 variable, but you do want to apply them to every term above one and
@@ -128,24 +129,6 @@ ultimately reproduce the entire graph (observed RV included).</p>
 <dt>a: lvar or meta graph</dt><dd><p>The left-hand side of the relation.</p>
 </dd>
 <dt>b: lvar or meta graph</dt><dd><p>The right-hand side of the relation</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="symbolic_pymc.relations.theano.tt_graph_applyo">
-<code class="sig-prename descclassname">symbolic_pymc.relations.theano.</code><code class="sig-name descname">tt_graph_applyo</code><span class="sig-paren">(</span><em class="sig-param">relation</em>, <em class="sig-param">a</em>, <em class="sig-param">b</em>, <em class="sig-param">preprocess_graph=functools.partial(&lt;dispatched etuplize&gt;</em>, <em class="sig-param">shallow=True)</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.relations.theano.tt_graph_applyo" title="Permalink to this definition">¶</a></dt>
-<dd><p>Construct a <cite>graph_applyo</cite> goal that judiciously expands a Theano meta graph.</p>
-<p>This essentially allows <cite>graph_applyo</cite> to walk a non-<cite>etuple</cite>/S-exp Theano
-meta graph.</p>
-<dl class="simple">
-<dt>relation: function</dt><dd><p>A binary relation/goal constructor function</p>
-</dd>
-<dt>a: lvar, meta graph, or etuple</dt><dd><p>The left-hand side of the relation.</p>
-</dd>
-<dt>b: lvar, meta graph, or etuple</dt><dd><p>The right-hand side of the relation</p>
-</dd>
-<dt>preprocess_graph: function</dt><dd><p>See <cite>graph_applyo</cite>.</p>
 </dd>
 </dl>
 </dd></dl>

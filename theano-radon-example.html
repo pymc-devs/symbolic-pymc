@@ -75,9 +75,7 @@
 <p>Using <code class="docutils literal notranslate"><span class="pre">symbolic_pymc</span></code> we can automate the PyMC3 model
 transformation in <a class="reference external" href="https://twiecki.io/blog/2017/02/08/bayesian-hierchical-non-centered/">“Why hierarchical models are awesome, tricky, and Bayesian”</a>
 and improve sample chain quality.</p>
-<div class="literal-block-wrapper docutils container" id="recenter-radon-model">
-<div class="code-block-caption"><span class="caption-number">Listing 50 </span><span class="caption-text">recenter-radon-model</span><a class="headerlink" href="#recenter-radon-model" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<div class="highlight-python notranslate" id="recenter-radon-model"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 
 <span class="kn">import</span> <span class="nn">pymc3</span> <span class="kn">as</span> <span class="nn">pm</span>
@@ -90,13 +88,13 @@ and improve sample chain quality.</p>
 <span class="kn">from</span> <span class="nn">unification</span> <span class="kn">import</span> <span class="n">var</span>
 
 <span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">run</span>
+<span class="kn">from</span> <span class="nn">kanren.graph</span> <span class="kn">import</span> <span class="n">reduceo</span>
 
 <span class="kn">from</span> <span class="nn">symbolic_pymc.theano.meta</span> <span class="kn">import</span> <span class="n">mt</span>
 <span class="kn">from</span> <span class="nn">symbolic_pymc.theano.pymc3</span> <span class="kn">import</span> <span class="n">model_graph</span><span class="p">,</span> <span class="n">graph_model</span>
 <span class="kn">from</span> <span class="nn">symbolic_pymc.theano.utils</span> <span class="kn">import</span> <span class="n">canonicalize</span>
 
-<span class="kn">from</span> <span class="nn">symbolic_pymc.relations.graph</span> <span class="kn">import</span> <span class="n">reduceo</span>
-<span class="kn">from</span> <span class="nn">symbolic_pymc.relations.theano</span> <span class="kn">import</span> <span class="n">non_obs_graph_applyo</span>
+<span class="kn">from</span> <span class="nn">symbolic_pymc.relations.theano</span> <span class="kn">import</span> <span class="n">non_obs_walko</span>
 <span class="kn">from</span> <span class="nn">symbolic_pymc.relations.theano.distributions</span> <span class="kn">import</span> <span class="n">scale_loc_transform</span>
 
 
@@ -133,11 +131,12 @@ and improve sample chain quality.</p>
     <span class="n">graph_mt</span> <span class="o">=</span> <span class="n">mt</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">scale_loc_fixedp_applyo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">reduceo</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">non_obs_graph_applyo</span><span class="p">,</span> <span class="n">scale_loc_transform</span><span class="p">),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">reduceo</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">non_obs_walko</span><span class="p">,</span> <span class="n">scale_loc_transform</span><span class="p">),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 
-    <span class="n">expr_graph</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">),</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
+    <span class="n">expr_graph</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span>
                      <span class="c1"># Apply our transforms to unobserved RVs only</span>
-                     <span class="n">scale_loc_fixedp_applyo</span><span class="p">(</span><span class="n">graph_mt</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)))</span>
+                     <span class="n">scale_loc_fixedp_applyo</span><span class="p">(</span><span class="n">graph_mt</span><span class="p">,</span> <span class="n">q</span><span class="p">))</span>
 
     <span class="n">expr_graph</span> <span class="o">=</span> <span class="n">expr_graph</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">opt_graph_tt</span> <span class="o">=</span> <span class="n">expr_graph</span><span class="o">.</span><span class="n">reify</span><span class="p">()</span>
@@ -162,14 +161,10 @@ and improve sample chain quality.</p>
     <span class="n">recentered_trace</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">draws</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="n">tune</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">cores</span><span class="o">=</span><span class="mi">4</span><span class="p">)[</span><span class="mi">1000</span><span class="p">:]</span>
 </pre></div>
 </div>
-</div>
 <div class="section" id="before">
 <h2>Before<a class="headerlink" href="#before" title="Permalink to this headline">¶</a></h2>
-<div class="literal-block-wrapper docutils container" id="before-recenter-plot">
-<div class="code-block-caption"><span class="caption-number">Listing 51 </span><span class="caption-text">before-recenter-plot</span><a class="headerlink" href="#before-recenter-plot" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pm</span><span class="o">.</span><span class="n">traceplot</span><span class="p">(</span><span class="n">centered_trace</span><span class="p">,</span> <span class="n">varnames</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;sigma_b&#39;</span><span class="p">])</span>
+<div class="highlight-python notranslate" id="before-recenter-plot"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pm</span><span class="o">.</span><span class="n">traceplot</span><span class="p">(</span><span class="n">centered_trace</span><span class="p">,</span> <span class="n">varnames</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;sigma_b&#39;</span><span class="p">])</span>
 </pre></div>
-</div>
 </div>
 <div class="align-center figure" id="id1">
 <span id="fig-original-model-trace"></span><a class="reference internal image-reference" href="_images/centered_trace.png"><img alt="_images/centered_trace.png" src="_images/centered_trace.png" style="width: 800px;" /></a>
@@ -178,11 +173,8 @@ and improve sample chain quality.</p>
 </div>
 <div class="section" id="after">
 <h2>After<a class="headerlink" href="#after" title="Permalink to this headline">¶</a></h2>
-<div class="literal-block-wrapper docutils container" id="after-recenter-plot">
-<div class="code-block-caption"><span class="caption-number">Listing 52 </span><span class="caption-text">after-recenter-plot</span><a class="headerlink" href="#after-recenter-plot" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pm</span><span class="o">.</span><span class="n">traceplot</span><span class="p">(</span><span class="n">recentered_trace</span><span class="p">,</span> <span class="n">varnames</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;sigma_b&#39;</span><span class="p">])</span>
+<div class="highlight-python notranslate" id="after-recenter-plot"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pm</span><span class="o">.</span><span class="n">traceplot</span><span class="p">(</span><span class="n">recentered_trace</span><span class="p">,</span> <span class="n">varnames</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;sigma_b&#39;</span><span class="p">])</span>
 </pre></div>
-</div>
 </div>
 <div class="align-center figure" id="id2">
 <span id="fig-transformed-model-trace"></span><a class="reference internal image-reference" href="_images/recentered_trace.png"><img alt="_images/recentered_trace.png" src="_images/recentered_trace.png" style="width: 800px;" /></a>

@@ -93,9 +93,7 @@ modeled by <strong>meta graph objects</strong> in Symbolic PyMC.</p>
 expressions–i.e. <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">y)</span></code>–in TensorFlow.
 We need to do this in order to determine exactly what we’re searching for
 and–later–what to put in its place.</p>
-<div class="literal-block-wrapper docutils container" id="tf-matmul-graph">
-<div class="code-block-caption"><span class="caption-number">Listing 1 </span><span class="caption-text">tf-matmul-graph</span><a class="headerlink" href="#tf-matmul-graph" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<div class="highlight-python notranslate" id="tf-matmul-graph"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="kn">as</span> <span class="nn">tf</span>
 
@@ -117,16 +115,12 @@ and–later–what to put in its place.</p>
     <span class="n">z_tf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">A_tf</span><span class="p">,</span> <span class="n">x_tf</span> <span class="o">+</span> <span class="n">y_tf</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
 <p>A text print-out of the full TensorFlow graph is provided by the debug print
 function <code class="docutils literal notranslate"><span class="pre">tf_dprint</span></code>.</p>
-<div class="literal-block-wrapper docutils container" id="tf-print-graph">
-<div class="code-block-caption"><span class="caption-number">Listing 2 </span><span class="caption-text">tf-print-graph</span><a class="headerlink" href="#tf-print-graph" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">symbolic_pymc.tensorflow.printing</span> <span class="kn">import</span> <span class="n">tf_dprint</span>
+<div class="highlight-python notranslate" id="tf-print-graph"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">symbolic_pymc.tensorflow.printing</span> <span class="kn">import</span> <span class="n">tf_dprint</span>
 
 <span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_tf</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Tensor</span><span class="p">(</span><span class="n">MatMul</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>   <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>        <span class="s2">&quot;MatMul:0&quot;</span>
 <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">Placeholder</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>   <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span>     <span class="s2">&quot;A:0&quot;</span>
@@ -135,10 +129,10 @@ function <code class="docutils literal notranslate"><span class="pre">tf_dprint<
 <span class="o">|</span>  <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">Placeholder</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>        <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>        <span class="s2">&quot;y:0&quot;</span>
 </pre></div>
 </div>
-<p>The output of <a class="reference internal" href="#tf-print-graph"><span class="std std-numref">Listing 2</span></a> shows us the underlying operators (e.g. <code class="docutils literal notranslate"><span class="pre">MatMul</span></code>,
+<p>The output of <span class="xref std std-ref">tf-print-graph</span> shows us the underlying operators (e.g. <code class="docutils literal notranslate"><span class="pre">MatMul</span></code>,
 <code class="docutils literal notranslate"><span class="pre">Placeholder</span></code>, <code class="docutils literal notranslate"><span class="pre">AddV2</span></code>) and their arguments.</p>
 <p>To “match/search for” combinations of TensorFlow operations–or, in other words, graphs–like
-<a class="reference internal" href="#tf-print-graph"><span class="std std-numref">Listing 2</span></a>, we use <a class="reference external" href="https://en.wikipedia.org/wiki/Unification_(computer_science)">**unification**</a>; to “replace” parts of a graph (well, to produce copies with
+<span class="xref std std-ref">tf-print-graph</span>, we use <a class="reference external" href="https://en.wikipedia.org/wiki/Unification_(computer_science)">**unification**</a>; to “replace” parts of a graph (well, to produce copies with
 replaced parts), we use <a class="reference external" href="https://en.wikipedia.org/wiki/Reification_(computer_science)">**reification**</a>.  Symbolic PyMC provides support for
 these using <a class="reference external" href="https://www.tensorflow.org/">TensorFlow</a> (and <a class="reference external" href="http://deeplearning.net/software/theano/">Theano</a>) graphs via <strong>meta objects</strong> and <strong>expression-tuples</strong>.</p>
 </div>
@@ -151,20 +145,14 @@ variables can be replaced with other objects that allow the meta graph to
 be converted into a real TensorFlow graph.</p>
 <p>Existing TensorFlow graphs can be converted to their meta graph equivalents with
 the <code class="docutils literal notranslate"><span class="pre">mt</span></code> helper object.</p>
-<div class="literal-block-wrapper docutils container" id="convert-to-meta">
-<div class="code-block-caption"><span class="caption-number">Listing 3 </span><span class="caption-text">convert-to-meta</span><a class="headerlink" href="#convert-to-meta" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">symbolic_pymc.tensorflow.meta</span> <span class="kn">import</span> <span class="n">mt</span>
+<div class="highlight-python notranslate" id="convert-to-meta"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">symbolic_pymc.tensorflow.meta</span> <span class="kn">import</span> <span class="n">mt</span>
 
 
 <span class="n">z_mt</span> <span class="o">=</span> <span class="n">mt</span><span class="p">(</span><span class="n">z_tf</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="convert-to-meta-print">
-<div class="code-block-caption"><span class="caption-number">Listing 4 </span><span class="caption-text">convert-to-meta-print</span><a class="headerlink" href="#convert-to-meta-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_mt</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="convert-to-meta-print"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_mt</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Tensor</span><span class="p">(</span><span class="n">MatMul</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>   <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>        <span class="s2">&quot;MatMul:0&quot;</span>
 <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">Placeholder</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>   <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span>     <span class="s2">&quot;A:0&quot;</span>
@@ -174,11 +162,8 @@ the <code class="docutils literal notranslate"><span class="pre">mt</span></code
 </pre></div>
 </div>
 <p>A meta graph can be converted to a TensorFlow graph using its <code class="docutils literal notranslate"><span class="pre">reify</span></code> method.</p>
-<div class="literal-block-wrapper docutils container" id="meta-to-tf">
-<div class="code-block-caption"><span class="caption-number">Listing 5 </span><span class="caption-text">meta-to-tf</span><a class="headerlink" href="#meta-to-tf" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_mt</span><span class="o">.</span><span class="n">reify</span><span class="p">())</span>
+<div class="highlight-python notranslate" id="meta-to-tf"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_mt</span><span class="o">.</span><span class="n">reify</span><span class="p">())</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Tensor</span><span class="p">(</span><span class="n">MatMul</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>   <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>        <span class="s2">&quot;MatMul:0&quot;</span>
 <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">Placeholder</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>   <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span>     <span class="s2">&quot;A:0&quot;</span>
@@ -188,15 +173,12 @@ the <code class="docutils literal notranslate"><span class="pre">mt</span></code
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">mt</span></code> object also makes it easier to construct meta graphs by hand.</p>
-<div class="literal-block-wrapper docutils container" id="create-meta-graph">
-<div class="code-block-caption"><span class="caption-number">Listing 6 </span><span class="caption-text">create-meta-graph</span><a class="headerlink" href="#create-meta-graph" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">unification</span> <span class="kn">import</span> <span class="n">unify</span><span class="p">,</span> <span class="n">reify</span><span class="p">,</span> <span class="n">var</span>
+<div class="highlight-python notranslate" id="create-meta-graph"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">unification</span> <span class="kn">import</span> <span class="n">unify</span><span class="p">,</span> <span class="n">reify</span><span class="p">,</span> <span class="n">var</span>
 
 
 <span class="k">with</span> <span class="n">graph_mode</span><span class="p">():</span>
     <span class="n">add_mt</span> <span class="o">=</span> <span class="n">mt</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">))</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">add_mt</span><span class="p">)</span>
 </pre></div>
@@ -220,17 +202,14 @@ the <code class="docutils literal notranslate"><span class="pre">mt</span></code
   <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>In <a class="reference internal" href="#create-meta-graph"><span class="std std-numref">Listing 6</span></a>, we created a graph of <code class="docutils literal notranslate"><span class="pre">1</span></code> plus
+<p>In <span class="xref std std-ref">create-meta-graph</span>, we created a graph of <code class="docutils literal notranslate"><span class="pre">1</span></code> plus
 a <code class="docutils literal notranslate"><span class="pre">unification</span></code> logic variable with the name <code class="docutils literal notranslate"><span class="pre">'a'</span></code>. This
 wouldn’t be possible with a standard TensorFlow graph.</p>
 <p>Also, because one of the elements in the graph is a logic variable, it cannot be
 converted into a TensorFlow graph. Instead, if we attempt to use the meta
 graph’s <code class="docutils literal notranslate"><span class="pre">reify</span></code> method, we are simply given the meta graph back.</p>
-<div class="literal-block-wrapper docutils container" id="bad-reify-meta-graphh">
-<div class="code-block-caption"><span class="caption-number">Listing 7 </span><span class="caption-text">bad-reify-meta-graphh</span><a class="headerlink" href="#bad-reify-meta-graphh" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">add_mt</span><span class="o">.</span><span class="n">reify</span><span class="p">())</span>
+<div class="highlight-python notranslate" id="bad-reify-meta-graphh"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">add_mt</span><span class="o">.</span><span class="n">reify</span><span class="p">())</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">TFlowMetaTensor</span><span class="p">(</span>
   <span class="n">op</span><span class="o">=</span><span class="n">TFlowMetaOp</span><span class="p">(</span>
@@ -255,21 +234,15 @@ graph’s <code class="docutils literal notranslate"><span class="pre">reify</sp
 <div class="section" id="s-expressions">
 <h2>S-expressions<a class="headerlink" href="#s-expressions" title="Permalink to this headline">¶</a></h2>
 <p>As an alternative approach to full meta graph conversion, we can also convert
-TensorFlow graphs into an <a class="reference external" href="https://en.wikipedia.org/wiki/S-expression">S-expression-like</a> form.</p>
-<div class="literal-block-wrapper docutils container" id="etuplize-graph">
-<div class="code-block-caption"><span class="caption-number">Listing 8 </span><span class="caption-text">etuplize-graph</span><a class="headerlink" href="#etuplize-graph" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">symbolic_pymc.etuple</span> <span class="kn">import</span> <span class="n">etuple</span><span class="p">,</span> <span class="n">etuplize</span>
+TensorFlow graphs into an <a class="reference external" href="https://en.wikipedia.org/wiki/S-expression">S-expression-like</a> form using <cite>``etuples`</cite> &lt;<a class="reference external" href="https://github.com/pythological/etuples">https://github.com/pythological/etuples</a>&gt;`_.</p>
+<div class="highlight-python notranslate" id="etuplize-graph"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">etuples</span> <span class="kn">import</span> <span class="n">etuple</span><span class="p">,</span> <span class="n">etuplize</span>
 
 
 <span class="n">z_sexp</span> <span class="o">=</span> <span class="n">etuplize</span><span class="p">(</span><span class="n">z_tf</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="etuplize-graph-print">
-<div class="code-block-caption"><span class="caption-number">Listing 9 </span><span class="caption-text">etuplize-graph-print</span><a class="headerlink" href="#etuplize-graph-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">z_sexp</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="etuplize-graph-print"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">z_sexp</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">e</span><span class="p">(</span>
   <span class="n">e</span><span class="p">(</span>
@@ -332,25 +305,19 @@ conjunction with meta graphs and logic variable arguments.  Basically,
 an <code class="docutils literal notranslate"><span class="pre">etuple</span></code> can be manipulated until all of its constituent logic
 variables and meta objects are eventually replaced with valid arguments to the
 function/operator.  At that point, the <code class="docutils literal notranslate"><span class="pre">etuple</span></code> can be evaluated.</p>
-<p>For example, in <a class="reference internal" href="#etuple-eval-example"><span class="std std-numref">Listing 10</span></a>, we create an <code class="docutils literal notranslate"><span class="pre">etuple</span></code>that uses the TensorFlow function <code class="docutils literal notranslate"><span class="pre">tf.add</span></code> with a logic variable argument.</p>
-<div class="literal-block-wrapper docutils container" id="etuple-eval-example">
-<div class="code-block-caption"><span class="caption-number">Listing 10 </span><span class="caption-text">etuple-eval-example</span><a class="headerlink" href="#etuple-eval-example" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">x_lv</span><span class="p">,</span> <span class="n">y_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">),</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+<p>For example, in <span class="xref std std-ref">etuple-eval-example</span>, we create an <code class="docutils literal notranslate"><span class="pre">etuple</span></code>that uses the TensorFlow function <code class="docutils literal notranslate"><span class="pre">tf.add</span></code> with a logic variable argument.</p>
+<div class="highlight-python notranslate" id="etuple-eval-example"><div class="highlight"><pre><span></span><span class="n">x_lv</span><span class="p">,</span> <span class="n">y_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">),</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
 
 <span class="n">add_tf_pat</span> <span class="o">=</span> <span class="n">etuple</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">x_lv</span><span class="p">,</span> <span class="n">y_lv</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
 <p>Normally, it wouldn’t be possible to call this function with these argument
-types, as demonstrated in <a class="reference internal" href="#etuple-bad-usage-example"><span class="std std-numref">Listing 11</span></a>.</p>
-<div class="literal-block-wrapper docutils container" id="etuple-bad-usage-example">
-<div class="code-block-caption"><span class="caption-number">Listing 11 </span><span class="caption-text">etuple-bad-usage-example</span><a class="headerlink" href="#etuple-bad-usage-example" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+types, as demonstrated in <span class="xref std std-ref">etuple-bad-usage-example</span>.</p>
+<div class="highlight-python notranslate" id="etuple-bad-usage-example"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">x_lv</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
     <span class="k">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>2019-11-17 20:48:04.437195: I tensorflow/core/platform/cpu_feature_guard.cc:142] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
 2019-11-17 20:48:04.461487: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2112000000 Hz
@@ -365,28 +332,19 @@ its <code class="docutils literal notranslate"><span class="pre">ExpressionTuple
 performing a simple manipulation that replaces the logic variable with valid
 inputs to <code class="docutils literal notranslate"><span class="pre">tf.add</span></code>, we are able to evaluate
 the <code class="docutils literal notranslate"><span class="pre">etuple</span></code> and obtain a TF Tensor result, as
-demonstrated in <a class="reference internal" href="#etuple-reify-example"><span class="std std-numref">Listing 12</span></a> and
-<a class="reference internal" href="#etuple-reify-eval-print-example"><span class="std std-numref">Listing 14</span></a>.</p>
-<div class="literal-block-wrapper docutils container" id="etuple-reify-example">
-<div class="code-block-caption"><span class="caption-number">Listing 12 </span><span class="caption-text">etuple-reify-example</span><a class="headerlink" href="#etuple-reify-example" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_pat_new</span> <span class="o">=</span> <span class="n">reify</span><span class="p">(</span><span class="n">add_tf_pat</span><span class="p">,</span> <span class="p">{</span><span class="n">x_lv</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y_lv</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+demonstrated in <span class="xref std std-ref">etuple-reify-example</span> and
+<span class="xref std std-ref">etuple-reify-eval-print-example</span>.</p>
+<div class="highlight-python notranslate" id="etuple-reify-example"><div class="highlight"><pre><span></span><span class="n">add_pat_new</span> <span class="o">=</span> <span class="n">reify</span><span class="p">(</span><span class="n">add_tf_pat</span><span class="p">,</span> <span class="p">{</span><span class="n">x_lv</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y_lv</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="etuple-reify-print-example">
-<div class="code-block-caption"><span class="caption-number">Listing 13 </span><span class="caption-text">etuple-reify-print-example</span><a class="headerlink" href="#etuple-reify-print-example" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">add_pat_new</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="etuple-reify-print-example"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">add_pat_new</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">e</span><span class="p">(</span><span class="o">&lt;</span><span class="n">function</span> <span class="n">tensorflow</span><span class="o">.</span><span class="n">python</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">gen_math_ops</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="literal-block-wrapper docutils container" id="etuple-reify-eval-print-example">
-<div class="code-block-caption"><span class="caption-number">Listing 14 </span><span class="caption-text">etuple-reify-eval-print-example</span><a class="headerlink" href="#etuple-reify-eval-print-example" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">add_pat_new</span><span class="o">.</span><span class="n">eval_obj</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="etuple-reify-eval-print-example"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">add_pat_new</span><span class="o">.</span><span class="n">eval_obj</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span> <span class="n">shape</span><span class="o">=</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">int32</span><span class="p">,</span> <span class="n">numpy</span><span class="o">=</span><span class="mi">2</span><span class="o">&gt;</span>
 </pre></div>
@@ -400,15 +358,12 @@ the same results–albeit without the more convenient tuple-like structuring.</p
 </div>
 <div class="section" id="meta-operators-and-their-parameters">
 <h2>Meta Operators and their Parameters<a class="headerlink" href="#meta-operators-and-their-parameters" title="Permalink to this headline">¶</a></h2>
-<p>In <a class="reference internal" href="#etuplize-graph-print"><span class="std std-numref">Listing 9</span></a>, the <code class="docutils literal notranslate"><span class="pre">etuple</span></code> form of
+<p>In <span class="xref std std-ref">etuplize-graph-print</span>, the <code class="docutils literal notranslate"><span class="pre">etuple</span></code> form of
 our matrix multiplication graph, <code class="docutils literal notranslate"><span class="pre">z_sexp</span></code>, produced
-<code class="docutils literal notranslate"><span class="pre">symbolic_pymc.tensorflow.meta.TFlowMetaOperator</span></code>in the function/operator position.  <a class="reference internal" href="#print-etuple-operator"><span class="std std-numref">Listing 15</span></a> prints
+<code class="docutils literal notranslate"><span class="pre">symbolic_pymc.tensorflow.meta.TFlowMetaOperator</span></code>in the function/operator position.  <span class="xref std std-ref">print-etuple-operator</span> prints
 only the function part of the <code class="docutils literal notranslate"><span class="pre">etuple</span></code>.</p>
-<div class="literal-block-wrapper docutils container" id="print-etuple-operator">
-<div class="code-block-caption"><span class="caption-number">Listing 15 </span><span class="caption-text">print-etuple-operator</span><a class="headerlink" href="#print-etuple-operator" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">z_sexp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<div class="highlight-python notranslate" id="print-etuple-operator"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">z_sexp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">e</span><span class="p">(</span>
   <span class="n">symbolic_pymc</span><span class="o">.</span><span class="n">tensorflow</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">TFlowMetaOperator</span><span class="p">,</span>
@@ -441,12 +396,9 @@ entire <code class="docutils literal notranslate"><span class="pre">NodeDef</spa
 <code class="docutils literal notranslate"><span class="pre">Operation</span></code>’s <code class="docutils literal notranslate"><span class="pre">OpDef</span></code>.  Notice that the
 <code class="docutils literal notranslate"><span class="pre">NodeDef</span></code> in the meta operator for <code class="docutils literal notranslate"><span class="pre">tf.matmul</span></code>has a <code class="docutils literal notranslate"><span class="pre">dict</span></code> containing <code class="docutils literal notranslate"><span class="pre">transpose_*</span></code> entries.
 These are the default values for the TF function <code class="docutils literal notranslate"><span class="pre">tf.matmul</span></code> (see
-<a class="reference internal" href="#print-tf-matmul"><span class="std std-numref">Listing 16</span></a>).</p>
-<div class="literal-block-wrapper docutils container" id="print-tf-matmul">
-<div class="code-block-caption"><span class="caption-number">Listing 16 </span><span class="caption-text">print-tf-matmul</span><a class="headerlink" href="#print-tf-matmul" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">)</span>
+<span class="xref std std-ref">print-tf-matmul</span>).</p>
+<div class="highlight-python notranslate" id="print-tf-matmul"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">function</span> <span class="n">tensorflow</span><span class="o">.</span><span class="n">python</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">math_ops</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">transpose_a</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">adjoint_a</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">adjoint_b</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">a_is_sparse</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">b_is_sparse</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span><span class="o">&gt;</span>
 </pre></div>
@@ -475,11 +427,9 @@ graphs by replacing logic variables using <strong>reification</strong>.</p>
 Patterns, in this case, take the form of meta graphs or S-expr graphs with the
 desired structure and logic variables in place of “unknown” or arbitrary terms
 that we might like to reference elsewhere.</p>
-<p><a class="reference internal" href="#matmul-pattern"><span class="std std-numref">Listing 17</span></a> represents an S-expr that evaluates to a graph in
+<p><span class="xref std std-ref">matmul-pattern</span> represents an S-expr that evaluates to a graph in
 which two terms are matrix-multiplied.</p>
-<div class="literal-block-wrapper docutils container" id="matmul-pattern">
-<div class="code-block-caption"><span class="caption-number">Listing 17 </span><span class="caption-text">matmul-pattern</span><a class="headerlink" href="#matmul-pattern" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">symbolic_pymc.tensorflow.meta</span> <span class="kn">import</span> <span class="n">TFlowMetaOperator</span>
+<div class="highlight-python notranslate" id="matmul-pattern"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">symbolic_pymc.tensorflow.meta</span> <span class="kn">import</span> <span class="n">TFlowMetaOperator</span>
 
 
 <span class="n">A_lv</span><span class="p">,</span> <span class="n">B_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;A&#39;</span><span class="p">),</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
@@ -491,8 +441,7 @@ which two terms are matrix-multiplied.</p>
 <span class="n">matmul_pat</span> <span class="o">=</span> <span class="n">etuplize</span><span class="p">(</span><span class="n">matmul_pat_mt</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<p>In <a class="reference internal" href="#matmul-pattern"><span class="std std-numref">Listing 17</span></a> we created a meta
+<p>In <span class="xref std std-ref">matmul-pattern</span> we created a meta
 graph, <code class="docutils literal notranslate"><span class="pre">matmul_pat_mt</span></code>, from a meta
 TF <code class="docutils literal notranslate"><span class="pre">MatMul</span></code> operator and a
 variable <code class="docutils literal notranslate"><span class="pre">NodeDef</span></code>, then we applied that meta operator to
@@ -517,17 +466,11 @@ necessarily in general.</p>
 <h3>Unification<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
 <p>We can perform the unification using the function <code class="docutils literal notranslate"><span class="pre">unify</span></code>.  The result
 is a <code class="docutils literal notranslate"><span class="pre">dict</span></code> mapping logic variables to their unified values.</p>
-<div class="literal-block-wrapper docutils container" id="matmul-pattern-unify">
-<div class="code-block-caption"><span class="caption-number">Listing 18 </span><span class="caption-text">matmul-pattern-unify</span><a class="headerlink" href="#matmul-pattern-unify" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">unify</span><span class="p">(</span><span class="n">matmul_pat</span><span class="p">,</span> <span class="n">z_sexp</span><span class="p">,</span> <span class="p">{})</span>
+<div class="highlight-python notranslate" id="matmul-pattern-unify"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">unify</span><span class="p">(</span><span class="n">matmul_pat</span><span class="p">,</span> <span class="n">z_sexp</span><span class="p">,</span> <span class="p">{})</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="matmul-pattern-unify-print">
-<div class="code-block-caption"><span class="caption-number">Listing 19 </span><span class="caption-text">matmul-pattern-unify-print</span><a class="headerlink" href="#matmul-pattern-unify-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="matmul-pattern-unify-print"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="o">~</span><span class="n">node_def</span><span class="p">:</span> <span class="n">e</span><span class="p">(</span>
    <span class="n">symbolic_pymc</span><span class="o">.</span><span class="n">tensorflow</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">TFlowMetaNodeDef</span><span class="p">,</span>
@@ -582,22 +525,16 @@ is a <code class="docutils literal notranslate"><span class="pre">dict</span></c
 our “pattern” with the matches obtained by <code class="docutils literal notranslate"><span class="pre">unify</span></code> that are held
 within the variable <code class="docutils literal notranslate"><span class="pre">s</span></code>, or we could specify our own substitutions
 based on that information.</p>
-<p>In <a class="reference internal" href="#matmul-pattern-reify"><span class="std std-numref">Listing 20</span></a>, we simply change the <code class="docutils literal notranslate"><span class="pre">'name'</span></code> value in the
+<p>In <span class="xref std std-ref">matmul-pattern-reify</span>, we simply change the <code class="docutils literal notranslate"><span class="pre">'name'</span></code> value in the
 and create a new graph with that value.  The end result is a version of the original
 graph, <code class="docutils literal notranslate"><span class="pre">z_sexp</span></code>, with a new name.</p>
-<div class="literal-block-wrapper docutils container" id="matmul-pattern-reify">
-<div class="code-block-caption"><span class="caption-number">Listing 20 </span><span class="caption-text">matmul-pattern-reify</span><a class="headerlink" href="#matmul-pattern-reify" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">s</span><span class="p">[</span><span class="n">var</span><span class="p">(</span><span class="s1">&#39;node_def&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">var</span><span class="p">(</span><span class="s1">&#39;node_def&#39;</span><span class="p">)][:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;a_new_name&quot;</span><span class="p">,)</span> <span class="o">+</span> <span class="n">s</span><span class="p">[</span><span class="n">var</span><span class="p">(</span><span class="s1">&#39;node_def&#39;</span><span class="p">)][</span><span class="mi">3</span><span class="p">:]</span>
+<div class="highlight-python notranslate" id="matmul-pattern-reify"><div class="highlight"><pre><span></span><span class="n">s</span><span class="p">[</span><span class="n">var</span><span class="p">(</span><span class="s1">&#39;node_def&#39;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">var</span><span class="p">(</span><span class="s1">&#39;node_def&#39;</span><span class="p">)][:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;a_new_name&quot;</span><span class="p">,)</span> <span class="o">+</span> <span class="n">s</span><span class="p">[</span><span class="n">var</span><span class="p">(</span><span class="s1">&#39;node_def&#39;</span><span class="p">)][</span><span class="mi">3</span><span class="p">:]</span>
 
 <span class="n">z_sexp_re</span> <span class="o">=</span> <span class="n">reify</span><span class="p">(</span><span class="n">matmul_pat</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="matmul-pattern-reify-print">
-<div class="code-block-caption"><span class="caption-number">Listing 21 </span><span class="caption-text">matmul-pattern-reify-print</span><a class="headerlink" href="#matmul-pattern-reify-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">z_sexp_re</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="matmul-pattern-reify-print"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">z_sexp_re</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">e</span><span class="p">(</span>
   <span class="n">e</span><span class="p">(</span>
@@ -659,47 +596,35 @@ graph, <code class="docutils literal notranslate"><span class="pre">matmul_pat</
 <p>If we combine our matrix multiplication and
 addition <code class="docutils literal notranslate"><span class="pre">etuple</span></code> patterns, we can extract all the
 arguments needed as input to a distributed multiplication pattern.</p>
-<div class="literal-block-wrapper docutils container" id="dist-new-pattern">
-<div class="code-block-caption"><span class="caption-number">Listing 22 </span><span class="caption-text">dist-new-pattern</span><a class="headerlink" href="#dist-new-pattern" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_op_mt</span> <span class="o">=</span> <span class="n">TFlowMetaOperator</span><span class="p">(</span><span class="s1">&#39;addv2&#39;</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;add_node_def&#39;</span><span class="p">))</span>
+<div class="highlight-python notranslate" id="dist-new-pattern"><div class="highlight"><pre><span></span><span class="n">add_op_mt</span> <span class="o">=</span> <span class="n">TFlowMetaOperator</span><span class="p">(</span><span class="s1">&#39;addv2&#39;</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;add_node_def&#39;</span><span class="p">))</span>
 
 <span class="n">output_pat_mt</span> <span class="o">=</span> <span class="n">add_op_mt</span><span class="p">(</span><span class="n">matmul_op_mt</span><span class="p">(</span><span class="n">A_lv</span><span class="p">,</span> <span class="n">x_lv</span><span class="p">),</span> <span class="n">matmul_op_mt</span><span class="p">(</span><span class="n">A_lv</span><span class="p">,</span> <span class="n">y_lv</span><span class="p">))</span>
 
 <span class="n">output_pat</span> <span class="o">=</span> <span class="n">etuplize</span><span class="p">(</span><span class="n">output_pat_mt</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
 <p>With logic
 variables <code class="docutils literal notranslate"><span class="pre">A_lv</span></code>, <code class="docutils literal notranslate"><span class="pre">x_lv</span></code>and <code class="docutils literal notranslate"><span class="pre">y_lv</span></code> mapped to their template-corresponding objects
 in another graph, we can reify <code class="docutils literal notranslate"><span class="pre">output_pat</span></code> and obtain a
 “transformed” version of said graph.</p>
-<p>Using our earlier unification results in <a class="reference internal" href="#matmul-pattern-unify"><span class="std std-numref">Listing 18</span></a>, we only
+<p>Using our earlier unification results in <span class="xref std std-ref">matmul-pattern-unify</span>, we only
 need to reify our output pattern, <code class="docutils literal notranslate"><span class="pre">output_pat</span></code>, with
 those mappings.  However, since our output pattern refers to logic variables
 <code class="docutils literal notranslate"><span class="pre">x_lv</span></code> and <code class="docutils literal notranslate"><span class="pre">y_lv</span></code>, we’ll need
 to unify those logic variables with the appropriate terms in the graph.</p>
-<p><a class="reference internal" href="#dist-add-unify"><span class="std std-numref">Listing 23</span></a>, unifies the remaining terms by simply extracting the
+<p><span class="xref std std-ref">dist-add-unify</span>, unifies the remaining terms by simply extracting the
 <code class="docutils literal notranslate"><span class="pre">B</span></code> argument in the matrix multiply and unifying
 that with a pattern for tensor addition.</p>
-<div class="literal-block-wrapper docutils container" id="dist-add-unify">
-<div class="code-block-caption"><span class="caption-number">Listing 23 </span><span class="caption-text">dist-add-unify</span><a class="headerlink" href="#dist-add-unify" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_pat</span> <span class="o">=</span> <span class="n">etuple</span><span class="p">(</span><span class="n">etuplize</span><span class="p">(</span><span class="n">add_op_mt</span><span class="p">),</span> <span class="n">x_lv</span><span class="p">,</span> <span class="n">y_lv</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="dist-add-unify"><div class="highlight"><pre><span></span><span class="n">add_pat</span> <span class="o">=</span> <span class="n">etuple</span><span class="p">(</span><span class="n">etuplize</span><span class="p">(</span><span class="n">add_op_mt</span><span class="p">),</span> <span class="n">x_lv</span><span class="p">,</span> <span class="n">y_lv</span><span class="p">)</span>
 
 <span class="n">s_add</span> <span class="o">=</span> <span class="n">unify</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="n">B_lv</span><span class="p">],</span> <span class="n">add_pat</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="dist-new-pattern-reify">
-<div class="code-block-caption"><span class="caption-number">Listing 24 </span><span class="caption-text">dist-new-pattern-reify</span><a class="headerlink" href="#dist-new-pattern-reify" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">z_new</span> <span class="o">=</span> <span class="n">reify</span><span class="p">(</span><span class="n">output_pat</span><span class="p">,</span> <span class="n">s_add</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="dist-new-pattern-reify"><div class="highlight"><pre><span></span><span class="n">z_new</span> <span class="o">=</span> <span class="n">reify</span><span class="p">(</span><span class="n">output_pat</span><span class="p">,</span> <span class="n">s_add</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="dist-new-pattern-reify-print">
-<div class="code-block-caption"><span class="caption-number">Listing 25 </span><span class="caption-text">dist-new-pattern-reify-print</span><a class="headerlink" href="#dist-new-pattern-reify-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_new</span><span class="o">.</span><span class="n">eval_obj</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="dist-new-pattern-reify-print"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_new</span><span class="o">.</span><span class="n">eval_obj</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Tensor</span><span class="p">(</span><span class="n">AddV2</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>    <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=~</span><span class="n">_11</span><span class="p">,</span>     <span class="s2">&quot;add:0&quot;</span>
 <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">MatMul</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>        <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=~</span><span class="n">_12</span><span class="p">,</span>     <span class="s2">&quot;a_new_name:0&quot;</span>
@@ -744,23 +669,17 @@ unification, which–in the normal course of operation–aren’t dealt with dir
 <p>Normally, a user will only need to construct compound goals from a basic set of
 primitives.  Arguably, the most primitive goal is the <a class="reference external" href="https://en.wikipedia.org/wiki/Equivalence_relation">equivalence relation</a>
 under unification denoted by <code class="docutils literal notranslate"><span class="pre">eq</span></code> in Python.</p>
-<p>In <a class="reference internal" href="#mk-basics-eq"><span class="std std-numref">Listing 26</span></a>, we ask for all successful results/reifications (signified
+<p>In <span class="xref std std-ref">mk-basics-eq</span>, we ask for all successful results/reifications (signified
 by the <code class="docutils literal notranslate"><span class="pre">0</span></code> argument) of the logic variable <code class="docutils literal notranslate"><span class="pre">var('q')</span></code> for the goal
 <code class="docutils literal notranslate"><span class="pre">eq(var('q'),</span> <span class="pre">1)</span></code>–i.e. unify <code class="docutils literal notranslate"><span class="pre">var('q')</span></code> with <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
-<div class="literal-block-wrapper docutils container" id="mk-basics-eq">
-<div class="code-block-caption"><span class="caption-number">Listing 26 </span><span class="caption-text">mk-basics-eq</span><a class="headerlink" href="#mk-basics-eq" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">eq</span>
+<div class="highlight-python notranslate" id="mk-basics-eq"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">eq</span>
 
 <span class="n">q_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)</span>
 <span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">,</span> <span class="n">eq</span><span class="p">(</span><span class="n">q_lv</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="mk-basics-eq-print">
-<div class="code-block-caption"><span class="caption-number">Listing 27 </span><span class="caption-text">mk-basics-eq-print</span><a class="headerlink" href="#mk-basics-eq-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="mk-basics-eq-print"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="mi">1</span><span class="p">,)</span>
 </pre></div>
@@ -770,45 +689,33 @@ a tuple containing the reified value of <code class="docutils literal notranslat
 possible state for which our stated goal successfully evaluates.</p>
 <p>The other basic primitives represent conjunction and disjunction of miniKanren
 goals: <code class="docutils literal notranslate"><span class="pre">lall</span></code> and <code class="docutils literal notranslate"><span class="pre">lany</span></code>, respectively.</p>
-<div class="literal-block-wrapper docutils container" id="mk-basics-lall">
-<div class="code-block-caption"><span class="caption-number">Listing 28 </span><span class="caption-text">mk-basics-lall</span><a class="headerlink" href="#mk-basics-lall" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">lall</span><span class="p">,</span> <span class="n">lany</span>
+<div class="highlight-python notranslate" id="mk-basics-lall"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">lall</span><span class="p">,</span> <span class="n">lany</span>
 
 <span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">,</span> <span class="n">lall</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">q_lv</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">eq</span><span class="p">(</span><span class="n">q_lv</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="mk-basics-lall-print">
-<div class="code-block-caption"><span class="caption-number">Listing 29 </span><span class="caption-text">mk-basics-lall-print</span><a class="headerlink" href="#mk-basics-lall-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="mk-basics-lall-print"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">()</span>
 </pre></div>
 </div>
-<p>In <a class="reference internal" href="#mk-basics-lall"><span class="std std-numref">Listing 28</span></a>, we used <code class="docutils literal notranslate"><span class="pre">lall</span></code> to obtain the conjunction of two unification goals.
+<p>In <span class="xref std std-ref">mk-basics-lall</span>, we used <code class="docutils literal notranslate"><span class="pre">lall</span></code> to obtain the conjunction of two unification goals.
 Since we requested that the same logic variable be unified
 with both <code class="docutils literal notranslate"><span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">2</span></code> simultaneously (i.e. in the same
 state), which isn’t possible, we got back an empty stream of results–indicating failure.</p>
 <p>Goal disjunction, <code class="docutils literal notranslate"><span class="pre">lany</span></code>, will split a state stream across goals,
 producing new distinct states for each.</p>
-<div class="literal-block-wrapper docutils container" id="mk-basics-lany">
-<div class="code-block-caption"><span class="caption-number">Listing 30 </span><span class="caption-text">mk-basics-lany</span><a class="headerlink" href="#mk-basics-lany" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">,</span> <span class="n">lany</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">q_lv</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">eq</span><span class="p">(</span><span class="n">q_lv</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+<div class="highlight-python notranslate" id="mk-basics-lany"><div class="highlight"><pre><span></span><span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">,</span> <span class="n">lany</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">q_lv</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">eq</span><span class="p">(</span><span class="n">q_lv</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="mk-basics-lany-print">
-<div class="code-block-caption"><span class="caption-number">Listing 31 </span><span class="caption-text">mk-basics-lany-print</span><a class="headerlink" href="#mk-basics-lany-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="mk-basics-lany-print"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The goal disjunction results in <a class="reference internal" href="#mk-basics-lany-print"><span class="std std-numref">Listing 31</span></a> show that the logic variable
+<p>The goal disjunction results in <span class="xref std std-ref">mk-basics-lany-print</span> show that the logic variable
 <code class="docutils literal notranslate"><span class="pre">q_lv</span></code> can be unified with either <code class="docutils literal notranslate"><span class="pre">1</span></code> <strong>or</strong> <code class="docutils literal notranslate"><span class="pre">2</span></code> under the
 two unification goals.</p>
 <p>A common pattern of disjunction and conjunction is called <code class="docutils literal notranslate"><span class="pre">conde</span></code>, and
@@ -816,9 +723,7 @@ it mirrors the Lisp function <code class="docutils literal notranslate"><span cl
 compound <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">...</span> <span class="pre">elif</span> <span class="pre">...</span> <span class="pre">elif</span> <span class="pre">...</span></code>.  Specifically,
 <code class="docutils literal notranslate"><span class="pre">conde([x_1,</span> <span class="pre">...],</span> <span class="pre">...,</span> <span class="pre">[y_1,</span> <span class="pre">...])</span></code> is the same as
 <code class="docutils literal notranslate"><span class="pre">lany(lall(x_1,</span> <span class="pre">...),</span> <span class="pre">...,</span> <span class="pre">lall(y_1,</span> <span class="pre">...))</span></code>–i.e. a disjunction of goal conjunctions.</p>
-<div class="literal-block-wrapper docutils container" id="mk-basics-conde">
-<div class="code-block-caption"><span class="caption-number">Listing 32 </span><span class="caption-text">mk-basics-conde</span><a class="headerlink" href="#mk-basics-conde" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">conde</span>
+<div class="highlight-python notranslate" id="mk-basics-conde"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">conde</span>
 
 <span class="n">r_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
 
@@ -829,27 +734,21 @@ compound <code class="docutils literal notranslate"><span class="pre">if</span> 
              <span class="p">))</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="mk-basics-conde-print">
-<div class="code-block-caption"><span class="caption-number">Listing 33 </span><span class="caption-text">mk-basics-conde-print</span><a class="headerlink" href="#mk-basics-conde-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="mk-basics-conde-print"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">20</span><span class="p">])</span>
 </pre></div>
 </div>
-<p>In <a class="reference internal" href="#mk-basics-conde"><span class="std std-numref">Listing 32</span></a>, we introduced another logic
+<p>In <span class="xref std std-ref">mk-basics-conde</span>, we introduced another logic
 variable, <code class="docutils literal notranslate"><span class="pre">r_lv</span></code>, and requested the reified values of a list
 containing both logic variables.  The output resembles the idea that
 if <code class="docutils literal notranslate"><span class="pre">q_lv</span></code> is “equal” to <code class="docutils literal notranslate"><span class="pre">1</span></code>, then <code class="docutils literal notranslate"><span class="pre">r_lv</span></code> is “equal”
 to <code class="docutils literal notranslate"><span class="pre">10</span></code>, etc.  Unlike normal conditionals, each clause/branch isn’t
 exclusive, instead each is realized when the goals in a branch can be successful.</p>
-<p><a class="reference internal" href="#mk-basics-conde-exclusive"><span class="std std-numref">Listing 34</span></a>, demonstrates when <code class="docutils literal notranslate"><span class="pre">conde</span></code> can behave more
+<p><span class="xref std std-ref">mk-basics-conde-exclusive</span>, demonstrates when <code class="docutils literal notranslate"><span class="pre">conde</span></code> can behave more
 like a traditional conditional statement.</p>
-<div class="literal-block-wrapper docutils container" id="mk-basics-conde-exclusive">
-<div class="code-block-caption"><span class="caption-number">Listing 34 </span><span class="caption-text">mk-basics-conde-exclusive</span><a class="headerlink" href="#mk-basics-conde-exclusive" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="n">q_lv</span><span class="p">,</span> <span class="n">r_lv</span><span class="p">],</span>
+<div class="highlight-python notranslate" id="mk-basics-conde-exclusive"><div class="highlight"><pre><span></span><span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="n">q_lv</span><span class="p">,</span> <span class="n">r_lv</span><span class="p">],</span>
              <span class="n">lall</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">q_lv</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
                   <span class="n">conde</span><span class="p">(</span>
                       <span class="p">[</span><span class="n">eq</span><span class="p">(</span><span class="n">q_lv</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">eq</span><span class="p">(</span><span class="n">r_lv</span><span class="p">,</span> <span class="mi">10</span><span class="p">)],</span>
@@ -857,12 +756,8 @@ like a traditional conditional statement.</p>
                   <span class="p">)))</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="mk-basics-conde-exclusive-print">
-<div class="code-block-caption"><span class="caption-number">Listing 35 </span><span class="caption-text">mk-basics-conde-exclusive-print</span><a class="headerlink" href="#mk-basics-conde-exclusive-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="mk-basics-conde-exclusive-print"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">],)</span>
 </pre></div>
@@ -873,19 +768,13 @@ like a traditional conditional statement.</p>
 <p>Since miniKanren uses unification and reification, we can apply its basic goals
 to TensorFlow graphs, as we did earlier, and reproduce the entire implementation
 in a much more concise manner.</p>
-<div class="literal-block-wrapper docutils container" id="mk-distribute">
-<div class="code-block-caption"><span class="caption-number">Listing 36 </span><span class="caption-text">mk-distribute</span><a class="headerlink" href="#mk-distribute" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_pat</span><span class="p">,</span>
+<div class="highlight-python notranslate" id="mk-distribute"><div class="highlight"><pre><span></span><span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_pat</span><span class="p">,</span>
              <span class="n">eq</span><span class="p">(</span><span class="n">matmul_pat</span><span class="p">,</span> <span class="n">z_sexp</span><span class="p">),</span>
              <span class="n">eq</span><span class="p">(</span><span class="n">add_pat</span><span class="p">,</span> <span class="n">B_lv</span><span class="p">))</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="mk-distribute-print">
-<div class="code-block-caption"><span class="caption-number">Listing 37 </span><span class="caption-text">mk-distribute-print</span><a class="headerlink" href="#mk-distribute-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval_obj</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="mk-distribute-print"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">mk_res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval_obj</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Tensor</span><span class="p">(</span><span class="n">AddV2</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>    <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=~</span><span class="n">_14</span><span class="p">,</span>     <span class="s2">&quot;add:0&quot;</span>
 <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">MatMul</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>        <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=~</span><span class="n">_15</span><span class="p">,</span>     <span class="s2">&quot;MatMul:0&quot;</span>
@@ -897,7 +786,7 @@ in a much more concise manner.</p>
 </pre></div>
 </div>
 <p>We didn’t need to use the goal conjunction operator <code class="docutils literal notranslate"><span class="pre">lall</span></code> explicitly
-in <a class="reference internal" href="#mk-distribute"><span class="std std-numref">Listing 36</span></a>, because all remaining goal arguments
+in <span class="xref std std-ref">mk-distribute</span>, because all remaining goal arguments
 to <code class="docutils literal notranslate"><span class="pre">run</span></code> are automatically applied in conjunction.</p>
 <p>When combinations of miniKanren goals comprise logical units, we can wrap their
 construction in a functions which we call <strong>goal constructors</strong>.</p>
@@ -908,9 +797,7 @@ construction in a functions which we call <strong>goal constructors</strong>.</p
 creates our combined pattern and applies it in one go.  In this case, we’ll
 construct goals that operate on meta graphs instead
 of <code class="docutils literal notranslate"><span class="pre">etuple</span></code>s.</p>
-<div class="literal-block-wrapper docutils container" id="matrix-inverse-goal">
-<div class="code-block-caption"><span class="caption-number">Listing 38 </span><span class="caption-text">matrix-inverse-goal</span><a class="headerlink" href="#matrix-inverse-goal" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">distributeo</span><span class="p">(</span><span class="n">in_g</span><span class="p">,</span> <span class="n">out_g</span><span class="p">):</span>
+<div class="highlight-python notranslate" id="matrix-inverse-goal"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">distributeo</span><span class="p">(</span><span class="n">in_g</span><span class="p">,</span> <span class="n">out_g</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a goal that represents commuted matrix multiplication and addition.</span>
 
 <span class="sd">    Specifically, A * (x + y) == A * x + A * y</span>
@@ -927,25 +814,18 @@ of <code class="docutils literal notranslate"><span class="pre">etuple</span></c
                 <span class="n">eq</span><span class="p">(</span><span class="n">out_g</span><span class="p">,</span> <span class="n">dist_pat_mt</span><span class="p">))</span>
 </pre></div>
 </div>
-</div>
 <p>Our goal constructor represents the <strong>relation</strong> for distribution of
 matrix multiplication and addition.  In this sense, it can be run <strong>both</strong> ways:
 i.e. it can “expand” a multiplication by distributing it through addition, and
 it can “contract” by doing the opposite.</p>
-<p>In <a class="reference internal" href="#mk-dist-goal-expand-distribute"><span class="std std-numref">Listing 39</span></a> we “expand” the distribution.</p>
-<div class="literal-block-wrapper docutils container" id="mk-dist-goal-expand-distribute">
-<div class="code-block-caption"><span class="caption-number">Listing 39 </span><span class="caption-text">mk-dist-goal-expand-distribute</span><a class="headerlink" href="#mk-dist-goal-expand-distribute" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">q_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
+<p>In <span class="xref std std-ref">mk-dist-goal-expand-distribute</span> we “expand” the distribution.</p>
+<div class="highlight-python notranslate" id="mk-dist-goal-expand-distribute"><div class="highlight"><pre><span></span><span class="n">q_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
 <span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">,</span> <span class="n">distributeo</span><span class="p">(</span><span class="n">z_mt</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">))</span>
 <span class="n">z_expanded_mt</span> <span class="o">=</span> <span class="n">mk_res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="mk-dist-goal-expand-distribute-print">
-<div class="code-block-caption"><span class="caption-number">Listing 40 </span><span class="caption-text">mk-dist-goal-expand-distribute-print</span><a class="headerlink" href="#mk-dist-goal-expand-distribute-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_expanded_mt</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="mk-dist-goal-expand-distribute-print"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_expanded_mt</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Tensor</span><span class="p">(</span><span class="n">AddV2</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>    <span class="n">dtype</span><span class="o">=~</span><span class="n">_27</span><span class="p">,</span>     <span class="n">shape</span><span class="o">=~</span><span class="n">_28</span><span class="p">,</span>     <span class="s2">&quot;AddV2:0&quot;</span>
 <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">MatMul</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>        <span class="n">dtype</span><span class="o">=~</span><span class="n">_25</span><span class="p">,</span>     <span class="n">shape</span><span class="o">=~</span><span class="n">_29</span><span class="p">,</span>     <span class="s2">&quot;MatMul:0&quot;</span>
@@ -956,21 +836,15 @@ it can “contract” by doing the opposite.</p>
 <span class="o">|</span>  <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">Placeholder</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>        <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>        <span class="s2">&quot;y:0&quot;</span>
 </pre></div>
 </div>
-<p>Now, in <a class="reference internal" href="#mk-dist-goal-contract-distribute"><span class="std std-numref">Listing 41</span></a> we “contract” the graph using
+<p>Now, in <span class="xref std std-ref">mk-dist-goal-contract-distribute</span> we “contract” the graph using
 the previously “expanded” results.</p>
-<div class="literal-block-wrapper docutils container" id="mk-dist-goal-contract-distribute">
-<div class="code-block-caption"><span class="caption-number">Listing 41 </span><span class="caption-text">mk-dist-goal-contract-distribute</span><a class="headerlink" href="#mk-dist-goal-contract-distribute" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">q_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
+<div class="highlight-python notranslate" id="mk-dist-goal-contract-distribute"><div class="highlight"><pre><span></span><span class="n">q_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
 <span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">,</span> <span class="n">distributeo</span><span class="p">(</span><span class="n">q_lv</span><span class="p">,</span> <span class="n">z_expanded_mt</span><span class="p">))</span>
 <span class="n">z_contracted_mt</span> <span class="o">=</span> <span class="n">mk_res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="mk-dist-goal-contract-distribute-print">
-<div class="code-block-caption"><span class="caption-number">Listing 42 </span><span class="caption-text">mk-dist-goal-contract-distribute-print</span><a class="headerlink" href="#mk-dist-goal-contract-distribute-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_contracted_mt</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="mk-dist-goal-contract-distribute-print"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_contracted_mt</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Tensor</span><span class="p">(</span><span class="n">MatMul</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>   <span class="n">dtype</span><span class="o">=~</span><span class="n">_38</span><span class="p">,</span>     <span class="n">shape</span><span class="o">=~</span><span class="n">_42</span><span class="p">,</span>     <span class="s2">&quot;~_44&quot;</span>
 <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">Placeholder</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>   <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">],</span>     <span class="s2">&quot;A:0&quot;</span>
@@ -987,14 +861,12 @@ match.  Instead, the desired graphs will be subgraphs of much larger ones.</p>
 <p>Symbolic PyMC introduces some miniKanren goals that apply other goals throughout
 graphs until a fixed-point is reached.  This sequence of operations is generally
 necessary for graph simplification and rewriting.</p>
-<p>In <a class="reference internal" href="#mk-dist-goal-gapply-distribute"><span class="std std-numref">Listing 43</span></a> we create a new graph that
+<p>In <span class="xref std std-ref">mk-dist-goal-gapply-distribute</span> we create a new graph that
 contains <code class="docutils literal notranslate"><span class="pre">tf.matmul(A,</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">y)</span></code> as a subgraph.
 Using <code class="docutils literal notranslate"><span class="pre">graph_applyo</span></code>,
 our <code class="docutils literal notranslate"><span class="pre">distributeo</span></code> relation is applied all throughout the
 graph until the applicable subgraph is found (and replaced).</p>
-<div class="literal-block-wrapper docutils container" id="mk-dist-goal-gapply-distribute">
-<div class="code-block-caption"><span class="caption-number">Listing 43 </span><span class="caption-text">mk-dist-goal-gapply-distribute</span><a class="headerlink" href="#mk-dist-goal-gapply-distribute" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">symbolic_pymc.relations.graph</span> <span class="kn">import</span> <span class="n">graph_applyo</span>
+<div class="highlight-python notranslate" id="mk-dist-goal-gapply-distribute"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kanren.graph</span> <span class="kn">import</span> <span class="n">walko</span>
 
 
 <span class="k">with</span> <span class="n">graph_mode</span><span class="p">():</span>
@@ -1003,12 +875,8 @@ graph until the applicable subgraph is found (and replaced).</p>
                   <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">))</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="mk-dist-goal-gapply-print">
-<div class="code-block-caption"><span class="caption-number">Listing 44 </span><span class="caption-text">mk-dist-goal-gapply-print</span><a class="headerlink" href="#mk-dist-goal-gapply-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_graph_mt</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="mk-dist-goal-gapply-print"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_graph_mt</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Tensor</span><span class="p">(</span><span class="n">AddV2</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>    <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>        <span class="s2">&quot;add_2:0&quot;</span>
 <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">Mul</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>   <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>        <span class="s2">&quot;mul:0&quot;</span>
@@ -1023,20 +891,14 @@ graph until the applicable subgraph is found (and replaced).</p>
 <span class="o">|</span>  <span class="o">|</span>  <span class="mf">1.</span>
 </pre></div>
 </div>
-<div class="literal-block-wrapper docutils container" id="mk-dist-goal-gapply-distribute-run">
-<div class="code-block-caption"><span class="caption-number">Listing 45 </span><span class="caption-text">mk-dist-goal-gapply-distribute-run</span><a class="headerlink" href="#mk-dist-goal-gapply-distribute-run" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">graph_mode</span><span class="p">():</span>
+<div class="highlight-python notranslate" id="mk-dist-goal-gapply-distribute-run"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">graph_mode</span><span class="p">():</span>
     <span class="n">q_lv</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
     <span class="n">mk_res</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">,</span> <span class="n">graph_applyo</span><span class="p">(</span><span class="n">distributeo</span><span class="p">,</span> <span class="n">z_graph_mt</span><span class="p">,</span> <span class="n">q_lv</span><span class="p">))</span>
     <span class="n">z_graph_expanded_mt</span> <span class="o">=</span> <span class="n">mk_res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval_obj</span>
 </pre></div>
 </div>
-</div>
-<div class="literal-block-wrapper docutils container" id="mk-dist-goal-gapply-distribute-print">
-<div class="code-block-caption"><span class="caption-number">Listing 46 </span><span class="caption-text">mk-dist-goal-gapply-distribute-print</span><a class="headerlink" href="#mk-dist-goal-gapply-distribute-print" title="Permalink to this code">¶</a></div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_graph_expanded_mt</span><span class="p">)</span>
+<div class="highlight-python notranslate" id="mk-dist-goal-gapply-distribute-print"><div class="highlight"><pre><span></span><span class="n">tf_dprint</span><span class="p">(</span><span class="n">z_graph_expanded_mt</span><span class="p">)</span>
 </pre></div>
-</div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Tensor</span><span class="p">(</span><span class="n">AddV2</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>    <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=~</span><span class="n">_197</span><span class="p">,</span>    <span class="s2">&quot;add_2:0&quot;</span>
 <span class="o">|</span>  <span class="n">Tensor</span><span class="p">(</span><span class="n">Mul</span><span class="p">):</span><span class="mi">0</span><span class="p">,</span>   <span class="n">dtype</span><span class="o">=</span><span class="n">float32</span><span class="p">,</span>  <span class="n">shape</span><span class="o">=~</span><span class="n">_198</span><span class="p">,</span>    <span class="s2">&quot;mul:0&quot;</span>

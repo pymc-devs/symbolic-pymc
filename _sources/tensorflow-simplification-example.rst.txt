@@ -14,7 +14,6 @@ In this example, we'll illustrate the effect of algebraic graph simplifications
 using the log-likelihood of a hierarchical normal-normal model.
 
 .. code-block:: python
-    :caption: simplification-python-setup
     :name: simplification-python-setup
 
     import numpy as np
@@ -32,11 +31,10 @@ using the log-likelihood of a hierarchical normal-normal model.
 
 We start by including the graph normalization/simplifications native to
 TensorFlow via the \ ``grappler``\  module.  In
-:numref:`grappler-normalize-function-sp`, we create a helper function that
+:ref:`grappler-normalize-function-sp`, we create a helper function that
 applies \ ``grappler``\  simplifications to a graph.
 
 .. code-block:: python
-    :caption: grappler-normalize-function-sp
     :name: grappler-normalize-function-sp
 
     from tensorflow.core.protobuf import config_pb2
@@ -93,10 +91,9 @@ applies \ ``grappler``\  simplifications to a graph.
 
         return opt_graph_output
 
-:numref:`hier-normal-graph` creates our model and normalizes it.
+:ref:`hier-normal-graph` creates our model and normalizes it.
 
 .. code-block:: python
-    :caption: hier-normal-graph
     :name: hier-normal-graph
 
     def tfp_normal_log_prob(x, loc, scale):
@@ -132,15 +129,14 @@ applies \ ``grappler``\  simplifications to a graph.
 
         hier_norm_lik = normalize_tf_graph(hier_norm_lik)
 
-In :numref:`hier-normal-graph` we used an unscaled version of the normal
+In :ref:`hier-normal-graph` we used an unscaled version of the normal
 log-likelihood.  This is because we're emulating the effect of applying a
 substitution like :math:`Y \to x + \tau \epsilon \sim \operatorname{N}\left(x, \tau^2\right)`.
 This has the same effect as subtracting a :math:`\log(\tau)` term; however, the
 result will produce equivalent--but not equal--graphs when we compare with the
-manually created fully transformed graph in :numref:`manually-simplified-graph`.
+manually created fully transformed graph in :ref:`manually-simplified-graph`.
 
 .. code-block:: python
-    :caption: hier-normal-graph-print
     :name: hier-normal-graph-print
 
     tf_dprint(hier_norm_lik)
@@ -183,7 +179,7 @@ manually created fully transformed graph in :numref:`manually-simplified-graph`.
     |  |  |  Tensor(Const):0,	dtype=float32,	shape=[],	"sub/y:0"
     |  |  |  |  0.9189385
 
-From :numref:`hier-normal-graph-print` we can see
+From :ref:`hier-normal-graph-print` we can see
 that \ ``grappler``\  is not applying enough algebraic
 simplifications (e.g. it doesn't remove multiplications with :math:`1` or reduce the
 :math:`\left(\mu + x - \mu \right)^2` term
@@ -191,12 +187,11 @@ in \ ``SquaredDifference``\ ).
 
 ****Does missing this simplification amount to anything practical?****
 
-:numref:`manually-simplified-graph-eval` demonstrates the difference between our model
+:ref:`manually-simplified-graph-eval` demonstrates the difference between our model
 without the simplification and a manually constructed model with the simplification (i.e.
-:numref:`manually-simplified-graph`).
+:ref:`manually-simplified-graph`).
 
 .. code-block:: python
-    :caption: manually-simplified-graph
     :name: manually-simplified-graph
 
     with graph_mode(), demo_graph.as_default():
@@ -210,7 +205,6 @@ without the simplification and a manually constructed model with the simplificat
         hn_manually_simplified_lik = normalize_tf_graph(hn_manually_simplified_lik)
 
 .. code-block:: python
-    :caption: manually-simplified-graph-print
     :name: manually-simplified-graph-print
 
     tf_dprint(hn_manually_simplified_lik)
@@ -253,7 +247,6 @@ without the simplification and a manually constructed model with the simplificat
     |  |  |  |  0.9189385
 
 .. code-block:: python
-    :caption: manually-simplified-graph-eval
     :name: manually-simplified-graph-eval
 
     test_point = {x_tf.name: np.r_[1.0],
@@ -272,18 +265,17 @@ without the simplification and a manually constructed model with the simplificat
 
     [39299.97]
 
-The output of :numref:`manually-simplified-graph-eval` shows exactly how large
+The output of :ref:`manually-simplified-graph-eval` shows exactly how large
 the discrepancy can be for carefully chosen parameter values.  More
 specifically, as \ ``tau_tf``\  gets smaller and the magnitude
 of the difference \ ``x_tf - y_tf``\  gets larger, the
 discrepancy can increase.  Since such parameter values are likely to be visited
 during sampling, we should address this missing simplification.
 
-In :numref:`further-simplify-test-graph` we create a goal that performs that
+In :ref:`further-simplify-test-graph` we create a goal that performs that
 aforementioned simplification for \ ``SquaredDifference``\ .
 
 .. code-block:: python
-    :caption: recenter-sqrdiffo
     :name: recenter-sqrdiffo
 
     from functools import partial
@@ -294,40 +286,16 @@ aforementioned simplification for \ ``SquaredDifference``\ .
     from kanren import run, eq, lall, conde
     from kanren.facts import fact
     from kanren.assoccomm import eq_comm, commutative
+    from kanren.graph import walko
+
+    from etuples import etuple, etuplize
+    from etuples.core import ExpressionTuple
 
     from symbolic_pymc.meta import enable_lvar_defaults
     from symbolic_pymc.tensorflow.meta import mt, TFlowMetaOperator
 
-    from symbolic_pymc.relations.graph import graph_applyo
-    from symbolic_pymc.etuple import ExpressionTuple, etuple, etuplize
-
 
     fact(commutative, TFlowMetaOperator(mt.SquaredDifference.op_def, var()))
-
-
-    def tf_graph_applyo(relation, a, b):
-        """Construct a `graph_applyo` goal that evaluates a relation only at tensor nodes in a meta graph.
-
-        Parameters
-        ----------
-        relation: function
-          A binary relation/goal constructor function
-        a: lvar, meta graph, or etuple
-          The left-hand side of the relation.
-        b: lvar, meta graph, or etuple
-          The right-hand side of the relation
-        """
-
-        def _expand_some_nodes(node):
-            if isinstance(node, mt.Tensor) and node.op is not None:
-                return etuple(node.base_operator, *node.base_arguments, eval_obj=node)
-            elif isinstance(node, Sequence):
-                return node
-
-            return None
-
-        gapplyo = partial(graph_applyo, relation, preprocess_graph=_expand_some_nodes)
-        return gapplyo(a, b)
 
 
     def recenter_sqrdiffo(in_g, out_g):
@@ -381,27 +349,26 @@ aforementioned simplification for \ ``SquaredDifference``\ .
             ]))
         return res
 
-We apply the simplification in :numref:`further-simplify-test-graph` and print
-the results in :numref:`further-simplify-test-graph-print`.
+We apply the simplification in :ref:`further-simplify-test-graph` and print
+the results in :ref:`further-simplify-test-graph-print`.
 
 .. code-block:: python
-    :caption: further-simplify-test-graph
     :name: further-simplify-test-graph
 
-    from symbolic_pymc.relations.graph import reduceo
+    from kanren.graph import reduceo
 
 
     with graph_mode(), hier_norm_lik.graph.as_default():
-        res = run(1, var('q'),
-                  reduceo(lambda x, y: tf_graph_applyo(recenter_sqrdiffo, x, y),
-                          hier_norm_lik, var('q')))
+        q = var()
+        res = run(1, q,
+                  reduceo(lambda x, y: walko(recenter_sqrdiffo, x, y),
+                          hier_norm_lik, q))
 
     with graph_mode(), tf.Graph().as_default() as result_graph:
         hn_simplified_tf = res[0].eval_obj.reify()
         hn_simplified_tf = normalize_tf_graph(hn_simplified_tf)
 
 .. code-block:: python
-    :caption: further-simplify-test-graph-print
     :name: further-simplify-test-graph-print
 
     # tf_dprint(hier_norm_lik.graph.get_tensor_by_name('SquaredDifference:0'))
@@ -441,12 +408,11 @@ the results in :numref:`further-simplify-test-graph-print`.
     |  |  |  Tensor(Const):0,	dtype=float32,	shape=[],	"sub/y:0"
     |  |  |  |  0.9189385
 
-After applying our simplification, :numref:`simplified-eval-print` numerically
+After applying our simplification, :ref:`simplified-eval-print` numerically
 demonstrates that the difference is gone and that our transform produces a graph
-equivalent to the manually simplified graph in :numref:`manually-simplified-graph`.
+equivalent to the manually simplified graph in :ref:`manually-simplified-graph`.
 
 .. code-block:: python
-    :caption: simplified-eval-print
     :name: simplified-eval-print
 
     with tf.compat.v1.Session(graph=hn_simplified_tf.graph).as_default():

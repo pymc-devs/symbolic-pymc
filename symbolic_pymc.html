@@ -83,7 +83,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.html#module-symbolic_pymc.relations.graph">symbolic_pymc.relations.graph module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.html#symbolic-pymc-relations-graph-module">symbolic_pymc.relations.graph module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.relations.html#module-symbolic_pymc.relations">Module contents</a></li>
 </ul>
 </li>
@@ -114,18 +114,8 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="module-symbolic_pymc.etuple">
-<span id="symbolic-pymc-etuple-module"></span><h2>symbolic_pymc.etuple module<a class="headerlink" href="#module-symbolic_pymc.etuple" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="symbolic_pymc.etuple.etuple">
-<code class="sig-prename descclassname">symbolic_pymc.etuple.</code><code class="sig-name descname">etuple</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.etuple.etuple" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create an ExpressionTuple from the argument list.</p>
-<dl class="simple">
-<dt>In other words:</dt><dd><p>etuple(1, 2, 3) == ExpressionTuple((1, 2, 3))</p>
-</dd>
-</dl>
-</dd></dl>
-
+<div class="section" id="symbolic-pymc-etuple-module">
+<h2>symbolic_pymc.etuple module<a class="headerlink" href="#symbolic-pymc-etuple-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-symbolic_pymc.meta">
 <span id="symbolic-pymc-meta-module"></span><h2>symbolic_pymc.meta module<a class="headerlink" href="#module-symbolic_pymc.meta" title="Permalink to this headline">¶</a></h2>
@@ -315,11 +305,54 @@ Currently allowed values are “names” and “node_attrs” (for TensorFlow).<
 </div>
 </dd></dl>
 
-<dl class="function">
-<dt id="symbolic_pymc.utils.meta_parts_unequal">
-<code class="sig-prename descclassname">symbolic_pymc.utils.</code><code class="sig-name descname">meta_parts_unequal</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">pdb=False</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.utils.meta_parts_unequal" title="Permalink to this definition">¶</a></dt>
-<dd><p>Traverse meta objects and return the first pair of elements that are not equal.</p>
+<dl class="class">
+<dt id="symbolic_pymc.utils.UnequalMetaParts">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.utils.</code><code class="sig-name descname">UnequalMetaParts</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">reason</em>, <em class="sig-param">objects</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.utils.UnequalMetaParts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<p>Create new instance of UnequalMetaParts(path, reason, objects)</p>
+<dl class="method">
+<dt id="symbolic_pymc.utils.UnequalMetaParts.objects">
+<em class="property">property </em><code class="sig-name descname">objects</code><a class="headerlink" href="#symbolic_pymc.utils.UnequalMetaParts.objects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
 </dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.utils.UnequalMetaParts.path">
+<em class="property">property </em><code class="sig-name descname">path</code><a class="headerlink" href="#symbolic_pymc.utils.UnequalMetaParts.path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.utils.UnequalMetaParts.reason">
+<em class="property">property </em><code class="sig-name descname">reason</code><a class="headerlink" href="#symbolic_pymc.utils.UnequalMetaParts.reason" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.utils.eq_lvar">
+<code class="sig-prename descclassname">symbolic_pymc.utils.</code><code class="sig-name descname">eq_lvar</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.utils.eq_lvar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform an equality check that considers all logic variables equal.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.utils.lvar_ignore_ne">
+<code class="sig-prename descclassname">symbolic_pymc.utils.</code><code class="sig-name descname">lvar_ignore_ne</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.utils.lvar_ignore_ne" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.utils.meta_diff">
+<code class="sig-prename descclassname">symbolic_pymc.utils.</code><code class="sig-name descname">meta_diff</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">pdb=False</em>, <em class="sig-param">ne_fn=&lt;built-in function ne&gt;</em>, <em class="sig-param">cmp_types=True</em>, <em class="sig-param">path=&lt;function identity&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.utils.meta_diff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Traverse meta objects and return information about the first pair of elements that are not equal.</p>
+<p>Returns a <cite>UnequalMetaParts</cite> object containing the object path, reason for
+being unequal, and the unequal object pair; otherwise, <cite>None</cite>.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.utils.meta_diff_seq">
+<code class="sig-prename descclassname">symbolic_pymc.utils.</code><code class="sig-name descname">meta_diff_seq</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">loc</em>, <em class="sig-param">path</em>, <em class="sig-param">is_map=False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.utils.meta_diff_seq" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 <div class="section" id="module-symbolic_pymc">

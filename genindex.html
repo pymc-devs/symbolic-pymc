@@ -176,8 +176,6 @@
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaTensorType.broadcastable">broadcastable (symbolic_pymc.theano.meta.TheanoMetaTensorType attribute)</a>
 </li>
-      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.buildo">buildo() (in module symbolic_pymc.relations)</a>
-</li>
   </ul></td>
 </tr></table>
 
@@ -192,14 +190,18 @@
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.ops.RandomVariable.compute_bcast">compute_bcast() (symbolic_pymc.theano.ops.RandomVariable method)</a>
 </li>
+      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.concat">concat() (in module symbolic_pymc.relations)</a>
+</li>
+      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.conde">conde() (in module symbolic_pymc.relations)</a>
+</li>
       <li><a href="symbolic_pymc.relations.theano.html#symbolic_pymc.relations.theano.distributions.constant_neq">constant_neq() (in module symbolic_pymc.relations.theano.distributions)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Cauchy">convert_dist_to_rv_Cauchy() (in module symbolic_pymc.theano.pymc3)</a>
 </li>
-      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Exponential">convert_dist_to_rv_Exponential() (in module symbolic_pymc.theano.pymc3)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Exponential">convert_dist_to_rv_Exponential() (in module symbolic_pymc.theano.pymc3)</a>
+</li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Gamma">convert_dist_to_rv_Gamma() (in module symbolic_pymc.theano.pymc3)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_HalfCauchy">convert_dist_to_rv_HalfCauchy() (in module symbolic_pymc.theano.pymc3)</a>
@@ -260,7 +262,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.html#symbolic_pymc.meta.enable_lvar_defaults">enable_lvar_defaults() (in module symbolic_pymc.meta)</a>
 </li>
-      <li><a href="symbolic_pymc.html#symbolic_pymc.etuple.etuple">etuple() (in module symbolic_pymc.etuple)</a>
+      <li><a href="symbolic_pymc.html#symbolic_pymc.utils.eq_lvar">eq_lvar() (in module symbolic_pymc.utils)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -296,18 +298,16 @@
 </li>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.get_op_info">get_op_info() (symbolic_pymc.tensorflow.meta.MetaOpDefLibrary class method)</a>
 </li>
-      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.utils.get_rv_observation">get_rv_observation() (in module symbolic_pymc.theano.utils)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.utils.get_rv_observation">get_rv_observation() (in module symbolic_pymc.theano.utils)</a>
+</li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.ops.RandomVariable.grad">grad() (symbolic_pymc.theano.ops.RandomVariable method)</a>
 
       <ul>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.Observed.grad">(symbolic_pymc.theano.random_variables.Observed method)</a>
 </li>
       </ul></li>
-      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.graph.graph_applyo">graph_applyo() (in module symbolic_pymc.relations.graph)</a>
-</li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.utils.graph_equal">graph_equal() (in module symbolic_pymc.theano.utils)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.graph_model">graph_model() (in module symbolic_pymc.theano.pymc3)</a>
@@ -370,15 +370,29 @@
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.lall">lall() (in module symbolic_pymc.relations)</a>
+</li>
+      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.lany">lany() (in module symbolic_pymc.relations)</a>
+</li>
+      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.lconj">lconj() (in module symbolic_pymc.relations)</a>
+</li>
+      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.lconj_seq">lconj_seq() (in module symbolic_pymc.relations)</a>
+</li>
+      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.ldisj">ldisj() (in module symbolic_pymc.relations)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.ldisj_seq">ldisj_seq() (in module symbolic_pymc.relations)</a>
+</li>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.load_dispatcher">load_dispatcher() (in module symbolic_pymc.tensorflow.meta)</a>
 
       <ul>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.load_dispatcher">(in module symbolic_pymc.theano.meta)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.lower_op_name_to_raw">lower_op_name_to_raw (symbolic_pymc.tensorflow.meta.MetaOpDefLibrary attribute)</a>
+</li>
+      <li><a href="symbolic_pymc.html#symbolic_pymc.utils.lvar_ignore_ne">lvar_ignore_ne() (in module symbolic_pymc.utils)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -420,15 +434,17 @@
       </ul></li>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.make_opdef_sig">make_opdef_sig() (symbolic_pymc.tensorflow.meta.MetaOpDefLibrary class method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.printing.VariableWithShapePrinter.max_line_height">max_line_height (symbolic_pymc.theano.printing.VariableWithShapePrinter attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.printing.VariableWithShapePrinter.max_line_width">max_line_width (symbolic_pymc.theano.printing.VariableWithShapePrinter attribute)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.printing.PreamblePPrinter.max_preamble_width">max_preamble_width (symbolic_pymc.theano.printing.PreamblePPrinter attribute)</a>
 </li>
-      <li><a href="symbolic_pymc.html#symbolic_pymc.utils.meta_parts_unequal">meta_parts_unequal() (in module symbolic_pymc.utils)</a>
+      <li><a href="symbolic_pymc.html#symbolic_pymc.utils.meta_diff">meta_diff() (in module symbolic_pymc.utils)</a>
+</li>
+      <li><a href="symbolic_pymc.html#symbolic_pymc.utils.meta_diff_seq">meta_diff_seq() (in module symbolic_pymc.utils)</a>
 </li>
       <li><a href="symbolic_pymc.html#symbolic_pymc.meta.meta_reify_iter">meta_reify_iter() (in module symbolic_pymc.meta)</a>
 </li>
@@ -502,7 +518,7 @@
         <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.TFlowMetaOperator.node_def">(symbolic_pymc.tensorflow.meta.TFlowMetaOperator attribute)</a>
 </li>
       </ul></li>
-      <li><a href="symbolic_pymc.relations.theano.html#symbolic_pymc.relations.theano.non_obs_graph_applyo">non_obs_graph_applyo() (in module symbolic_pymc.relations.theano)</a>
+      <li><a href="symbolic_pymc.relations.theano.html#symbolic_pymc.relations.theano.non_obs_walko">non_obs_walko() (in module symbolic_pymc.relations.theano)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.ops.RandomVariable.nondeterministic">nondeterministic (symbolic_pymc.theano.ops.RandomVariable attribute)</a>
 </li>
@@ -523,6 +539,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.html#symbolic_pymc.meta.MetaSymbol.obj">obj() (symbolic_pymc.meta.MetaSymbol property)</a>
+</li>
+      <li><a href="symbolic_pymc.html#symbolic_pymc.utils.UnequalMetaParts.objects">objects() (symbolic_pymc.utils.UnequalMetaParts property)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.printing.ObservationPrinter">ObservationPrinter (class in symbolic_pymc.theano.printing)</a>
 </li>
@@ -575,6 +593,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.ops.param_supp_shape_fn">param_supp_shape_fn() (in module symbolic_pymc.theano.ops)</a>
+</li>
+      <li><a href="symbolic_pymc.html#symbolic_pymc.utils.UnequalMetaParts.path">path() (symbolic_pymc.utils.UnequalMetaParts property)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.ops.RandomVariable.perform">perform() (symbolic_pymc.theano.ops.RandomVariable method)</a>
 
@@ -662,9 +682,9 @@
 </li>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.rank">rank() (symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape property)</a>
 </li>
-      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.rec_conv_to_rv">rec_conv_to_rv() (in module symbolic_pymc.theano.pymc3)</a>
+      <li><a href="symbolic_pymc.html#symbolic_pymc.utils.UnequalMetaParts.reason">reason() (symbolic_pymc.utils.UnequalMetaParts property)</a>
 </li>
-      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.graph.reduceo">reduceo() (in module symbolic_pymc.relations.graph)</a>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.rec_conv_to_rv">rec_conv_to_rv() (in module symbolic_pymc.theano.pymc3)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.opt.KanrenRelationSub.reentrant">reentrant (symbolic_pymc.theano.opt.KanrenRelationSub attribute)</a>
 </li>
@@ -743,6 +763,10 @@
 </li>
       </ul></li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.opt.run">run() (in module symbolic_pymc.theano.opt)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="S">S</h2>
@@ -750,21 +774,15 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.relations.theano.html#symbolic_pymc.relations.theano.distributions.scale_loc_transform">scale_loc_transform() (in module symbolic_pymc.relations.theano.distributions)</a>
 </li>
-      <li><a href="symbolic_pymc.relations.html#symbolic_pymc.relations.graph.seq_apply_anyo">seq_apply_anyo() (in module symbolic_pymc.relations.graph)</a>
-</li>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.TFlowMetaTensor.shape">shape() (symbolic_pymc.tensorflow.meta.TFlowMetaTensor property)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaSharedVariable.strict">strict (symbolic_pymc.theano.meta.TheanoMetaSharedVariable attribute)</a>
 </li>
       <li><a href="symbolic_pymc.html#module-symbolic_pymc">symbolic_pymc (module)</a>
 </li>
-      <li><a href="symbolic_pymc.html#module-symbolic_pymc.etuple">symbolic_pymc.etuple (module)</a>
-</li>
       <li><a href="symbolic_pymc.html#module-symbolic_pymc.meta">symbolic_pymc.meta (module)</a>
 </li>
       <li><a href="symbolic_pymc.relations.html#module-symbolic_pymc.relations">symbolic_pymc.relations (module)</a>
-</li>
-      <li><a href="symbolic_pymc.relations.html#module-symbolic_pymc.relations.graph">symbolic_pymc.relations.graph (module)</a>
 </li>
       <li><a href="symbolic_pymc.relations.tensorflow.html#module-symbolic_pymc.relations.tensorflow">symbolic_pymc.relations.tensorflow (module)</a>
 </li>
@@ -776,12 +794,12 @@
 </li>
       <li><a href="symbolic_pymc.relations.theano.html#module-symbolic_pymc.relations.theano.linalg">symbolic_pymc.relations.theano.linalg (module)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow">symbolic_pymc.tensorflow (module)</a>
 </li>
       <li><a href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.meta">symbolic_pymc.tensorflow.meta (module)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.printing">symbolic_pymc.tensorflow.printing (module)</a>
 </li>
       <li><a href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.unify">symbolic_pymc.tensorflow.unify (module)</a>
@@ -876,8 +894,6 @@
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.tt_get_values">tt_get_values() (in module symbolic_pymc.theano.pymc3)</a>
 </li>
-      <li><a href="symbolic_pymc.relations.theano.html#symbolic_pymc.relations.theano.tt_graph_applyo">tt_graph_applyo() (in module symbolic_pymc.relations.theano)</a>
-</li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaVariable.type">type (symbolic_pymc.theano.meta.TheanoMetaVariable attribute)</a>
 </li>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.TFlowMetaOp.type">type() (symbolic_pymc.tensorflow.meta.TFlowMetaOp property)</a>
@@ -888,10 +904,12 @@
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.UniformRVType">UniformRVType (class in symbolic_pymc.theano.random_variables)</a>
+      <li><a href="symbolic_pymc.html#symbolic_pymc.utils.UnequalMetaParts">UnequalMetaParts (class in symbolic_pymc.utils)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.UniformRVType">UniformRVType (class in symbolic_pymc.theano.random_variables)</a>
+</li>
       <li><a href="symbolic_pymc.relations.theano.html#symbolic_pymc.relations.theano.linalg.update_name_suffix">update_name_suffix() (in module symbolic_pymc.relations.theano.linalg)</a>
 </li>
   </ul></td>
