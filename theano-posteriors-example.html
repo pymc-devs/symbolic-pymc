@@ -84,12 +84,11 @@
 <span class="kn">from</span> <span class="nn">unification</span> <span class="kn">import</span> <span class="n">var</span>
 
 <span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">run</span>
+<span class="kn">from</span> <span class="nn">kanren.graph</span> <span class="kn">import</span> <span class="n">reduceo</span><span class="p">,</span> <span class="n">walko</span>
 
 <span class="kn">from</span> <span class="nn">symbolic_pymc.theano.printing</span> <span class="kn">import</span> <span class="n">tt_pprint</span>
 <span class="kn">from</span> <span class="nn">symbolic_pymc.theano.pymc3</span> <span class="kn">import</span> <span class="n">model_graph</span>
 
-<span class="kn">from</span> <span class="nn">symbolic_pymc.relations.graph</span> <span class="kn">import</span> <span class="n">reduceo</span>
-<span class="kn">from</span> <span class="nn">symbolic_pymc.relations.theano</span> <span class="kn">import</span> <span class="n">tt_graph_applyo</span>
 <span class="kn">from</span> <span class="nn">symbolic_pymc.relations.theano.conjugates</span> <span class="kn">import</span> <span class="n">conjugate</span>
 
 <span class="n">theano</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">cxx</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
@@ -124,11 +123,11 @@
 <span class="k">def</span> <span class="nf">conjugate_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply conjugate relations throughout a graph.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">fixedp_conjugate_applyo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">reduceo</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">tt_graph_applyo</span><span class="p">,</span> <span class="n">conjugate</span><span class="p">),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">fixedp_conjugate_walko</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">reduceo</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">walko</span><span class="p">,</span> <span class="n">conjugate</span><span class="p">),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 
     <span class="n">expr_graph</span><span class="p">,</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">),</span>
-                      <span class="n">fixedp_conjugate_applyo</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)))</span>
+                      <span class="n">fixedp_conjugate_walko</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)))</span>
 
     <span class="n">fgraph_opt</span> <span class="o">=</span> <span class="n">expr_graph</span><span class="o">.</span><span class="n">eval_obj</span>
     <span class="n">fgraph_opt_tt</span> <span class="o">=</span> <span class="n">fgraph_opt</span><span class="o">.</span><span class="n">reify</span><span class="p">()</span>
