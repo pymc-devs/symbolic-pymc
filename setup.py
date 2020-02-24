@@ -45,7 +45,6 @@ setup(
         "etuples>=0.3.1",
         "cons>=0.4.0",
         "toolz>=0.9.0",
-        "sympy>=1.3",
         "cachetools",
         "pymc3>=3.6",
         "pymc4 @ git+https://github.com/pymc-devs/pymc4.git@master#egg=pymc4-0.0.1",
