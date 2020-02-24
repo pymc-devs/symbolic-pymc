@@ -4,7 +4,7 @@ import theano.tensor as tt
 from unification import var
 
 from kanren import eq
-from kanren.core import lallgreedy
+from kanren.core import lall
 
 from etuples import etuple, etuplize
 
@@ -36,13 +36,11 @@ def test_kanren_opt():
     assert isinstance(fgraph.outputs[0].owner.op, tt.Dot)
 
     def distributes(in_lv, out_lv):
-        return (
-            lallgreedy,
+        return lall(
             # lhs == A * (x + b)
-            (eq, etuple(mt.dot, var("A"), etuple(mt.add, var("x"), var("b"))), etuplize(in_lv)),
+            eq(etuple(mt.dot, var("A"), etuple(mt.add, var("x"), var("b"))), etuplize(in_lv)),
             # rhs == A * x + A * b
-            (
-                eq,
+            eq(
                 etuple(
                     mt.add, etuple(mt.dot, var("A"), var("x")), etuple(mt.dot, var("A"), var("b"))
                 ),

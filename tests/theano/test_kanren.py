@@ -74,7 +74,7 @@ def test_kanren():
     Y_mt = mt.MvNormalRV(E_y_mt, V_lv, y_size_lv, y_rng_lv, name=y_name_lv)
 
     with variables(Y_mt):
-        (res,) = run(0, Y_mt, (eq, Y_rv, Y_mt))
+        (res,) = run(0, Y_mt, eq(Y_rv, Y_mt))
     assert res.reify() == Y_rv
 
 
