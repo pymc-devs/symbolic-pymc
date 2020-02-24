@@ -101,18 +101,20 @@ in <span class="xref std std-ref">pymc4-radon-model</span>.</p>
 <div class="highlight-python notranslate" id="pymc4-radon-model"><div class="highlight"><pre><span></span><span class="nd">@pm.model</span>
 <span class="k">def</span> <span class="nf">hierarchical_model</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">county_idx</span><span class="p">):</span>
     <span class="c1"># Hyperpriors</span>
-    <span class="n">mu_a</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s1">&#39;mu_alpha&#39;</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">sigma_a</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">HalfCauchy</span><span class="p">(</span><span class="s1">&#39;sigma_alpha&#39;</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">mu_b</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s1">&#39;mu_beta&#39;</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">sigma_b</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">HalfCauchy</span><span class="p">(</span><span class="s1">&#39;sigma_beta&#39;</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">mu_a</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mu_alpha&#39;</span><span class="p">)</span>
+    <span class="n">sigma_a</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">HalfCauchy</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;sigma_alpha&#39;</span><span class="p">)</span>
+    <span class="n">mu_b</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mu_beta&#39;</span><span class="p">)</span>
+    <span class="n">sigma_b</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">HalfCauchy</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;sigma_beta&#39;</span><span class="p">)</span>
 
     <span class="c1"># Intercept for each county, distributed around group mean mu_a</span>
-    <span class="n">a</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="n">mu_a</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma_a</span><span class="p">,</span> <span class="n">plate</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">county</span><span class="o">.</span><span class="n">unique</span><span class="p">()))</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">mu_a</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma_a</span><span class="p">,</span> <span class="n">plate</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">county</span><span class="o">.</span><span class="n">unique</span><span class="p">()),</span>
+                        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;alpha&#39;</span><span class="p">)</span>
     <span class="c1"># Intercept for each county, distributed around group mean mu_a</span>
-    <span class="n">b</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="n">mu_b</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma_b</span><span class="p">,</span> <span class="n">plate</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">county</span><span class="o">.</span><span class="n">unique</span><span class="p">()))</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">mu_b</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma_b</span><span class="p">,</span> <span class="n">plate</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">county</span><span class="o">.</span><span class="n">unique</span><span class="p">()),</span>
+                        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;beta&#39;</span><span class="p">)</span>
 
     <span class="c1"># Model error</span>
-    <span class="n">eps</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">HalfCauchy</span><span class="p">(</span><span class="s1">&#39;eps&#39;</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">HalfCauchy</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;eps&#39;</span><span class="p">)</span>
 
     <span class="c1"># Expected value</span>
     <span class="c1">#radon_est = a[county_idx] + b[county_idx] * data.floor.values</span>
@@ -120,8 +122,7 @@ in <span class="xref std std-ref">pymc4-radon-model</span>.</p>
         <span class="n">b</span><span class="p">,</span> <span class="n">county_idx</span><span class="p">)</span> <span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">floor</span><span class="o">.</span><span class="n">values</span>
 
     <span class="c1"># Data likelihood</span>
-    <span class="n">y_like</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s1">&#39;y_like&#39;</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="n">radon_est</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">log_radon</span><span class="p">)</span>
-
+    <span class="n">y_like</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">pm</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">radon_est</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">log_radon</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;y_like&#39;</span><span class="p">)</span>
 
 <span class="n">init_num_chains</span> <span class="o">=</span> <span class="mi">50</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">hierarchical_model</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">county_idx</span><span class="p">)</span>
@@ -212,9 +213,8 @@ for the parameters.</p>
 <div class="highlight-python notranslate" id="logp-func"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="bp">None</span>
 <span class="n">observed</span> <span class="o">=</span> <span class="bp">None</span>
 
-<span class="n">logpfn</span><span class="p">,</span> <span class="n">init</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">inference</span><span class="o">.</span><span class="n">sampling</span><span class="o">.</span><span class="n">build_logp_function</span><span class="p">(</span><span class="n">model</span><span class="p">,</span>
-                                                         <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span>
-                                                         <span class="n">observed</span><span class="o">=</span><span class="n">observed</span><span class="p">)</span>
+<span class="n">logpfn</span><span class="p">,</span> <span class="n">init</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">det_names</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">inference</span><span class="o">.</span><span class="n">sampling</span><span class="o">.</span><span class="n">build_logp_and_deterministic_functions</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="n">observed</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>From here we need <code class="docutils literal notranslate"><span class="pre">FuncGraph</span></code>s for each input
@@ -390,20 +390,20 @@ instances of said <code class="docutils literal notranslate"><span class="pre">S
 </pre></div>
 </div>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Tensor(GatherV2):0, dtype=float32,  shape=[919],    &quot;GatherV2:0&quot;
-|  Tensor(Placeholder):0,   dtype=float32,  shape=[85],     &quot;values_1:0&quot;
+|  Tensor(Placeholder):0,   dtype=float32,  shape=[85],     &quot;values_0:0&quot;
 |  Tensor(Const):0, dtype=int32,    shape=[919],    &quot;GatherV2/indices:0&quot;
 |  |  [ 0  0  0 ... 83 84 84]
 |  Tensor(Const):0, dtype=int32,    shape=[],       &quot;GatherV2/axis:0&quot;
 |  |  0
 Tensor(GatherV2):0, dtype=float32,  shape=[919],    &quot;GatherV2_1:0&quot;
-|  Tensor(Placeholder):0,   dtype=float32,  shape=[85],     &quot;values_3:0&quot;
+|  Tensor(Placeholder):0,   dtype=float32,  shape=[85],     &quot;values_6:0&quot;
 |  Tensor(Const):0, dtype=int32,    shape=[919],    &quot;GatherV2_1/indices:0&quot;
 |  |  [ 0  0  0 ... 83 84 84]
 |  Tensor(Const):0, dtype=int32,    shape=[],       &quot;GatherV2_1/axis:0&quot;
 |  |  0
 Tensor(SquaredDifference):0,        dtype=float32,  shape=[],       &quot;Normal_5/log_prob/SquaredDifference:0&quot;
 |  Tensor(RealDiv):0,       dtype=float32,  shape=[],       &quot;Normal_5/log_prob/truediv:0&quot;
-|  |  Tensor(Placeholder):0,        dtype=float32,  shape=[],       &quot;values_0:0&quot;
+|  |  Tensor(Placeholder):0,        dtype=float32,  shape=[],       &quot;values_1:0&quot;
 |  |  Tensor(Const):0,      dtype=float32,  shape=[],       &quot;Normal/scale:0&quot;
 |  |  |  1.
 |  Tensor(RealDiv):0,       dtype=float32,  shape=[],       &quot;Normal_5/log_prob/truediv_1:0&quot;
@@ -413,7 +413,7 @@ Tensor(SquaredDifference):0,        dtype=float32,  shape=[],       &quot;Normal
 |  |  |  1.
 Tensor(SquaredDifference):0,        dtype=float32,  shape=[],       &quot;Normal_1_1/log_prob/SquaredDifference:0&quot;
 |  Tensor(RealDiv):0,       dtype=float32,  shape=[],       &quot;Normal_1_1/log_prob/truediv:0&quot;
-|  |  Tensor(Placeholder):0,        dtype=float32,  shape=[],       &quot;values_6:0&quot;
+|  |  Tensor(Placeholder):0,        dtype=float32,  shape=[],       &quot;values_3:0&quot;
 |  |  Tensor(Const):0,      dtype=float32,  shape=[],       &quot;Normal_1/scale:0&quot;
 |  |  |  1.
 |  Tensor(RealDiv):0,       dtype=float32,  shape=[],       &quot;Normal_1_1/log_prob/truediv_1:0&quot;
@@ -425,30 +425,30 @@ Tensor(SquaredDifference):0,        dtype=float32,  shape=[85],     &quot;Sample
 |  Tensor(RealDiv):0,       dtype=float32,  shape=[85],     &quot;SampleNormal_2_1/log_prob/Normal_2/log_prob/truediv:0&quot;
 |  |  Tensor(Transpose):0,  dtype=float32,  shape=[85],     &quot;SampleNormal_2_1/log_prob/transpose:0&quot;
 |  |  |  Tensor(Reshape):0, dtype=float32,  shape=[85],     &quot;SampleNormal_2_1/log_prob/Reshape:0&quot;
-|  |  |  |  Tensor(Placeholder):0,  dtype=float32,  shape=[85],     &quot;values_1:0&quot;
+|  |  |  |  Tensor(Placeholder):0,  dtype=float32,  shape=[85],     &quot;values_0:0&quot;
 |  |  |  |  Tensor(Const):0,        dtype=int32,    shape=[1],      &quot;SampleNormal_2_1/log_prob/Reshape/shape:0&quot;
 |  |  |  |  |  [85]
 |  |  |  Tensor(Const):0,   dtype=int32,    shape=[1],      &quot;SampleNormal_2_1/log_prob/transpose/perm:0&quot;
 |  |  |  |  [0]
 |  |  Tensor(Exp):0,        dtype=float32,  shape=[],       &quot;exp_1/forward/Exp:0&quot;
-|  |  |  Tensor(Placeholder):0,     dtype=float32,  shape=[],       &quot;values_5:0&quot;
+|  |  |  Tensor(Placeholder):0,     dtype=float32,  shape=[],       &quot;values_2:0&quot;
 |  Tensor(RealDiv):0,       dtype=float32,  shape=[],       &quot;SampleNormal_2_1/log_prob/Normal_2/log_prob/truediv_1:0&quot;
-|  |  Tensor(Placeholder):0,        dtype=float32,  shape=[],       &quot;values_0:0&quot;
+|  |  Tensor(Placeholder):0,        dtype=float32,  shape=[],       &quot;values_1:0&quot;
 |  |  Tensor(Exp):0,        dtype=float32,  shape=[],       &quot;exp_1/forward/Exp:0&quot;
 |  |  |  ...
 Tensor(SquaredDifference):0,        dtype=float32,  shape=[85],     &quot;SampleNormal_3_1/log_prob/Normal_3/log_prob/SquaredDifference:0&quot;
 |  Tensor(RealDiv):0,       dtype=float32,  shape=[85],     &quot;SampleNormal_3_1/log_prob/Normal_3/log_prob/truediv:0&quot;
 |  |  Tensor(Transpose):0,  dtype=float32,  shape=[85],     &quot;SampleNormal_3_1/log_prob/transpose:0&quot;
 |  |  |  Tensor(Reshape):0, dtype=float32,  shape=[85],     &quot;SampleNormal_3_1/log_prob/Reshape:0&quot;
-|  |  |  |  Tensor(Placeholder):0,  dtype=float32,  shape=[85],     &quot;values_3:0&quot;
+|  |  |  |  Tensor(Placeholder):0,  dtype=float32,  shape=[85],     &quot;values_6:0&quot;
 |  |  |  |  Tensor(Const):0,        dtype=int32,    shape=[1],      &quot;SampleNormal_3_1/log_prob/Reshape/shape:0&quot;
 |  |  |  |  |  [85]
 |  |  |  Tensor(Const):0,   dtype=int32,    shape=[1],      &quot;SampleNormal_3_1/log_prob/transpose/perm:0&quot;
 |  |  |  |  [0]
 |  |  Tensor(Exp):0,        dtype=float32,  shape=[],       &quot;exp_2_1/forward/Exp:0&quot;
-|  |  |  Tensor(Placeholder):0,     dtype=float32,  shape=[],       &quot;values_2:0&quot;
+|  |  |  Tensor(Placeholder):0,     dtype=float32,  shape=[],       &quot;values_4:0&quot;
 |  Tensor(RealDiv):0,       dtype=float32,  shape=[],       &quot;SampleNormal_3_1/log_prob/Normal_3/log_prob/truediv_1:0&quot;
-|  |  Tensor(Placeholder):0,        dtype=float32,  shape=[],       &quot;values_6:0&quot;
+|  |  Tensor(Placeholder):0,        dtype=float32,  shape=[],       &quot;values_3:0&quot;
 |  |  Tensor(Exp):0,        dtype=float32,  shape=[],       &quot;exp_2_1/forward/Exp:0&quot;
 |  |  |  ...
 Tensor(SquaredDifference):0,        dtype=float32,  shape=[919],    &quot;Normal_4_1/log_prob/SquaredDifference:0&quot;
@@ -456,18 +456,18 @@ Tensor(SquaredDifference):0,        dtype=float32,  shape=[919],    &quot;Normal
 |  |  Tensor(Const):0,      dtype=float32,  shape=[919],    &quot;Normal_4_1/log_prob/value:0&quot;
 |  |  |  [0.8329091 0.8329091 1.0986123 ... 1.6292405 1.3350011 1.0986123]
 |  |  Tensor(Exp):0,        dtype=float32,  shape=[],       &quot;exp_3_1/forward/Exp:0&quot;
-|  |  |  Tensor(Placeholder):0,     dtype=float32,  shape=[],       &quot;values_4:0&quot;
+|  |  |  Tensor(Placeholder):0,     dtype=float32,  shape=[],       &quot;values_5:0&quot;
 |  Tensor(RealDiv):0,       dtype=float32,  shape=[919],    &quot;Normal_4_1/log_prob/truediv_1:0&quot;
 |  |  Tensor(AddV2):0,      dtype=float32,  shape=[919],    &quot;add:0&quot;
 |  |  |  Tensor(GatherV2):0,        dtype=float32,  shape=[919],    &quot;GatherV2:0&quot;
-|  |  |  |  Tensor(Placeholder):0,  dtype=float32,  shape=[85],     &quot;values_1:0&quot;
+|  |  |  |  Tensor(Placeholder):0,  dtype=float32,  shape=[85],     &quot;values_0:0&quot;
 |  |  |  |  Tensor(Const):0,        dtype=int32,    shape=[919],    &quot;GatherV2/indices:0&quot;
 |  |  |  |  |  [ 0  0  0 ... 83 84 84]
 |  |  |  |  Tensor(Const):0,        dtype=int32,    shape=[],       &quot;GatherV2/axis:0&quot;
 |  |  |  |  |  0
 |  |  |  Tensor(Mul):0,     dtype=float32,  shape=[919],    &quot;mul:0&quot;
 |  |  |  |  Tensor(GatherV2):0,     dtype=float32,  shape=[919],    &quot;GatherV2_1:0&quot;
-|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[85],     &quot;values_3:0&quot;
+|  |  |  |  |  Tensor(Placeholder):0,       dtype=float32,  shape=[85],     &quot;values_6:0&quot;
 |  |  |  |  |  Tensor(Const):0,     dtype=int32,    shape=[919],    &quot;GatherV2_1/indices:0&quot;
 |  |  |  |  |  |  [ 0  0  0 ... 83 84 84]
 |  |  |  |  |  Tensor(Const):0,     dtype=int32,    shape=[],       &quot;GatherV2_1/axis:0&quot;
@@ -492,13 +492,13 @@ the graph output slightly more interpretable,
 <span class="n">pprint</span><span class="p">(</span><span class="n">tfp_names_to_pymc</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;values_0&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/mu_alpha&#39;</span><span class="p">,</span>
- <span class="s1">&#39;values_1&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/alpha&#39;</span><span class="p">,</span>
- <span class="s1">&#39;values_2&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/__log_sigma_beta&#39;</span><span class="p">,</span>
- <span class="s1">&#39;values_3&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/beta&#39;</span><span class="p">,</span>
- <span class="s1">&#39;values_4&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/__log_eps&#39;</span><span class="p">,</span>
- <span class="s1">&#39;values_5&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/__log_sigma_alpha&#39;</span><span class="p">,</span>
- <span class="s1">&#39;values_6&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/mu_beta&#39;</span><span class="p">}</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;values_0&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/alpha&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;values_1&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/mu_alpha&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;values_2&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/__log_sigma_alpha&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;values_3&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/mu_beta&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;values_4&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/__log_sigma_beta&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;values_5&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/__log_eps&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;values_6&#39;</span><span class="p">:</span> <span class="s1">&#39;hierarchical_model/beta&#39;</span><span class="p">}</span>
 </pre></div>
 </div>
 </div>
@@ -632,9 +632,8 @@ the necessary imports and create a few useful helper functions.</p>
 <span class="kn">from</span> <span class="nn">unification</span> <span class="kn">import</span> <span class="n">var</span><span class="p">,</span> <span class="n">reify</span><span class="p">,</span> <span class="n">unify</span>
 
 <span class="kn">from</span> <span class="nn">kanren</span> <span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">eq</span><span class="p">,</span> <span class="n">lall</span><span class="p">,</span> <span class="n">conde</span>
-<span class="kn">from</span> <span class="nn">kanren.goals</span> <span class="kn">import</span> <span class="n">not_equalo</span>
-<span class="kn">from</span> <span class="nn">kanren.core</span> <span class="kn">import</span> <span class="n">goaleval</span>
 <span class="kn">from</span> <span class="nn">kanren.graph</span> <span class="kn">import</span> <span class="n">reduceo</span><span class="p">,</span> <span class="n">walko</span><span class="p">,</span> <span class="n">applyo</span>
+<span class="kn">from</span> <span class="nn">kanren.constraints</span> <span class="kn">import</span> <span class="n">neq</span>
 
 <span class="kn">from</span> <span class="nn">etuples</span> <span class="kn">import</span> <span class="n">etuple</span><span class="p">,</span> <span class="n">etuplize</span>
 <span class="kn">from</span> <span class="nn">etuples.core</span> <span class="kn">import</span> <span class="n">ExpressionTuple</span>
@@ -648,35 +647,11 @@ the necessary imports and create a few useful helper functions.</p>
     <span class="k">def</span> <span class="nf">onceo_goal</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
         <span class="n">nonlocal</span> <span class="n">goal</span>
         <span class="n">g</span> <span class="o">=</span> <span class="n">reify</span><span class="p">(</span><span class="n">goal</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
-        <span class="n">g_stream</span> <span class="o">=</span> <span class="n">goaleval</span><span class="p">(</span><span class="n">g</span><span class="p">)(</span><span class="n">s</span><span class="p">)</span>
+        <span class="n">g_stream</span> <span class="o">=</span> <span class="n">g</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
         <span class="n">s</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">g_stream</span><span class="p">)</span>
         <span class="k">yield</span> <span class="n">s</span>
 
     <span class="k">return</span> <span class="n">onceo_goal</span>
-
-
-<span class="k">def</span> <span class="nf">eval_objo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">shallow</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create a goal that relates an ExpressionTuple to its evaluated result.</span>
-
-<span class="sd">    It&#39;s not an `evalo`-like relation, because it won&#39;t generate</span>
-<span class="sd">    `ExpressionTuple`s that evaluate to any value.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">eval_objo_goal</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-        <span class="n">nonlocal</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">shallow</span>
-
-        <span class="n">x_ref</span><span class="p">,</span> <span class="n">y_ref</span><span class="p">,</span> <span class="n">shallow</span> <span class="o">=</span> <span class="n">reify</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">shallow</span><span class="p">),</span> <span class="n">s</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_ref</span><span class="p">,</span> <span class="n">ExpressionTuple</span><span class="p">):</span>
-            <span class="n">x_ref</span> <span class="o">=</span> <span class="n">x_ref</span><span class="o">.</span><span class="n">eval_obj</span>
-            <span class="k">yield from</span> <span class="n">eq</span><span class="p">(</span><span class="n">x_ref</span><span class="p">,</span> <span class="n">y_ref</span><span class="p">)(</span><span class="n">s</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">y_ref</span> <span class="o">=</span> <span class="n">etuplize</span><span class="p">(</span><span class="n">y_ref</span><span class="p">,</span> <span class="n">shallow</span><span class="o">=</span><span class="n">shallow</span><span class="p">)</span>
-                <span class="k">yield from</span> <span class="n">eq</span><span class="p">(</span><span class="n">x_ref</span><span class="p">,</span> <span class="n">y_ref</span><span class="p">)(</span><span class="n">s</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
-                <span class="k">pass</span>
-
-    <span class="k">return</span> <span class="n">eval_objo_goal</span>
 </pre></div>
 </div>
 <p>The function <code class="docutils literal notranslate"><span class="pre">onceo</span></code> is a goal that provides a convenient way to
@@ -774,8 +749,7 @@ re-centering/scaling substitutions.</p>
 
     <span class="c1"># A logic variable that corresponds to a partially transformed output</span>
     <span class="c1"># graph.</span>
-    <span class="n">loglik_replaced_et</span><span class="p">,</span> <span class="n">loglik_replaced_mt</span> <span class="o">=</span> <span class="n">var</span><span class="p">(),</span> <span class="n">var</span><span class="p">()</span>
-    <span class="n">y_transed_graph_et</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
+    <span class="n">loglik_replaced_mt</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
 
     <span class="n">res</span> <span class="o">=</span> <span class="n">lall</span><span class="p">(</span>
         <span class="c1"># The first (y - x/a)**2 (anywhere in the graph)</span>
@@ -785,19 +759,15 @@ re-centering/scaling substitutions.</p>
         <span class="n">walko</span><span class="p">(</span><span class="n">x_loglik</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">),</span>
 
         <span class="c1"># Not sure if we need this, but we definitely don&#39;t want X == Y</span>
-        <span class="p">(</span><span class="n">not_equalo</span><span class="p">,</span> <span class="p">[</span><span class="n">y_lv</span><span class="p">,</span> <span class="n">x_lv</span><span class="p">],</span> <span class="bp">True</span><span class="p">),</span>
+        <span class="n">neq</span><span class="p">(</span><span class="n">y_lv</span><span class="p">,</span> <span class="n">x_lv</span><span class="p">),</span>
 
         <span class="c1"># Replace Y&#39;s log-likelihood subgraph with the standardized version</span>
         <span class="c1"># onceo(reduceo(partial(walko, trans_disto), in_graph, mid_graph)),</span>
-        <span class="n">onceo</span><span class="p">(</span><span class="n">walko</span><span class="p">(</span><span class="n">trans_disto</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">,</span> <span class="n">loglik_replaced_et</span><span class="p">)),</span>
-
-        <span class="c1"># Evaluate the resulting expression tuples</span>
-        <span class="n">eval_objo</span><span class="p">(</span><span class="n">loglik_replaced_et</span><span class="p">,</span> <span class="n">loglik_replaced_mt</span><span class="p">),</span>
+        <span class="n">onceo</span><span class="p">(</span><span class="n">walko</span><span class="p">(</span><span class="n">trans_disto</span><span class="p">,</span> <span class="n">in_graph</span><span class="p">,</span> <span class="n">loglik_replaced_mt</span><span class="p">)),</span>
 
         <span class="c1"># Replace any other references to Y with the transformed version and</span>
         <span class="c1"># any occurrences of our temporary Y variable.</span>
-        <span class="n">conde</span><span class="p">([</span><span class="n">onceo</span><span class="p">(</span><span class="n">walko</span><span class="p">(</span><span class="n">trans_varo</span><span class="p">,</span> <span class="n">loglik_replaced_mt</span><span class="p">,</span> <span class="n">y_transed_graph_et</span><span class="p">)),</span>
-               <span class="n">eval_objo</span><span class="p">(</span><span class="n">y_transed_graph_et</span><span class="p">,</span> <span class="n">out_graph</span><span class="p">)],</span>
+        <span class="n">conde</span><span class="p">([</span><span class="n">onceo</span><span class="p">(</span><span class="n">walko</span><span class="p">(</span><span class="n">trans_varo</span><span class="p">,</span> <span class="n">loglik_replaced_mt</span><span class="p">,</span> <span class="n">out_graph</span><span class="p">))],</span>
               <span class="c1"># Y might only appear in its log-likelihood subgraph, so that no</span>
               <span class="c1"># transformations are necessary/possible.  We address that</span>
               <span class="c1"># possibility here.</span>
