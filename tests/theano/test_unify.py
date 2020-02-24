@@ -2,7 +2,7 @@ import pytest
 
 import theano.tensor as tt
 
-from unification import unify, reify, var, variables
+from unification import reify, unify, var
 
 from cons.core import ConsError
 
@@ -36,25 +36,6 @@ def test_unification():
     res = unify(mt.inv(mt.add(x_l, a)), mt.inv(mt.add(b, y_l)))
     assert res[x_l].reify() == b
     assert res[y_l].reify() == a
-
-    # TODO: This produces a `DimShuffle` so that the scalar constant `1`
-    # will match the dimensions of the vector `b`.  That `DimShuffle` isn't
-    # handled by the logic variable form.
-    # assert unify(mt.add(x_l, 1), mt.add(b_l, 1))[x] == b
-
-    with variables(x):
-        assert unify(x + 1, b + 1)[x].reify() == b
-
-    assert unify(mt.add(x_l, a), mt.add(b, a))[x_l].reify() == b
-    with variables(x):
-        assert unify(x, b)[x] == b
-        assert unify([x], [b])[x] == b
-        assert unify((x,), (b,))[x] == b
-        assert unify(x + 1, b + 1)[x].reify() == b
-        assert unify(x + a, b + a)[x].reify() == b
-
-    with variables(x):
-        assert unify(a + b, a + x)[x].reify() == b
 
     mt_expr_add = mt.add(x_l, y_l)
 

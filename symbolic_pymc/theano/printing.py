@@ -10,8 +10,19 @@ from functools import reduce
 
 from theano import gof
 
-from sympy import Array as SympyArray
-from sympy.printing import latex as sympy_latex
+try:
+    from sympy import Array as SympyArray
+    from sympy.printing import latex as sympy_latex
+
+    def latex_print_array(data):  # pragma: no cover
+        return sympy_latex(SympyArray(data))
+
+
+except ImportError:  # pragma: no cover
+
+    def latex_print_array(data):
+        return data
+
 
 from .opt import FunctionGraph
 from .ops import RandomVariable
@@ -60,16 +71,16 @@ class RandomVariablePrinter(object):
             The printer state.
 
         """
-        return sform
+        return sform  # pragma: no cover
 
     def process(self, output, pstate):
         if output in pstate.memo:
             return pstate.memo[output]
 
         pprinter = pstate.pprinter
-        node = output.owner
+        node = getattr(output, "owner", None)
 
-        if node is None or not isinstance(node.op, RandomVariable):
+        if node is None or not isinstance(node.op, RandomVariable):  # pragma: no cover
             raise TypeError(
                 "Function %s cannot represent a variable that is "
                 "not the result of a RandomVariable operation" % self.name
@@ -78,7 +89,7 @@ class RandomVariablePrinter(object):
         op_name = self.name or getattr(node.op, "print_name", None)
         op_name = op_name or getattr(node.op, "name", None)
 
-        if op_name is None:
+        if op_name is None:  # pragma: no cover
             raise ValueError(f"Could not find a name for {node.op}")
 
         # Allow `Op`s to specify their ascii and LaTeX formats (in a tuple/list
@@ -144,7 +155,7 @@ class RandomVariablePrinter(object):
 
 class GenericSubtensorPrinter(object):
     def process(self, r, pstate):
-        if r.owner is None:
+        if getattr(r, "owner", None) is None:  # pragma: no cover
             raise TypeError("Can only print Subtensor.")
 
         output_latex = getattr(pstate, "latex", False)
@@ -161,13 +172,13 @@ class GenericSubtensorPrinter(object):
                 if isinstance(entry, slice):
                     s_parts = [""] * 2
                     if entry.start is not None:
-                        s_parts[0] = entry.start
+                        s_parts[0] = pstate.pprinter.process(inputs.pop())
 
                     if entry.stop is not None:
-                        s_parts[1] = entry.stop
+                        s_parts[1] = pstate.pprinter.process(inputs.pop())
 
                     if entry.step is not None:
-                        s_parts.append(entry.stop)
+                        s_parts.append(pstate.pprinter.process(inputs.pop()))
 
                     sidxs.append(":".join(s_parts))
                 else:
@@ -215,16 +226,22 @@ class VariableWithShapePrinter(object):
         using_latex = getattr(pstate, "latex", False)
         # Crude--but effective--means of stopping print-outs for large
         # arrays.
-        constant = isinstance(output, tt.TensorConstant)
+        constant = isinstance(output, (tt.TensorConstant, theano.scalar.basic.ScalarConstant))
         too_large = constant and (output.data.size > cls.max_line_width * cls.max_line_height)
 
         if constant and not too_large:
             # Print constants that aren't too large
             if using_latex and output.ndim > 0:
-                out_name = sympy_latex(SympyArray(output.data))
+                out_name = latex_print_array(output.data)
             else:
                 out_name = str(output.data)
-        elif isinstance(output, tt.TensorVariable) or constant:
+        elif (
+            isinstance(
+                output,
+                (tt.TensorVariable, theano.scalar.basic.Scalar, theano.scalar.basic.ScalarVariable),
+            )
+            or constant
+        ):
             # Process name and shape
 
             # Attempt to get the original variable, in case this is a cloned
@@ -238,7 +255,7 @@ class VariableWithShapePrinter(object):
 
             shape_strings = pstate.preamble_dict.setdefault("shape_strings", OrderedDict())
             shape_strings[output] = shape_info
-        else:
+        else:  # pragma: no cover
             raise TypeError(f"Type {type(output)} not handled by variable printer")
 
         pstate.memo[output] = out_name
@@ -268,7 +285,7 @@ class VariableWithShapePrinter(object):
                 _ = [available_names.pop(v.name, None) for v in fgraph.variables]
             setattr(pstate, "available_names", available_names)
 
-        if output.name:
+        if getattr(output, "name", None):
             # Observed an existing name; remove it.
             out_name = output.name
             available_names.pop(out_name, None)
@@ -524,11 +541,18 @@ tt_pprint = PreamblePPrinter()
 
 # The order here is important!
 tt_pprint.printers.insert(
-    0, (lambda pstate, r: isinstance(r, tt.Variable), VariableWithShapePrinter)
+    0,
+    (
+        lambda pstate, r: isinstance(r, (theano.scalar.basic.Scalar, tt.Variable)),
+        VariableWithShapePrinter,
+    ),
 )
 tt_pprint.printers.insert(
     0,
-    (lambda pstate, r: r.owner and isinstance(r.owner.op, RandomVariable), RandomVariablePrinter()),
+    (
+        lambda pstate, r: getattr(r, "owner", None) and isinstance(r.owner.op, RandomVariable),
+        RandomVariablePrinter(),
+    ),
 )
 
 
@@ -538,9 +562,9 @@ class ObservationPrinter(object):
             return pstate.memo[output]
 
         pprinter = pstate.pprinter
-        node = output.owner
+        node = getattr(output, "owner", None)
 
-        if node is None or not isinstance(node.op, Observed):
+        if node is None or not isinstance(node.op, Observed):  # pragma: no cover
             raise TypeError(f"Node Op is not of type `Observed`: {node.op}")
 
         val = node.inputs[0]

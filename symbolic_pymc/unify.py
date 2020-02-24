@@ -5,9 +5,8 @@ from cons.core import _car, _cdr, ConsError
 
 from kanren.term import arguments, operator
 
-from unification.more import unify
 from unification.variable import Var
-from unification.core import _reify, _unify, reify
+from unification.core import _reify, _unify, reify, unify
 
 from etuples import etuple
 
