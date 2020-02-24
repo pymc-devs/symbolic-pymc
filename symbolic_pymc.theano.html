@@ -837,29 +837,6 @@ from old variables to new variables to replace.</p></li>
 <dd><p>Get Theano objects from combinations of <a href="#id5"><span class="problematic" id="id6">`</span></a>etuple`s and meta objects.</p>
 </dd></dl>
 
-<dl class="function">
-<dt id="symbolic_pymc.theano.opt.run">
-<code class="sig-prename descclassname">symbolic_pymc.theano.opt.</code><code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">n</em>, <em class="sig-param">x</em>, <em class="sig-param">*goals</em>, <em class="sig-param">results_filter=functools.partial(&lt;function unique&gt;</em>, <em class="sig-param">key=&lt;function multihash&gt;)</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.opt.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run a logic program and obtain n solutions that satisfy the given goals.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">kanren</span> <span class="k">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">eq</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">var</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">eq</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-<span class="go">(1,)</span>
-</pre></div>
-</div>
-<dl class="simple">
-<dt>n: int</dt><dd><p>The number of desired solutions (see <cite>take</cite>). <cite>n=0</cite> returns a tuple
-with all results and <cite>n=None</cite> returns a lazy sequence of all results.</p>
-</dd>
-<dt>x: object</dt><dd><p>The form to reify and output.  Usually contains logic variables used in
-the given goals.</p>
-</dd>
-<dt>goals: Callables</dt><dd><p>A sequence of goals that must be true in logical conjunction
-(i.e. <cite>lall</cite>).</p>
-</dd>
-</dl>
-</dd></dl>
-
 </div>
 <div class="section" id="module-symbolic_pymc.theano.printing">
 <span id="symbolic-pymc-theano-printing-module"></span><h2>symbolic_pymc.theano.printing module<a class="headerlink" href="#module-symbolic_pymc.theano.printing" title="Permalink to this headline">¶</a></h2>
@@ -1053,6 +1030,11 @@ name collisions.</p>
 </dd></dl>
 
 </dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.theano.printing.latex_print_array">
+<code class="sig-prename descclassname">symbolic_pymc.theano.printing.</code><code class="sig-name descname">latex_print_array</code><span class="sig-paren">(</span><em class="sig-param">data</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.printing.latex_print_array" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 <div class="section" id="module-symbolic_pymc.theano.pymc3">
