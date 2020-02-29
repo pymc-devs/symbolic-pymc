@@ -434,7 +434,7 @@ class TFlowMetaOp(TFlowMetaSymbol):
     @classmethod
     def _metatize(cls, obj):
         """Reformat inputs to match the OpDef."""
-        new_input = obj._reconstruct_sequence_inputs(obj.op_def, obj.inputs, obj.node_def.attr)
+        new_input = ops._reconstruct_sequence_inputs(obj.op_def, obj.inputs, obj.node_def.attr)
         new_args = [
             getattr(obj, s) if s != "inputs" else new_input for s in getattr(cls, "__props__", [])
         ]

@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 
 import tensorflow as tf
+from tensorflow.python.framework import ops
 
 
 def assert_ops_equal(a, b, compare_fn=lambda a, b: a.op.type == b.op.type):
@@ -10,7 +11,7 @@ def assert_ops_equal(a, b, compare_fn=lambda a, b: a.op.type == b.op.type):
         assert compare_fn(a, b)
 
         if isinstance(a.op, tf.Operation):
-            a_inputs = a.op._reconstruct_sequence_inputs(
+            a_inputs = ops._reconstruct_sequence_inputs(
                 a.op.op_def, a.op.inputs, a.op.node_def.attr
             )
         elif isinstance(a.op, Mapping):
@@ -19,7 +20,7 @@ def assert_ops_equal(a, b, compare_fn=lambda a, b: a.op.type == b.op.type):
             a_inputs = list(a.op.inputs)
 
         if isinstance(b.op, tf.Operation):
-            b_inputs = b.op._reconstruct_sequence_inputs(
+            b_inputs = ops._reconstruct_sequence_inputs(
                 b.op.op_def, b.op.inputs, b.op.node_def.attr
             )
         elif isinstance(b.op, Mapping):
