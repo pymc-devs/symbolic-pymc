@@ -6,7 +6,8 @@ import tensorflow_probability as tfp
 
 from inspect import Parameter, Signature
 
-from collections import OrderedDict, Sequence
+from collections import OrderedDict
+from collections.abc import Sequence
 
 from functools import partial
 

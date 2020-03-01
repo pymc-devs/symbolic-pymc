@@ -1,3 +1,9 @@
+import tensorflow as tf
+
+from tensorflow.python.framework.ops import disable_tensor_equality
+
+from tensorflow_probability import distributions as tfd
+
 from unification import var, unify
 
 from kanren import run, eq, lall
@@ -6,8 +12,12 @@ from kanren.assoccomm import eq_comm, commutative
 
 from symbolic_pymc.meta import enable_lvar_defaults
 from symbolic_pymc.tensorflow.meta import mt
+from symbolic_pymc.tensorflow.graph import normalize_tf_graph
 
 from tests.tensorflow import run_in_graph_mode
+from tests.tensorflow.utils import mt_normal_log_prob
+
+disable_tensor_equality()
 
 
 @run_in_graph_mode
@@ -47,3 +57,36 @@ def test_commutativity():
 
     res = run(0, q, eq_comm(add_1_mt, add_pattern_mt))
     assert res[0] == add_1_mt.base_arguments[0]
+
+
+@run_in_graph_mode
+def test_commutativity_tfp():
+
+    with tf.Graph().as_default():
+        mu_tf = tf.compat.v1.placeholder(tf.float32, name="mu", shape=tf.TensorShape([None]))
+        tau_tf = tf.compat.v1.placeholder(tf.float32, name="tau", shape=tf.TensorShape([None]))
+
+        normal_tfp = tfd.normal.Normal(mu_tf, tau_tf)
+
+        value_tf = tf.compat.v1.placeholder(tf.float32, name="value", shape=tf.TensorShape([None]))
+
+        normal_log_lik = normal_tfp.log_prob(value_tf)
+
+    normal_log_lik_opt = normalize_tf_graph(normal_log_lik)
+
+    with enable_lvar_defaults("names", "node_attrs"):
+        tfp_normal_pattern_mt = mt_normal_log_prob(var(), var(), var())
+
+    normal_log_lik_mt = mt(normal_log_lik)
+    normal_log_lik_opt_mt = mt(normal_log_lik_opt)
+
+    # Our pattern is the form of an unnormalized TFP normal PDF.
+    assert run(0, True, eq(normal_log_lik_mt, tfp_normal_pattern_mt)) == (True,)
+    # Our pattern should *not* match the Grappler-optimized graph, because
+    # Grappler will reorder terms (e.g. the log + constant
+    # variance/normalization term)
+    assert run(0, True, eq(normal_log_lik_opt_mt, tfp_normal_pattern_mt)) == ()
+
+    # XXX: `eq_comm` is, unfortunately, order sensitive!  LHS should be ground.
+    assert run(0, True, eq_comm(normal_log_lik_mt, tfp_normal_pattern_mt)) == (True,)
+    assert run(0, True, eq_comm(normal_log_lik_opt_mt, tfp_normal_pattern_mt)) == (True,)
