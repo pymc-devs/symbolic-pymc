@@ -37,6 +37,22 @@ from .random_variables import (
     CauchyRVType,
     HalfCauchyRV,
     HalfCauchyRVType,
+    BetaRV,
+    BetaRVType,
+    BinomialRV,
+    BinomialRVType,
+    PoissonRV,
+    PoissonRVType,
+    DirichletRV,
+    DirichletRVType,
+    BernoulliRV,
+    BernoulliRVType,
+    BetaBinomialRV,
+    BetaBinomialRVType,
+    CategoricalRV,
+    CategoricalRVType,
+    MultinomialRV,
+    MultinomialRVType,
 )
 from .opt import FunctionGraph
 from .ops import RandomVariable
@@ -197,6 +213,110 @@ def _convert_rv_to_dist_HalfCauchy(op, rv):
     return pm.HalfCauchy, params
 
 
+@convert_dist_to_rv.register(pm.Beta, object)
+def convert_dist_to_rv_Beta(dist, rng):
+    size = dist.shape.astype(int)[BetaRV.ndim_supp :]
+    res = BetaRV(dist.alpha, dist.beta, size=size, rng=rng)
+    return res
+
+
+@_convert_rv_to_dist.register(BetaRVType, Apply)
+def _convert_rv_to_dist_Beta(op, rv):
+    params = {"alpha": rv.inputs[0], "beta": rv.inputs[1]}
+    return pm.Beta, params
+
+
+@convert_dist_to_rv.register(pm.Binomial, object)
+def convert_dist_to_rv_Binomial(dist, rng):
+    size = dist.shape.astype(int)[BinomialRV.ndim_supp :]
+    res = BinomialRV(dist.n, dist.p, size=size, rng=rng)
+    return res
+
+
+@_convert_rv_to_dist.register(BinomialRVType, Apply)
+def _convert_rv_to_dist_Binomial(op, rv):
+    params = {"n": rv.inputs[0], "p": rv.inputs[1]}
+    return pm.Binomial, params
+
+
+@convert_dist_to_rv.register(pm.Poisson, object)
+def convert_dist_to_rv_Poisson(dist, rng):
+    size = dist.shape.astype(int)[PoissonRV.ndim_supp :]
+    res = PoissonRV(dist.mu, size=size, rng=rng)
+    return res
+
+
+@_convert_rv_to_dist.register(PoissonRVType, Apply)
+def _convert_rv_to_dist_Poisson(op, rv):
+    params = {"mu": rv.inputs[0]}
+    return pm.Poisson, params
+
+
+@convert_dist_to_rv.register(pm.Dirichlet, object)
+def convert_dist_to_rv_Dirichlet(dist, rng):
+    size = dist.shape.astype(int)[DirichletRV.ndim_supp :]
+    res = DirichletRV(dist.a, size=size, rng=rng)
+    return res
+
+
+@_convert_rv_to_dist.register(DirichletRVType, Apply)
+def _convert_rv_to_dist_Dirichlet(op, rv):
+    params = {"a": rv.inputs[0]}
+    return pm.Dirichlet, params
+
+
+@convert_dist_to_rv.register(pm.Bernoulli, object)
+def convert_dist_to_rv_Bernoulli(dist, rng):
+    size = dist.shape.astype(int)[BernoulliRV.ndim_supp :]
+    res = BernoulliRV(dist.p, size=size, rng=rng)
+    return res
+
+
+@_convert_rv_to_dist.register(BernoulliRVType, Apply)
+def _convert_rv_to_dist_Bernoulli(op, rv):
+    params = {"p": rv.inputs[0]}
+    return pm.Bernoulli, params
+
+
+@convert_dist_to_rv.register(pm.BetaBinomial, object)
+def convert_dist_to_rv_BetaBinomial(dist, rng):
+    size = dist.shape.astype(int)[BetaBinomialRV.ndim_supp :]
+    res = BetaBinomialRV(dist.n, dist.alpha, dist.beta, size=size, rng=rng)
+    return res
+
+
+@_convert_rv_to_dist.register(BetaBinomialRVType, Apply)
+def _convert_rv_to_dist_BetaBinomial(op, rv):
+    params = {"n": rv.inputs[0], "alpha": rv.inputs[1], "beta": rv.inputs[2]}
+    return pm.BetaBinomial, params
+
+
+@convert_dist_to_rv.register(pm.Categorical, object)
+def convert_dist_to_rv_Categorical(dist, rng):
+    size = dist.shape.astype(int)[CategoricalRV.ndim_supp :]
+    res = CategoricalRV(dist.p, size=size, rng=rng)
+    return res
+
+
+@_convert_rv_to_dist.register(CategoricalRVType, Apply)
+def _convert_rv_to_dist_Categorical(op, rv):
+    params = {"p": rv.inputs[0]}
+    return pm.Categorical, params
+
+
+@convert_dist_to_rv.register(pm.Multinomial, object)
+def convert_dist_to_rv_Multinomial(dist, rng):
+    size = dist.shape.astype(int)[MultinomialRV.ndim_supp :]
+    res = MultinomialRV(dist.n, dist.p, size=size, rng=rng)
+    return res
+
+
+@_convert_rv_to_dist.register(MultinomialRVType, Apply)
+def _convert_rv_to_dist_Multinomial(op, rv):
+    params = {"n": rv.inputs[0], "p": rv.inputs[1]}
+    return pm.Multinomial, params
+
+
 # TODO: More RV conversions!
 
 
@@ -207,9 +327,17 @@ def pymc3_var_to_rv(pm_var, rand_state=None):
     new_rv.name = pm_var.name
 
     if isinstance(pm_var, pm.model.ObservedRV):
-        obs = tt.as_tensor_variable(pm_var.observations)
+        obs = pm_var.observations
+        # For some reason, the observations can be float when the RV's dtype is
+        # not.
+        if obs.dtype != pm_var.dtype:
+            obs = obs.astype(pm_var.dtype)
+
+        obs = tt.as_tensor_variable(obs)
+
         if getattr(obs, "cached", False):
             obs = obs.clone()
+
         new_rv = observed(obs, new_rv)
 
     # Let's attempt to fix the PyMC3 broadcastable dims "oracle" issue,

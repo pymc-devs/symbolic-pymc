@@ -32,24 +32,24 @@ def _create_normal_normal_goals():
     #
     # Create the pattern/form of the prior normal distribution
     #
-    beta_name_lv = var("beta_name")
-    beta_size_lv = var("beta_size")
-    beta_rng_lv = var("beta_rng")
-    a_lv = var("a")
-    R_lv = var("R")
+    beta_name_lv = var()
+    beta_size_lv = var()
+    beta_rng_lv = var()
+    a_lv = var()
+    R_lv = var()
     beta_prior_mt = mt.MvNormalRV(a_lv, R_lv, size=beta_size_lv, rng=beta_rng_lv, name=beta_name_lv)
 
-    y_name_lv = var("y_name")
-    y_size_lv = var("y_size")
-    y_rng_lv = var("y_rng")
-    F_t_lv = var("f")
-    V_lv = var("V")
+    y_name_lv = var()
+    y_size_lv = var()
+    y_rng_lv = var()
+    F_t_lv = var()
+    V_lv = var()
     E_y_mt = mt.dot(F_t_lv, beta_prior_mt)
     Y_mt = mt.MvNormalRV(E_y_mt, V_lv, size=y_size_lv, rng=y_rng_lv, name=y_name_lv)
 
     # The variable specifying the fixed sample value of the random variable
     # given by `Y_mt`
-    obs_sample_mt = var("obs_sample")
+    obs_sample_mt = var()
 
     Y_obs_mt = mt.observed(obs_sample_mt, Y_mt)
 
@@ -80,21 +80,21 @@ def _create_normal_normal_goals():
 def _create_normal_wishart_goals():  # pragma: no cover
     """TODO."""
     # Create the pattern/form of the prior normal distribution
-    Sigma_name_lv = var("Sigma_name")
-    Sigma_size_lv = var("Sigma_size")
-    Sigma_rng_lv = var("Sigma_rng")
-    V_lv = var("V")
-    n_lv = var("n")
+    Sigma_name_lv = var()
+    Sigma_size_lv = var()
+    Sigma_rng_lv = var()
+    V_lv = var()
+    n_lv = var()
     Sigma_prior_mt = mt.WishartRV(V_lv, n_lv, Sigma_size_lv, Sigma_rng_lv, name=Sigma_name_lv)
 
-    y_name_lv = var("y_name")
-    y_size_lv = var("y_size")
-    y_rng_lv = var("y_rng")
-    V_lv = var("V")
-    f_mt = var("f")
+    y_name_lv = var()
+    y_size_lv = var()
+    y_rng_lv = var()
+    V_lv = var()
+    f_mt = var()
     Y_mt = mt.MvNormalRV(f_mt, V_lv, y_size_lv, y_rng_lv, name=y_name_lv)
 
-    y_mt = var("y")
+    y_mt = var()
     Y_obs_mt = mt.observed(y_mt, Y_mt)
 
     n_post_mt = etuple(mt.add, n_lv, etuple(mt.Shape, Y_obs_mt))
