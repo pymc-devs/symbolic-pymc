@@ -22,7 +22,7 @@ from symbolic_pymc.theano.meta import mt
 
 
 @pytest.mark.usefixtures("run_with_theano")
-def test_pymc_convert_dists():
+def test_pymc3_convert_dists():
     """Just a basic check that all PyMC3 RVs will convert to and from Theano RVs."""
     tt.config.compute_test_value = "ignore"
     theano.config.cxx = ""
@@ -36,6 +36,15 @@ def test_pymc_convert_dists():
         gamma_rv = pm.Gamma("gamma_rv", 1.0, 1.0, observed=1.0)
         invgamma_rv = pm.InverseGamma("invgamma_rv", 1.0, 1.0, observed=1.0)
         exp_rv = pm.Exponential("exp_rv", 1.0, observed=1.0)
+        halfnormal_rv = pm.HalfNormal("halfnormal_rv", 1.0, observed=1.0)
+        beta_rv = pm.Beta("beta_rv", 2.0, 2.0, observed=1.0)
+        binomial_rv = pm.Binomial("binomial_rv", 10, 0.5, observed=5)
+        dirichlet_rv = pm.Dirichlet("dirichlet_rv", np.r_[0.1, 0.1], observed=np.r_[0.1, 0.1])
+        poisson_rv = pm.Poisson("poisson_rv", 10, observed=5)
+        bernoulli_rv = pm.Bernoulli("bernoulli_rv", 0.5, observed=0)
+        betabinomial_rv = pm.BetaBinomial("betabinomial_rv", 0.1, 0.1, 10, observed=5)
+        categorical_rv = pm.Categorical("categorical_rv", np.r_[0.5, 0.5], observed=1)
+        multinomial_rv = pm.Multinomial("multinomial_rv", 5, np.r_[0.5, 0.5], observed=np.r_[2])
 
     # Convert to a Theano `FunctionGraph`
     fgraph = model_graph(model)
@@ -53,7 +62,7 @@ def test_pymc_convert_dists():
 
 
 @pytest.mark.usefixtures("run_with_theano")
-def test_pymc_normal_model():
+def test_pymc3_normal_model():
     """Conduct a more in-depth test of PyMC3/Theano conversions for a specific model."""
     tt.config.compute_test_value = "ignore"
 
@@ -199,7 +208,7 @@ def test_normals_to_model():
 
 
 @pytest.mark.usefixtures("run_with_theano")
-def test_pymc_broadcastable():
+def test_pymc3_broadcastable():
     """Test PyMC3 to Theano conversion amid array broadcasting."""
     tt.config.compute_test_value = "ignore"
 

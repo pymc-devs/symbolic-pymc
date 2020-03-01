@@ -9,9 +9,11 @@ from itertools import chain
 from functools import partial
 from collections import OrderedDict
 from contextlib import contextmanager
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 
 from unification import isvar, Var
+
+from etuples.core import ExpressionTuple
 
 from .utils import HashableNDArray
 
@@ -74,20 +76,20 @@ def metatize(obj):
     return _metatize(obj)
 
 
-@dispatch((type(None), types.FunctionType, partial, str, dict))
+@dispatch((type(None), types.FunctionType, partial, str, Mapping))
 def _metatize(obj):
     return obj
 
 
-@_metatize.register((set, tuple))
+@_metatize.register((frozenset, tuple, ExpressionTuple))
 @cached(metatize_cache)
-def _metatize_set_tuple(obj):
+def _metatize_hashable_Sequence(obj):
     """Convert elements of an iterable to meta objects."""
     return type(obj)([metatize(o) for o in obj])
 
 
-@_metatize.register(list)
-def _metatize_list(obj):
+@_metatize.register(Sequence)
+def _metatize_Sequence(obj):
     """Convert elements of an iterable to meta objects."""
     return type(obj)([metatize(o) for o in obj])
 

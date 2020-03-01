@@ -21,6 +21,19 @@ class UniformRVType(RandomVariable):
 UniformRV = UniformRVType()
 
 
+class BetaRVType(RandomVariable):
+    print_name = ("Beta", "\\operatorname{Beta}")
+
+    def __init__(self):
+        super().__init__("beta", theano.config.floatX, 0, [0, 0], "beta", inplace=True)
+
+    def make_node(self, alpha, beta, size=None, rng=None, name=None):
+        return super().make_node(alpha, beta, size=size, rng=rng, name=name)
+
+
+BetaRV = BetaRVType()
+
+
 class NormalRVType(RandomVariable):
     print_name = ("N", "\\operatorname{N}")
 
@@ -209,6 +222,61 @@ class TruncExponentialRVType(RandomVariable):
 TruncExponentialRV = TruncExponentialRVType()
 
 
+class BernoulliRVType(RandomVariable):
+    print_name = ("Bern", "\\operatorname{Bern}")
+
+    def __init__(self):
+        super().__init__(
+            "bernoulli",
+            "int64",
+            0,
+            [0],
+            lambda rng, *args: scipy.stats.bernoulli.rvs(args[0], size=args[1], random_state=rng),
+            inplace=True,
+        )
+
+    def make_node(self, p, size=None, rng=None, name=None):
+        return super().make_node(p, size=size, rng=rng, name=name)
+
+
+BernoulliRV = BernoulliRVType()
+
+
+class BinomialRVType(RandomVariable):
+    print_name = ("Binom", "\\operatorname{Binom}")
+
+    def __init__(self):
+        super().__init__("binomial", "int64", 0, [0, 0], "binomial", inplace=True)
+
+    def make_node(self, n, p, size=None, rng=None, name=None):
+        return super().make_node(n, p, size=size, rng=rng, name=name)
+
+
+BinomialRV = BinomialRVType()
+
+
+class BetaBinomialRVType(RandomVariable):
+    print_name = ("BetaBinom", "\\operatorname{BetaBinom}")
+
+    def __init__(self):
+        super().__init__(
+            "beta_binomial",
+            "int64",
+            0,
+            [0, 0, 0],
+            lambda rng, *args: scipy.stats.betabinom.rvs(
+                *args[:-1], size=args[-1], random_state=rng
+            ),
+            inplace=True,
+        )
+
+    def make_node(self, n, a, b, size=None, rng=None, name=None):
+        return super().make_node(n, a, b, size=size, rng=rng, name=name)
+
+
+BetaBinomialRV = BetaBinomialRVType()
+
+
 # Support shape is determined by the first dimension in the *second* parameter
 # (i.e.  the probabilities vector)
 class MultinomialRVType(RandomVariable):
@@ -230,6 +298,28 @@ class MultinomialRVType(RandomVariable):
 
 
 MultinomialRV = MultinomialRVType()
+
+
+class CategoricalRVType(RandomVariable):
+    print_name = ("Cat", "\\operatorname{Cat}")
+
+    def __init__(self):
+        super().__init__(
+            "categorical",
+            "int64",
+            0,
+            [1],
+            lambda rng, *args: scipy.stats.rv_discrete(values=(range(len(args[0])), args[0])).rvs(
+                size=args[1], random_state=rng
+            ),
+            inplace=True,
+        )
+
+    def make_node(self, pvals, size=None, rng=None, name=None):
+        return super().make_node(pvals, size=size, rng=rng, name=name)
+
+
+CategoricalRV = CategoricalRVType()
 
 
 class Observed(tt.Op):
