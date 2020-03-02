@@ -10,14 +10,14 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css" />
     <link rel="stylesheet" type="text/css" href="_static/default.css" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript" src="_static/highlight.min.js"></script>
-    <script type="text/javascript" src="_static/semantic.min.js"></script>
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/highlight.min.js"></script>
+    <script src="_static/semantic.min.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="Radon Example" href="tensorflow-radon-example.html" />
@@ -34,7 +34,7 @@
 
     <div class="ui container">
         <div class="ui large secondary pointing menu">
-            <a class="item" href="/">
+            <a class="item" href="/symbolic-pymc">
                 Symbolic
                 <img class="ui bottom aligned tiny image" src="https://cdn.rawgit.com/pymc-devs/pymc3/master/docs/logos/svg/PyMC3_banner.svg" />
             </a>
@@ -75,10 +75,10 @@
 <h2>1 Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
 <p>In this example, we’ll illustrate the effect of algebraic graph simplifications
 using the log-likelihood of a hierarchical normal-normal model.</p>
-<div class="highlight-python notranslate" id="simplification-python-setup"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="kn">as</span> <span class="nn">tf</span>
+<div class="highlight-python notranslate" id="simplification-python-setup"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
-<span class="kn">import</span> <span class="nn">tensorflow_probability</span> <span class="kn">as</span> <span class="nn">tfp</span>
+<span class="kn">import</span> <span class="nn">tensorflow_probability</span> <span class="k">as</span> <span class="nn">tfp</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.eager.context</span> <span class="kn">import</span> <span class="n">graph_mode</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework.ops</span> <span class="kn">import</span> <span class="n">disable_tensor_equality</span>
@@ -111,7 +111,7 @@ applies <code class="docutils literal notranslate"><span class="pre">grappler</s
 <span class="n">config</span> <span class="o">=</span> <span class="n">config_pb2</span><span class="o">.</span><span class="n">ConfigProto</span><span class="p">()</span>
 
 
-<span class="k">def</span> <span class="nf">normalize_tf_graph</span><span class="p">(</span><span class="n">graph_output</span><span class="p">,</span> <span class="n">new_graph</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">normalize_tf_graph</span><span class="p">(</span><span class="n">graph_output</span><span class="p">,</span> <span class="n">new_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Use grappler to normalize a graph.</span>
 
 <span class="sd">    Arguments</span>
@@ -160,11 +160,11 @@ applies <code class="docutils literal notranslate"><span class="pre">grappler</s
 <span class="k">with</span> <span class="n">graph_mode</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">()</span> <span class="k">as</span> <span class="n">demo_graph</span><span class="p">:</span>
 
     <span class="n">x_tf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;value_x&#39;</span><span class="p">,</span>
-                                    <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="bp">None</span><span class="p">]))</span>
+                                    <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="kc">None</span><span class="p">]))</span>
     <span class="n">tau_tf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tau&#39;</span><span class="p">,</span>
-                                      <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="bp">None</span><span class="p">]))</span>
+                                      <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="kc">None</span><span class="p">]))</span>
     <span class="n">y_tf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;value_y&#39;</span><span class="p">,</span>
-                                    <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="bp">None</span><span class="p">]))</span>
+                                    <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="kc">None</span><span class="p">]))</span>
 
     <span class="n">X_tfp</span> <span class="o">=</span> <span class="n">tfp</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">normal</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;X&#39;</span><span class="p">)</span>
 
@@ -466,7 +466,7 @@ equivalent to the manually simplified graph in <span class="xref std std-ref">ma
             &copy; Copyright 2019, PyMC developers.
         </p>
         <p>
-            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.2.0.<br />
+            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.4.3.<br />
         </p>
     </div>
 </div>

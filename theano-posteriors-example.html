@@ -10,14 +10,14 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css" />
     <link rel="stylesheet" type="text/css" href="_static/default.css" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript" src="_static/highlight.min.js"></script>
-    <script type="text/javascript" src="_static/semantic.min.js"></script>
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/highlight.min.js"></script>
+    <script src="_static/semantic.min.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Automatic Re-centering and Re-scaling" href="theano-radon-example.html" />
@@ -35,7 +35,7 @@
 
     <div class="ui container">
         <div class="ui large secondary pointing menu">
-            <a class="item" href="/">
+            <a class="item" href="/symbolic-pymc">
                 Symbolic
                 <img class="ui bottom aligned tiny image" src="https://cdn.rawgit.com/pymc-devs/pymc3/master/docs/logos/svg/PyMC3_banner.svg" />
             </a>
@@ -72,12 +72,12 @@
 </dd>
 </dl>
 </div></blockquote>
-<div class="highlight-python notranslate" id="compute-symbolic-posterior"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<div class="highlight-python notranslate" id="compute-symbolic-posterior"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">import</span> <span class="nn">theano</span>
-<span class="kn">import</span> <span class="nn">theano.tensor</span> <span class="kn">as</span> <span class="nn">tt</span>
+<span class="kn">import</span> <span class="nn">theano.tensor</span> <span class="k">as</span> <span class="nn">tt</span>
 
-<span class="kn">import</span> <span class="nn">pymc3</span> <span class="kn">as</span> <span class="nn">pm</span>
+<span class="kn">import</span> <span class="nn">pymc3</span> <span class="k">as</span> <span class="nn">pm</span>
 
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
@@ -139,7 +139,7 @@
 </div>
 <div class="section" id="before">
 <h2>Before<a class="headerlink" href="#before" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python notranslate" id="posterior-before-print"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">tt_pprint</span><span class="p">(</span><span class="n">fgraph</span><span class="p">))</span>
+<div class="highlight-python notranslate" id="posterior-before-print"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">tt_pprint</span><span class="p">(</span><span class="n">fgraph</span><span class="p">))</span>
 <span class="go">F in R**(N^F_0 x N^F_1), a in R**(N^a_0), R in R**(N^R_0 x N^R_1)</span>
 <span class="go">V in R**(N^V_0 x N^V_1)</span>
 <span class="go">beta ~ N(a, R) in R**(N^beta_0), Y ~ N((F * beta), V) in R**(N^Y_0)</span>
@@ -149,7 +149,7 @@
 </div>
 <div class="section" id="after">
 <h2>After<a class="headerlink" href="#after" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python notranslate" id="posterior-after-print"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">tt_pprint</span><span class="p">(</span><span class="n">fgraph_conj</span><span class="p">))</span>
+<div class="highlight-python notranslate" id="posterior-after-print"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">tt_pprint</span><span class="p">(</span><span class="n">fgraph_conj</span><span class="p">))</span>
 <span class="go">a in R**(N^a_0), R in R**(N^R_0 x N^R_1), F in R**(N^F_0 x N^F_1)</span>
 <span class="go">c in R**(N^c_0 x N^c_1), d in R**(N^d_0 x N^d_1)</span>
 <span class="go">V in R**(N^V_0 x N^V_1), e in R**(N^e_0 x N^e_1)</span>
@@ -174,7 +174,7 @@
             &copy; Copyright 2019, PyMC developers.
         </p>
         <p>
-            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.2.0.<br />
+            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.4.3.<br />
         </p>
     </div>
 </div>

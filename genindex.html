@@ -11,14 +11,14 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css" />
     <link rel="stylesheet" type="text/css" href="_static/default.css" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript" src="_static/highlight.min.js"></script>
-    <script type="text/javascript" src="_static/semantic.min.js"></script>
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/highlight.min.js"></script>
+    <script src="_static/semantic.min.js"></script>
     <link rel="index" title="Index" href="#" />
     <link rel="search" title="Search" href="search.html" />
 <script>hljs.initHighlightingOnLoad();</script>
@@ -34,7 +34,7 @@
 
     <div class="ui container">
         <div class="ui large secondary pointing menu">
-            <a class="item" href="/">
+            <a class="item" href="/symbolic-pymc">
                 Symbolic
                 <img class="ui bottom aligned tiny image" src="https://cdn.rawgit.com/pymc-devs/pymc3/master/docs/logos/svg/PyMC3_banner.svg" />
             </a>
@@ -174,6 +174,14 @@
       </ul></li>
       <li><a href="symbolic_pymc.html#symbolic_pymc.meta.MetaSymbol.base_subclasses">base_subclasses() (symbolic_pymc.meta.MetaSymbol class method)</a>
 </li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BernoulliRVType">BernoulliRVType (class in symbolic_pymc.theano.random_variables)</a>
+</li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BetaBinomialRVType">BetaBinomialRVType (class in symbolic_pymc.theano.random_variables)</a>
+</li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BetaRVType">BetaRVType (class in symbolic_pymc.theano.random_variables)</a>
+</li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BinomialRVType">BinomialRVType (class in symbolic_pymc.theano.random_variables)</a>
+</li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaTensorType.broadcastable">broadcastable (symbolic_pymc.theano.meta.TheanoMetaTensorType attribute)</a>
 </li>
   </ul></td>
@@ -183,6 +191,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.utils.canonicalize">canonicalize() (in module symbolic_pymc.theano.utils)</a>
+</li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.CategoricalRVType">CategoricalRVType (class in symbolic_pymc.theano.random_variables)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.CauchyRVType">CauchyRVType (class in symbolic_pymc.theano.random_variables)</a>
 </li>
@@ -194,10 +204,22 @@
 </li>
       <li><a href="symbolic_pymc.relations.theano.html#symbolic_pymc.relations.theano.distributions.constant_neq">constant_neq() (in module symbolic_pymc.relations.theano.distributions)</a>
 </li>
-      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Cauchy">convert_dist_to_rv_Cauchy() (in module symbolic_pymc.theano.pymc3)</a>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Bernoulli">convert_dist_to_rv_Bernoulli() (in module symbolic_pymc.theano.pymc3)</a>
+</li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Beta">convert_dist_to_rv_Beta() (in module symbolic_pymc.theano.pymc3)</a>
+</li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_BetaBinomial">convert_dist_to_rv_BetaBinomial() (in module symbolic_pymc.theano.pymc3)</a>
+</li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Binomial">convert_dist_to_rv_Binomial() (in module symbolic_pymc.theano.pymc3)</a>
+</li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Categorical">convert_dist_to_rv_Categorical() (in module symbolic_pymc.theano.pymc3)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Cauchy">convert_dist_to_rv_Cauchy() (in module symbolic_pymc.theano.pymc3)</a>
+</li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Dirichlet">convert_dist_to_rv_Dirichlet() (in module symbolic_pymc.theano.pymc3)</a>
+</li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Exponential">convert_dist_to_rv_Exponential() (in module symbolic_pymc.theano.pymc3)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Gamma">convert_dist_to_rv_Gamma() (in module symbolic_pymc.theano.pymc3)</a>
@@ -208,9 +230,13 @@
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_InverseGamma">convert_dist_to_rv_InverseGamma() (in module symbolic_pymc.theano.pymc3)</a>
 </li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Multinomial">convert_dist_to_rv_Multinomial() (in module symbolic_pymc.theano.pymc3)</a>
+</li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_MvNormal">convert_dist_to_rv_MvNormal() (in module symbolic_pymc.theano.pymc3)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Normal">convert_dist_to_rv_Normal() (in module symbolic_pymc.theano.pymc3)</a>
+</li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Poisson">convert_dist_to_rv_Poisson() (in module symbolic_pymc.theano.pymc3)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.printing.PreamblePPrinter.create_state">create_state() (symbolic_pymc.theano.printing.PreamblePPrinter method)</a>
 </li>
@@ -391,6 +417,16 @@
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.ops.RandomVariable.make_node">make_node() (symbolic_pymc.theano.ops.RandomVariable method)</a>
 
       <ul>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BernoulliRVType.make_node">(symbolic_pymc.theano.random_variables.BernoulliRVType method)</a>
+</li>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BetaBinomialRVType.make_node">(symbolic_pymc.theano.random_variables.BetaBinomialRVType method)</a>
+</li>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BetaRVType.make_node">(symbolic_pymc.theano.random_variables.BetaRVType method)</a>
+</li>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BinomialRVType.make_node">(symbolic_pymc.theano.random_variables.BinomialRVType method)</a>
+</li>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.CategoricalRVType.make_node">(symbolic_pymc.theano.random_variables.CategoricalRVType method)</a>
+</li>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.CauchyRVType.make_node">(symbolic_pymc.theano.random_variables.CauchyRVType method)</a>
 </li>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.DirichletRVType.make_node">(symbolic_pymc.theano.random_variables.DirichletRVType method)</a>
@@ -420,12 +456,12 @@
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.UniformRVType.make_node">(symbolic_pymc.theano.random_variables.UniformRVType method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.MetaOpDefLibrary.make_opdef_sig">make_opdef_sig() (symbolic_pymc.tensorflow.meta.MetaOpDefLibrary class method)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.printing.VariableWithShapePrinter.max_line_height">max_line_height (symbolic_pymc.theano.printing.VariableWithShapePrinter attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.printing.VariableWithShapePrinter.max_line_width">max_line_width (symbolic_pymc.theano.printing.VariableWithShapePrinter attribute)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.printing.PreamblePPrinter.max_preamble_width">max_preamble_width (symbolic_pymc.theano.printing.PreamblePPrinter attribute)</a>
@@ -596,9 +632,19 @@
 </li>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.printing.TFlowPrinter.print">print() (symbolic_pymc.tensorflow.printing.TFlowPrinter method)</a>
 </li>
-      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.CauchyRVType.print_name">print_name (symbolic_pymc.theano.random_variables.CauchyRVType attribute)</a>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BernoulliRVType.print_name">print_name (symbolic_pymc.theano.random_variables.BernoulliRVType attribute)</a>
 
       <ul>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BetaBinomialRVType.print_name">(symbolic_pymc.theano.random_variables.BetaBinomialRVType attribute)</a>
+</li>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BetaRVType.print_name">(symbolic_pymc.theano.random_variables.BetaRVType attribute)</a>
+</li>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.BinomialRVType.print_name">(symbolic_pymc.theano.random_variables.BinomialRVType attribute)</a>
+</li>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.CategoricalRVType.print_name">(symbolic_pymc.theano.random_variables.CategoricalRVType attribute)</a>
+</li>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.CauchyRVType.print_name">(symbolic_pymc.theano.random_variables.CauchyRVType attribute)</a>
+</li>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.DirichletRVType.print_name">(symbolic_pymc.theano.random_variables.DirichletRVType attribute)</a>
 </li>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.ExponentialRVType.print_name">(symbolic_pymc.theano.random_variables.ExponentialRVType attribute)</a>
@@ -928,7 +974,7 @@
             &copy; Copyright 2019, PyMC developers.
         </p>
         <p>
-            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.2.0.<br />
+            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.4.3.<br />
         </p>
     </div>
 </div>

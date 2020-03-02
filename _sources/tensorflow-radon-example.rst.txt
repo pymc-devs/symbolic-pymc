@@ -47,20 +47,18 @@ in :ref:`pymc4-radon-model`.
     @pm.model
     def hierarchical_model(data, county_idx):
         # Hyperpriors
-        mu_a = yield pm.Normal(loc=0., scale=1, name='mu_alpha')
-        sigma_a = yield pm.HalfCauchy(scale=1, name='sigma_alpha')
-        mu_b = yield pm.Normal(loc=0., scale=1, name='mu_beta')
-        sigma_b = yield pm.HalfCauchy(scale=1, name='sigma_beta')
+        mu_a = yield pm.Normal('mu_alpha', mu=0., sigma=1)
+        sigma_a = yield pm.HalfCauchy('sigma_alpha', beta=1)
+        mu_b = yield pm.Normal('mu_beta', mu=0., sigma=1)
+        sigma_b = yield pm.HalfCauchy('sigma_beta', beta=1)
 
         # Intercept for each county, distributed around group mean mu_a
-        a = yield pm.Normal(loc=mu_a, scale=sigma_a, plate=len(data.county.unique()),
-                            name='alpha')
+        a = yield pm.Normal('alpha', mu=mu_a, sigma=sigma_a, plate=len(data.county.unique()))
         # Intercept for each county, distributed around group mean mu_a
-        b = yield pm.Normal(loc=mu_b, scale=sigma_b, plate=len(data.county.unique()),
-                            name='beta')
+        b = yield pm.Normal('beta', mu=mu_b, sigma=sigma_b, plate=len(data.county.unique()))
 
         # Model error
-        eps = yield pm.HalfCauchy(scale=1, name='eps')
+        eps = yield pm.HalfCauchy('eps', beta=1)
 
         # Expected value
         #radon_est = a[county_idx] + b[county_idx] * data.floor.values
@@ -68,7 +66,8 @@ in :ref:`pymc4-radon-model`.
             b, county_idx) * data.floor.values
 
         # Data likelihood
-        y_like = yield pm.Normal(loc=radon_est, scale=eps, observed=data.log_radon, name='y_like')
+        y_like = yield pm.Normal('y_like', mu=radon_est, sigma=eps, observed=data.log_radon)
+
 
     init_num_chains = 50
     model = hierarchical_model(data, county_idx)
@@ -187,8 +186,9 @@ for the parameters.
     state = None
     observed = None
 
-    logpfn, init, _, det_names = pm.inference.sampling.build_logp_and_deterministic_functions(
-        model, observed=observed, state=state)
+    logpfn, init = pm.inference.sampling.build_logp_function(model,
+                                                             state=state,
+                                                             observed=observed)
 
 From here we need \ ``FuncGraph``\ s for each input
 to \ ``logpfn``\ .  Since \ ``logpfn``\  is
@@ -405,20 +405,20 @@ instances of said \ ``SquaredDifference``\
 .. code-block:: text
 
     Tensor(GatherV2):0,	dtype=float32,	shape=[919],	"GatherV2:0"
-    |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_0:0"
+    |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_1:0"
     |  Tensor(Const):0,	dtype=int32,	shape=[919],	"GatherV2/indices:0"
     |  |  [ 0  0  0 ... 83 84 84]
     |  Tensor(Const):0,	dtype=int32,	shape=[],	"GatherV2/axis:0"
     |  |  0
     Tensor(GatherV2):0,	dtype=float32,	shape=[919],	"GatherV2_1:0"
-    |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_6:0"
+    |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_3:0"
     |  Tensor(Const):0,	dtype=int32,	shape=[919],	"GatherV2_1/indices:0"
     |  |  [ 0  0  0 ... 83 84 84]
     |  Tensor(Const):0,	dtype=int32,	shape=[],	"GatherV2_1/axis:0"
     |  |  0
     Tensor(SquaredDifference):0,	dtype=float32,	shape=[],	"Normal_5/log_prob/SquaredDifference:0"
     |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"Normal_5/log_prob/truediv:0"
-    |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_1:0"
+    |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_0:0"
     |  |  Tensor(Const):0,	dtype=float32,	shape=[],	"Normal/scale:0"
     |  |  |  1.
     |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"Normal_5/log_prob/truediv_1:0"
@@ -428,7 +428,7 @@ instances of said \ ``SquaredDifference``\
     |  |  |  1.
     Tensor(SquaredDifference):0,	dtype=float32,	shape=[],	"Normal_1_1/log_prob/SquaredDifference:0"
     |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"Normal_1_1/log_prob/truediv:0"
-    |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_3:0"
+    |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_6:0"
     |  |  Tensor(Const):0,	dtype=float32,	shape=[],	"Normal_1/scale:0"
     |  |  |  1.
     |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"Normal_1_1/log_prob/truediv_1:0"
@@ -440,30 +440,30 @@ instances of said \ ``SquaredDifference``\
     |  Tensor(RealDiv):0,	dtype=float32,	shape=[85],	"SampleNormal_2_1/log_prob/Normal_2/log_prob/truediv:0"
     |  |  Tensor(Transpose):0,	dtype=float32,	shape=[85],	"SampleNormal_2_1/log_prob/transpose:0"
     |  |  |  Tensor(Reshape):0,	dtype=float32,	shape=[85],	"SampleNormal_2_1/log_prob/Reshape:0"
-    |  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_0:0"
+    |  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_1:0"
     |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[1],	"SampleNormal_2_1/log_prob/Reshape/shape:0"
     |  |  |  |  |  [85]
     |  |  |  Tensor(Const):0,	dtype=int32,	shape=[1],	"SampleNormal_2_1/log_prob/transpose/perm:0"
     |  |  |  |  [0]
     |  |  Tensor(Exp):0,	dtype=float32,	shape=[],	"exp_1/forward/Exp:0"
-    |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_2:0"
+    |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_5:0"
     |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"SampleNormal_2_1/log_prob/Normal_2/log_prob/truediv_1:0"
-    |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_1:0"
+    |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_0:0"
     |  |  Tensor(Exp):0,	dtype=float32,	shape=[],	"exp_1/forward/Exp:0"
     |  |  |  ...
     Tensor(SquaredDifference):0,	dtype=float32,	shape=[85],	"SampleNormal_3_1/log_prob/Normal_3/log_prob/SquaredDifference:0"
     |  Tensor(RealDiv):0,	dtype=float32,	shape=[85],	"SampleNormal_3_1/log_prob/Normal_3/log_prob/truediv:0"
     |  |  Tensor(Transpose):0,	dtype=float32,	shape=[85],	"SampleNormal_3_1/log_prob/transpose:0"
     |  |  |  Tensor(Reshape):0,	dtype=float32,	shape=[85],	"SampleNormal_3_1/log_prob/Reshape:0"
-    |  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_6:0"
+    |  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_3:0"
     |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[1],	"SampleNormal_3_1/log_prob/Reshape/shape:0"
     |  |  |  |  |  [85]
     |  |  |  Tensor(Const):0,	dtype=int32,	shape=[1],	"SampleNormal_3_1/log_prob/transpose/perm:0"
     |  |  |  |  [0]
     |  |  Tensor(Exp):0,	dtype=float32,	shape=[],	"exp_2_1/forward/Exp:0"
-    |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_4:0"
+    |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_2:0"
     |  Tensor(RealDiv):0,	dtype=float32,	shape=[],	"SampleNormal_3_1/log_prob/Normal_3/log_prob/truediv_1:0"
-    |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_3:0"
+    |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_6:0"
     |  |  Tensor(Exp):0,	dtype=float32,	shape=[],	"exp_2_1/forward/Exp:0"
     |  |  |  ...
     Tensor(SquaredDifference):0,	dtype=float32,	shape=[919],	"Normal_4_1/log_prob/SquaredDifference:0"
@@ -471,18 +471,18 @@ instances of said \ ``SquaredDifference``\
     |  |  Tensor(Const):0,	dtype=float32,	shape=[919],	"Normal_4_1/log_prob/value:0"
     |  |  |  [0.8329091 0.8329091 1.0986123 ... 1.6292405 1.3350011 1.0986123]
     |  |  Tensor(Exp):0,	dtype=float32,	shape=[],	"exp_3_1/forward/Exp:0"
-    |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_5:0"
+    |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[],	"values_4:0"
     |  Tensor(RealDiv):0,	dtype=float32,	shape=[919],	"Normal_4_1/log_prob/truediv_1:0"
     |  |  Tensor(AddV2):0,	dtype=float32,	shape=[919],	"add:0"
     |  |  |  Tensor(GatherV2):0,	dtype=float32,	shape=[919],	"GatherV2:0"
-    |  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_0:0"
+    |  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_1:0"
     |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[919],	"GatherV2/indices:0"
     |  |  |  |  |  [ 0  0  0 ... 83 84 84]
     |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[],	"GatherV2/axis:0"
     |  |  |  |  |  0
     |  |  |  Tensor(Mul):0,	dtype=float32,	shape=[919],	"mul:0"
     |  |  |  |  Tensor(GatherV2):0,	dtype=float32,	shape=[919],	"GatherV2_1:0"
-    |  |  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_6:0"
+    |  |  |  |  |  Tensor(Placeholder):0,	dtype=float32,	shape=[85],	"values_3:0"
     |  |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[919],	"GatherV2_1/indices:0"
     |  |  |  |  |  |  [ 0  0  0 ... 83 84 84]
     |  |  |  |  |  Tensor(Const):0,	dtype=int32,	shape=[],	"GatherV2_1/axis:0"
@@ -511,13 +511,13 @@ the graph output slightly more interpretable,
 
 .. code-block:: python
 
-    {'values_0': 'hierarchical_model/alpha',
-     'values_1': 'hierarchical_model/mu_alpha',
-     'values_2': 'hierarchical_model/__log_sigma_alpha',
-     'values_3': 'hierarchical_model/mu_beta',
-     'values_4': 'hierarchical_model/__log_sigma_beta',
-     'values_5': 'hierarchical_model/__log_eps',
-     'values_6': 'hierarchical_model/beta'}
+    {'values_0': 'hierarchical_model/mu_alpha',
+     'values_1': 'hierarchical_model/alpha',
+     'values_2': 'hierarchical_model/__log_sigma_beta',
+     'values_3': 'hierarchical_model/beta',
+     'values_4': 'hierarchical_model/__log_eps',
+     'values_5': 'hierarchical_model/__log_sigma_alpha',
+     'values_6': 'hierarchical_model/mu_beta'}
 
 Graph Normalization
 ~~~~~~~~~~~~~~~~~~~
@@ -672,8 +672,9 @@ the necessary imports and create a few useful helper functions.
     from unification import var, reify, unify
 
     from kanren import run, eq, lall, conde
+    from kanren.goals import not_equalo
+    from kanren.core import goaleval
     from kanren.graph import reduceo, walko, applyo
-    from kanren.constraints import neq
 
     from etuples import etuple, etuplize
     from etuples.core import ExpressionTuple
@@ -687,11 +688,35 @@ the necessary imports and create a few useful helper functions.
         def onceo_goal(s):
             nonlocal goal
             g = reify(goal, s)
-            g_stream = g(s)
+            g_stream = goaleval(g)(s)
             s = next(g_stream)
             yield s
 
         return onceo_goal
+
+
+    def eval_objo(x, y, shallow=True):
+        """Create a goal that relates an ExpressionTuple to its evaluated result.
+
+        It's not an `evalo`-like relation, because it won't generate
+        `ExpressionTuple`s that evaluate to any value.
+        """
+        def eval_objo_goal(s):
+            nonlocal x, y, shallow
+
+            x_ref, y_ref, shallow = reify((x, y, shallow), s)
+
+            if isinstance(x_ref, ExpressionTuple):
+                x_ref = x_ref.eval_obj
+                yield from eq(x_ref, y_ref)(s)
+            else:
+                try:
+                    y_ref = etuplize(y_ref, shallow=shallow)
+                    yield from eq(x_ref, y_ref)(s)
+                except TypeError:
+                    pass
+
+        return eval_objo_goal
 
 The function \ ``onceo``\  is a goal that provides a convenient way to
 extract only the first result from a goal stream.  This is useful when one only needs
@@ -796,7 +821,8 @@ re-centering/scaling substitutions.
 
         # A logic variable that corresponds to a partially transformed output
         # graph.
-        loglik_replaced_mt = var()
+        loglik_replaced_et, loglik_replaced_mt = var(), var()
+        y_transed_graph_et = var()
 
         res = lall(
             # The first (y - x/a)**2 (anywhere in the graph)
@@ -806,15 +832,19 @@ re-centering/scaling substitutions.
             walko(x_loglik, in_graph, in_graph),
 
             # Not sure if we need this, but we definitely don't want X == Y
-            neq(y_lv, x_lv),
+            (not_equalo, [y_lv, x_lv], True),
 
             # Replace Y's log-likelihood subgraph with the standardized version
             # onceo(reduceo(partial(walko, trans_disto), in_graph, mid_graph)),
-            onceo(walko(trans_disto, in_graph, loglik_replaced_mt)),
+            onceo(walko(trans_disto, in_graph, loglik_replaced_et)),
+
+            # Evaluate the resulting expression tuples
+            eval_objo(loglik_replaced_et, loglik_replaced_mt),
 
             # Replace any other references to Y with the transformed version and
             # any occurrences of our temporary Y variable.
-            conde([onceo(walko(trans_varo, loglik_replaced_mt, out_graph))],
+            conde([onceo(walko(trans_varo, loglik_replaced_mt, y_transed_graph_et)),
+                   eval_objo(y_transed_graph_et, out_graph)],
                   # Y might only appear in its log-likelihood subgraph, so that no
                   # transformations are necessary/possible.  We address that
                   # possibility here.

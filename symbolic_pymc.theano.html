@@ -10,14 +10,14 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css" />
     <link rel="stylesheet" type="text/css" href="_static/default.css" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/javascript" src="_static/highlight.min.js"></script>
-    <script type="text/javascript" src="_static/semantic.min.js"></script>
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/highlight.min.js"></script>
+    <script src="_static/semantic.min.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Compute Symbolic Closed-form Posteriors" href="theano-posteriors-example.html" />
@@ -35,7 +35,7 @@
 
     <div class="ui container">
         <div class="ui large secondary pointing menu">
-            <a class="item" href="/">
+            <a class="item" href="/symbolic-pymc">
                 Symbolic
                 <img class="ui bottom aligned tiny image" src="https://cdn.rawgit.com/pymc-devs/pymc3/master/docs/logos/svg/PyMC3_banner.svg" />
             </a>
@@ -73,7 +73,7 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Create an object that can be used to implicitly convert Theano functions and objects into meta objects.</p>
 <p>Use it like a namespace/module/package object, e.g.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mt</span> <span class="o">=</span> <span class="n">TheanoMetaAccessor</span><span class="p">()</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mt</span> <span class="o">=</span> <span class="n">TheanoMetaAccessor</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">mt</span><span class="o">.</span><span class="n">vector</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
 <span class="go">MetaTensorVariable(MetaTensorType(&#39;float64&#39;, (False,), None,</span>
 <span class="go">obj=TensorType(float64, vector)), None, None, &#39;a&#39;, obj=a)</span>
@@ -81,14 +81,14 @@
 </div>
 <p>Call it as a function to perform direct conversion to a meta
 object, e.g.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mt</span><span class="p">(</span><span class="n">tt</span><span class="o">.</span><span class="n">vector</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">))</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mt</span><span class="p">(</span><span class="n">tt</span><span class="o">.</span><span class="n">vector</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">))</span>
 <span class="go">MetaTensorVariable(MetaTensorType(&#39;float64&#39;, (False,), None,</span>
 <span class="go">obj=TensorType(float64, vector)), None, None, &#39;a&#39;, obj=a)</span>
 </pre></div>
 </div>
 <dl class="attribute">
 <dt id="symbolic_pymc.theano.meta.TheanoMetaAccessor.namespaces">
-<code class="sig-name descname">namespaces</code><em class="property"> = [&lt;module 'theano.tensor' from '/home/bwillard/apps/anaconda3/envs/symbolic-pymc/lib/python3.6/site-packages/theano/tensor/__init__.py'&gt;, &lt;module 'symbolic_pymc.theano.meta' from '/home/bwillard/projects/code/python/symbolic-pymc/symbolic_pymc/theano/meta.py'&gt;, &lt;module 'symbolic_pymc.theano.ops' from '/home/bwillard/projects/code/python/symbolic-pymc/symbolic_pymc/theano/ops.py'&gt;, &lt;module 'symbolic_pymc.theano.random_variables' from '/home/bwillard/projects/code/python/symbolic-pymc/symbolic_pymc/theano/random_variables.py'&gt;, &lt;module 'theano.tensor.nlinalg' from '/home/bwillard/apps/anaconda3/envs/symbolic-pymc/lib/python3.6/site-packages/theano/tensor/nlinalg.py'&gt;]</em><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaAccessor.namespaces" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">namespaces</code><em class="property"> = [&lt;module 'theano.tensor' from '/home/bwillard/apps/anaconda3/envs/symbolic-pymc/lib/python3.7/site-packages/theano/tensor/__init__.py'&gt;, &lt;module 'symbolic_pymc.theano.meta' from '/home/bwillard/projects/code/python/symbolic-pymc/symbolic_pymc/theano/meta.py'&gt;, &lt;module 'symbolic_pymc.theano.ops' from '/home/bwillard/projects/code/python/symbolic-pymc/symbolic_pymc/theano/ops.py'&gt;, &lt;module 'symbolic_pymc.theano.random_variables' from '/home/bwillard/projects/code/python/symbolic-pymc/symbolic_pymc/theano/random_variables.py'&gt;, &lt;module 'theano.tensor.nlinalg' from '/home/bwillard/apps/anaconda3/envs/symbolic-pymc/lib/python3.7/site-packages/theano/tensor/nlinalg.py'&gt;]</em><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaAccessor.namespaces" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -901,9 +901,9 @@ the <cite>preamble_dict</cite> keyword.
 The lines accumulated in each category are comma-separated up to a fixed
 length given by <cite>PreamblePPrinter.max_preamble_width</cite>, after which a
 newline is appended and process repeats.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">theano.tensor</span> <span class="k">as</span> <span class="nn">tt</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">symbolic_pymc</span> <span class="k">import</span> <span class="n">NormalRV</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">symbolic_pymc.printing</span> <span class="k">import</span> <span class="n">tt_pprint</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">theano.tensor</span> <span class="k">as</span> <span class="nn">tt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">symbolic_pymc</span> <span class="kn">import</span> <span class="n">NormalRV</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">symbolic_pymc.printing</span> <span class="kn">import</span> <span class="n">tt_pprint</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">X_rv</span> <span class="o">=</span> <span class="n">NormalRV</span><span class="p">(</span><span class="n">tt</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">mu&#39;</span><span class="p">),</span> <span class="n">tt</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">sigma&#39;</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;X&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">tt_pprint</span><span class="p">(</span><span class="n">X_rv</span><span class="p">))</span>
 <span class="go">\\mu in R</span>
@@ -1040,8 +1040,38 @@ name collisions.</p>
 <div class="section" id="module-symbolic_pymc.theano.pymc3">
 <span id="symbolic-pymc-theano-pymc3-module"></span><h2>symbolic_pymc.theano.pymc3 module<a class="headerlink" href="#module-symbolic_pymc.theano.pymc3" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
+<dt id="symbolic_pymc.theano.pymc3.convert_dist_to_rv_Bernoulli">
+<code class="sig-prename descclassname">symbolic_pymc.theano.pymc3.</code><code class="sig-name descname">convert_dist_to_rv_Bernoulli</code><span class="sig-paren">(</span><em class="sig-param">dist</em>, <em class="sig-param">rng</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Bernoulli" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.theano.pymc3.convert_dist_to_rv_Beta">
+<code class="sig-prename descclassname">symbolic_pymc.theano.pymc3.</code><code class="sig-name descname">convert_dist_to_rv_Beta</code><span class="sig-paren">(</span><em class="sig-param">dist</em>, <em class="sig-param">rng</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Beta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.theano.pymc3.convert_dist_to_rv_BetaBinomial">
+<code class="sig-prename descclassname">symbolic_pymc.theano.pymc3.</code><code class="sig-name descname">convert_dist_to_rv_BetaBinomial</code><span class="sig-paren">(</span><em class="sig-param">dist</em>, <em class="sig-param">rng</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.pymc3.convert_dist_to_rv_BetaBinomial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.theano.pymc3.convert_dist_to_rv_Binomial">
+<code class="sig-prename descclassname">symbolic_pymc.theano.pymc3.</code><code class="sig-name descname">convert_dist_to_rv_Binomial</code><span class="sig-paren">(</span><em class="sig-param">dist</em>, <em class="sig-param">rng</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Binomial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.theano.pymc3.convert_dist_to_rv_Categorical">
+<code class="sig-prename descclassname">symbolic_pymc.theano.pymc3.</code><code class="sig-name descname">convert_dist_to_rv_Categorical</code><span class="sig-paren">(</span><em class="sig-param">dist</em>, <em class="sig-param">rng</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Categorical" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="symbolic_pymc.theano.pymc3.convert_dist_to_rv_Cauchy">
 <code class="sig-prename descclassname">symbolic_pymc.theano.pymc3.</code><code class="sig-name descname">convert_dist_to_rv_Cauchy</code><span class="sig-paren">(</span><em class="sig-param">dist</em>, <em class="sig-param">rng</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Cauchy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.theano.pymc3.convert_dist_to_rv_Dirichlet">
+<code class="sig-prename descclassname">symbolic_pymc.theano.pymc3.</code><code class="sig-name descname">convert_dist_to_rv_Dirichlet</code><span class="sig-paren">(</span><em class="sig-param">dist</em>, <em class="sig-param">rng</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Dirichlet" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -1070,6 +1100,11 @@ name collisions.</p>
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="symbolic_pymc.theano.pymc3.convert_dist_to_rv_Multinomial">
+<code class="sig-prename descclassname">symbolic_pymc.theano.pymc3.</code><code class="sig-name descname">convert_dist_to_rv_Multinomial</code><span class="sig-paren">(</span><em class="sig-param">dist</em>, <em class="sig-param">rng</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Multinomial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="symbolic_pymc.theano.pymc3.convert_dist_to_rv_MvNormal">
 <code class="sig-prename descclassname">symbolic_pymc.theano.pymc3.</code><code class="sig-name descname">convert_dist_to_rv_MvNormal</code><span class="sig-paren">(</span><em class="sig-param">dist</em>, <em class="sig-param">rng</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.pymc3.convert_dist_to_rv_MvNormal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -1077,6 +1112,11 @@ name collisions.</p>
 <dl class="function">
 <dt id="symbolic_pymc.theano.pymc3.convert_dist_to_rv_Normal">
 <code class="sig-prename descclassname">symbolic_pymc.theano.pymc3.</code><code class="sig-name descname">convert_dist_to_rv_Normal</code><span class="sig-paren">(</span><em class="sig-param">dist</em>, <em class="sig-param">rng</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Normal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="symbolic_pymc.theano.pymc3.convert_dist_to_rv_Poisson">
+<code class="sig-prename descclassname">symbolic_pymc.theano.pymc3.</code><code class="sig-name descname">convert_dist_to_rv_Poisson</code><span class="sig-paren">(</span><em class="sig-param">dist</em>, <em class="sig-param">rng</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.pymc3.convert_dist_to_rv_Poisson" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -1125,6 +1165,321 @@ contains the mappings between PyMC and <cite>RandomVariable</cite> terms.</p>
 </div>
 <div class="section" id="module-symbolic_pymc.theano.random_variables">
 <span id="symbolic-pymc-theano-random-variables-module"></span><h2>symbolic_pymc.theano.random_variables module<a class="headerlink" href="#module-symbolic_pymc.theano.random_variables" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="symbolic_pymc.theano.random_variables.BernoulliRVType">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.random_variables.</code><code class="sig-name descname">BernoulliRVType</code><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BernoulliRVType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.theano.ops.RandomVariable" title="symbolic_pymc.theano.ops.RandomVariable"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.ops.RandomVariable</span></code></a></p>
+<p>Create a random variable <cite>Op</cite>.</p>
+<dl>
+<dt>name: str</dt><dd><p>The <cite>Op</cite>’s display name.</p>
+</dd>
+<dt>dtype: Theano dtype</dt><dd><p>The underlying dtype.</p>
+</dd>
+<dt>ndim_supp: int</dt><dd><p>Dimension of the support.  This value is used to infer the exact
+shape of the support and independent terms from <code class="docutils literal notranslate"><span class="pre">dist_params</span></code>.</p>
+</dd>
+<dt>ndims_params: tuple (int)</dt><dd><p>Number of dimensions of each parameter in <code class="docutils literal notranslate"><span class="pre">dist_params</span></code>.</p>
+</dd>
+<dt>rng_fn: function or str</dt><dd><p>The non-symbolic random variate sampling function.
+Can be the string name of a method provided by
+<cite>numpy.random.RandomState</cite>.</p>
+</dd>
+<dt>supp_shape_fn: callable (optional)</dt><dd><p>Function used to determine the exact shape of the distribution’s
+support.</p>
+<p>It must take arguments ndim_supp, ndims_params, dist_params
+(i.e. an collection of the distribution parameters) and an
+optional param_shapes (i.e. tuples containing the size of each
+dimension for each distribution parameter).</p>
+<p>Defaults to <cite>param_supp_shape_fn</cite>.</p>
+</dd>
+<dt>inplace: boolean (optional)</dt><dd><p>Determine whether or not the underlying rng state is updated
+in-place or not (i.e. copied).</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="symbolic_pymc.theano.random_variables.BernoulliRVType.make_node">
+<code class="sig-name descname">make_node</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">size=None</em>, <em class="sig-param">rng=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BernoulliRVType.make_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a random variable node.</p>
+<p>XXX: Unnamed/non-keyword arguments are considered distribution
+parameters!  If you want to set <cite>size</cite>, <cite>rng</cite>, and/or <cite>name</cite>, use their
+keywords.</p>
+<dl class="simple">
+<dt>dist_params: list</dt><dd><p>Distribution parameters.</p>
+</dd>
+<dt>size: int or Iterable (optional)</dt><dd><p>Numpy-like size of the output (i.e. replications).</p>
+</dd>
+<dt>rng: RandomState (optional)</dt><dd><p>Existing Theano <cite>RandomState</cite> object to be used.  Creates a
+new one, if <cite>None</cite>.</p>
+</dd>
+<dt>name: str (optional)</dt><dd><p>Label for the resulting node.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>out: <cite>Apply</cite></dt><dd><p>A node with inputs <cite>dist_args + (size, in_rng, name)</cite> and outputs
+<cite>(out_rng, sample_tensorvar)</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.theano.random_variables.BernoulliRVType.print_name">
+<code class="sig-name descname">print_name</code><em class="property"> = ('Bern', '\\operatorname{Bern}')</em><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BernoulliRVType.print_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.theano.random_variables.BetaBinomialRVType">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.random_variables.</code><code class="sig-name descname">BetaBinomialRVType</code><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BetaBinomialRVType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.theano.ops.RandomVariable" title="symbolic_pymc.theano.ops.RandomVariable"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.ops.RandomVariable</span></code></a></p>
+<p>Create a random variable <cite>Op</cite>.</p>
+<dl>
+<dt>name: str</dt><dd><p>The <cite>Op</cite>’s display name.</p>
+</dd>
+<dt>dtype: Theano dtype</dt><dd><p>The underlying dtype.</p>
+</dd>
+<dt>ndim_supp: int</dt><dd><p>Dimension of the support.  This value is used to infer the exact
+shape of the support and independent terms from <code class="docutils literal notranslate"><span class="pre">dist_params</span></code>.</p>
+</dd>
+<dt>ndims_params: tuple (int)</dt><dd><p>Number of dimensions of each parameter in <code class="docutils literal notranslate"><span class="pre">dist_params</span></code>.</p>
+</dd>
+<dt>rng_fn: function or str</dt><dd><p>The non-symbolic random variate sampling function.
+Can be the string name of a method provided by
+<cite>numpy.random.RandomState</cite>.</p>
+</dd>
+<dt>supp_shape_fn: callable (optional)</dt><dd><p>Function used to determine the exact shape of the distribution’s
+support.</p>
+<p>It must take arguments ndim_supp, ndims_params, dist_params
+(i.e. an collection of the distribution parameters) and an
+optional param_shapes (i.e. tuples containing the size of each
+dimension for each distribution parameter).</p>
+<p>Defaults to <cite>param_supp_shape_fn</cite>.</p>
+</dd>
+<dt>inplace: boolean (optional)</dt><dd><p>Determine whether or not the underlying rng state is updated
+in-place or not (i.e. copied).</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="symbolic_pymc.theano.random_variables.BetaBinomialRVType.make_node">
+<code class="sig-name descname">make_node</code><span class="sig-paren">(</span><em class="sig-param">n</em>, <em class="sig-param">a</em>, <em class="sig-param">b</em>, <em class="sig-param">size=None</em>, <em class="sig-param">rng=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BetaBinomialRVType.make_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a random variable node.</p>
+<p>XXX: Unnamed/non-keyword arguments are considered distribution
+parameters!  If you want to set <cite>size</cite>, <cite>rng</cite>, and/or <cite>name</cite>, use their
+keywords.</p>
+<dl class="simple">
+<dt>dist_params: list</dt><dd><p>Distribution parameters.</p>
+</dd>
+<dt>size: int or Iterable (optional)</dt><dd><p>Numpy-like size of the output (i.e. replications).</p>
+</dd>
+<dt>rng: RandomState (optional)</dt><dd><p>Existing Theano <cite>RandomState</cite> object to be used.  Creates a
+new one, if <cite>None</cite>.</p>
+</dd>
+<dt>name: str (optional)</dt><dd><p>Label for the resulting node.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>out: <cite>Apply</cite></dt><dd><p>A node with inputs <cite>dist_args + (size, in_rng, name)</cite> and outputs
+<cite>(out_rng, sample_tensorvar)</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.theano.random_variables.BetaBinomialRVType.print_name">
+<code class="sig-name descname">print_name</code><em class="property"> = ('BetaBinom', '\\operatorname{BetaBinom}')</em><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BetaBinomialRVType.print_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.theano.random_variables.BetaRVType">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.random_variables.</code><code class="sig-name descname">BetaRVType</code><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BetaRVType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.theano.ops.RandomVariable" title="symbolic_pymc.theano.ops.RandomVariable"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.ops.RandomVariable</span></code></a></p>
+<p>Create a random variable <cite>Op</cite>.</p>
+<dl>
+<dt>name: str</dt><dd><p>The <cite>Op</cite>’s display name.</p>
+</dd>
+<dt>dtype: Theano dtype</dt><dd><p>The underlying dtype.</p>
+</dd>
+<dt>ndim_supp: int</dt><dd><p>Dimension of the support.  This value is used to infer the exact
+shape of the support and independent terms from <code class="docutils literal notranslate"><span class="pre">dist_params</span></code>.</p>
+</dd>
+<dt>ndims_params: tuple (int)</dt><dd><p>Number of dimensions of each parameter in <code class="docutils literal notranslate"><span class="pre">dist_params</span></code>.</p>
+</dd>
+<dt>rng_fn: function or str</dt><dd><p>The non-symbolic random variate sampling function.
+Can be the string name of a method provided by
+<cite>numpy.random.RandomState</cite>.</p>
+</dd>
+<dt>supp_shape_fn: callable (optional)</dt><dd><p>Function used to determine the exact shape of the distribution’s
+support.</p>
+<p>It must take arguments ndim_supp, ndims_params, dist_params
+(i.e. an collection of the distribution parameters) and an
+optional param_shapes (i.e. tuples containing the size of each
+dimension for each distribution parameter).</p>
+<p>Defaults to <cite>param_supp_shape_fn</cite>.</p>
+</dd>
+<dt>inplace: boolean (optional)</dt><dd><p>Determine whether or not the underlying rng state is updated
+in-place or not (i.e. copied).</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="symbolic_pymc.theano.random_variables.BetaRVType.make_node">
+<code class="sig-name descname">make_node</code><span class="sig-paren">(</span><em class="sig-param">alpha</em>, <em class="sig-param">beta</em>, <em class="sig-param">size=None</em>, <em class="sig-param">rng=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BetaRVType.make_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a random variable node.</p>
+<p>XXX: Unnamed/non-keyword arguments are considered distribution
+parameters!  If you want to set <cite>size</cite>, <cite>rng</cite>, and/or <cite>name</cite>, use their
+keywords.</p>
+<dl class="simple">
+<dt>dist_params: list</dt><dd><p>Distribution parameters.</p>
+</dd>
+<dt>size: int or Iterable (optional)</dt><dd><p>Numpy-like size of the output (i.e. replications).</p>
+</dd>
+<dt>rng: RandomState (optional)</dt><dd><p>Existing Theano <cite>RandomState</cite> object to be used.  Creates a
+new one, if <cite>None</cite>.</p>
+</dd>
+<dt>name: str (optional)</dt><dd><p>Label for the resulting node.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>out: <cite>Apply</cite></dt><dd><p>A node with inputs <cite>dist_args + (size, in_rng, name)</cite> and outputs
+<cite>(out_rng, sample_tensorvar)</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.theano.random_variables.BetaRVType.print_name">
+<code class="sig-name descname">print_name</code><em class="property"> = ('Beta', '\\operatorname{Beta}')</em><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BetaRVType.print_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.theano.random_variables.BinomialRVType">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.random_variables.</code><code class="sig-name descname">BinomialRVType</code><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BinomialRVType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.theano.ops.RandomVariable" title="symbolic_pymc.theano.ops.RandomVariable"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.ops.RandomVariable</span></code></a></p>
+<p>Create a random variable <cite>Op</cite>.</p>
+<dl>
+<dt>name: str</dt><dd><p>The <cite>Op</cite>’s display name.</p>
+</dd>
+<dt>dtype: Theano dtype</dt><dd><p>The underlying dtype.</p>
+</dd>
+<dt>ndim_supp: int</dt><dd><p>Dimension of the support.  This value is used to infer the exact
+shape of the support and independent terms from <code class="docutils literal notranslate"><span class="pre">dist_params</span></code>.</p>
+</dd>
+<dt>ndims_params: tuple (int)</dt><dd><p>Number of dimensions of each parameter in <code class="docutils literal notranslate"><span class="pre">dist_params</span></code>.</p>
+</dd>
+<dt>rng_fn: function or str</dt><dd><p>The non-symbolic random variate sampling function.
+Can be the string name of a method provided by
+<cite>numpy.random.RandomState</cite>.</p>
+</dd>
+<dt>supp_shape_fn: callable (optional)</dt><dd><p>Function used to determine the exact shape of the distribution’s
+support.</p>
+<p>It must take arguments ndim_supp, ndims_params, dist_params
+(i.e. an collection of the distribution parameters) and an
+optional param_shapes (i.e. tuples containing the size of each
+dimension for each distribution parameter).</p>
+<p>Defaults to <cite>param_supp_shape_fn</cite>.</p>
+</dd>
+<dt>inplace: boolean (optional)</dt><dd><p>Determine whether or not the underlying rng state is updated
+in-place or not (i.e. copied).</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="symbolic_pymc.theano.random_variables.BinomialRVType.make_node">
+<code class="sig-name descname">make_node</code><span class="sig-paren">(</span><em class="sig-param">n</em>, <em class="sig-param">p</em>, <em class="sig-param">size=None</em>, <em class="sig-param">rng=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BinomialRVType.make_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a random variable node.</p>
+<p>XXX: Unnamed/non-keyword arguments are considered distribution
+parameters!  If you want to set <cite>size</cite>, <cite>rng</cite>, and/or <cite>name</cite>, use their
+keywords.</p>
+<dl class="simple">
+<dt>dist_params: list</dt><dd><p>Distribution parameters.</p>
+</dd>
+<dt>size: int or Iterable (optional)</dt><dd><p>Numpy-like size of the output (i.e. replications).</p>
+</dd>
+<dt>rng: RandomState (optional)</dt><dd><p>Existing Theano <cite>RandomState</cite> object to be used.  Creates a
+new one, if <cite>None</cite>.</p>
+</dd>
+<dt>name: str (optional)</dt><dd><p>Label for the resulting node.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>out: <cite>Apply</cite></dt><dd><p>A node with inputs <cite>dist_args + (size, in_rng, name)</cite> and outputs
+<cite>(out_rng, sample_tensorvar)</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.theano.random_variables.BinomialRVType.print_name">
+<code class="sig-name descname">print_name</code><em class="property"> = ('Binom', '\\operatorname{Binom}')</em><a class="headerlink" href="#symbolic_pymc.theano.random_variables.BinomialRVType.print_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.theano.random_variables.CategoricalRVType">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.random_variables.</code><code class="sig-name descname">CategoricalRVType</code><a class="headerlink" href="#symbolic_pymc.theano.random_variables.CategoricalRVType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.theano.ops.RandomVariable" title="symbolic_pymc.theano.ops.RandomVariable"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.ops.RandomVariable</span></code></a></p>
+<p>Create a random variable <cite>Op</cite>.</p>
+<dl>
+<dt>name: str</dt><dd><p>The <cite>Op</cite>’s display name.</p>
+</dd>
+<dt>dtype: Theano dtype</dt><dd><p>The underlying dtype.</p>
+</dd>
+<dt>ndim_supp: int</dt><dd><p>Dimension of the support.  This value is used to infer the exact
+shape of the support and independent terms from <code class="docutils literal notranslate"><span class="pre">dist_params</span></code>.</p>
+</dd>
+<dt>ndims_params: tuple (int)</dt><dd><p>Number of dimensions of each parameter in <code class="docutils literal notranslate"><span class="pre">dist_params</span></code>.</p>
+</dd>
+<dt>rng_fn: function or str</dt><dd><p>The non-symbolic random variate sampling function.
+Can be the string name of a method provided by
+<cite>numpy.random.RandomState</cite>.</p>
+</dd>
+<dt>supp_shape_fn: callable (optional)</dt><dd><p>Function used to determine the exact shape of the distribution’s
+support.</p>
+<p>It must take arguments ndim_supp, ndims_params, dist_params
+(i.e. an collection of the distribution parameters) and an
+optional param_shapes (i.e. tuples containing the size of each
+dimension for each distribution parameter).</p>
+<p>Defaults to <cite>param_supp_shape_fn</cite>.</p>
+</dd>
+<dt>inplace: boolean (optional)</dt><dd><p>Determine whether or not the underlying rng state is updated
+in-place or not (i.e. copied).</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="symbolic_pymc.theano.random_variables.CategoricalRVType.make_node">
+<code class="sig-name descname">make_node</code><span class="sig-paren">(</span><em class="sig-param">pvals</em>, <em class="sig-param">size=None</em>, <em class="sig-param">rng=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.random_variables.CategoricalRVType.make_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a random variable node.</p>
+<p>XXX: Unnamed/non-keyword arguments are considered distribution
+parameters!  If you want to set <cite>size</cite>, <cite>rng</cite>, and/or <cite>name</cite>, use their
+keywords.</p>
+<dl class="simple">
+<dt>dist_params: list</dt><dd><p>Distribution parameters.</p>
+</dd>
+<dt>size: int or Iterable (optional)</dt><dd><p>Numpy-like size of the output (i.e. replications).</p>
+</dd>
+<dt>rng: RandomState (optional)</dt><dd><p>Existing Theano <cite>RandomState</cite> object to be used.  Creates a
+new one, if <cite>None</cite>.</p>
+</dd>
+<dt>name: str (optional)</dt><dd><p>Label for the resulting node.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>out: <cite>Apply</cite></dt><dd><p>A node with inputs <cite>dist_args + (size, in_rng, name)</cite> and outputs
+<cite>(out_rng, sample_tensorvar)</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.theano.random_variables.CategoricalRVType.print_name">
+<code class="sig-name descname">print_name</code><em class="property"> = ('Cat', '\\operatorname{Cat}')</em><a class="headerlink" href="#symbolic_pymc.theano.random_variables.CategoricalRVType.print_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="class">
 <dt id="symbolic_pymc.theano.random_variables.CauchyRVType">
 <em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.random_variables.</code><code class="sig-name descname">CauchyRVType</code><a class="headerlink" href="#symbolic_pymc.theano.random_variables.CauchyRVType" title="Permalink to this definition">¶</a></dt>
@@ -2091,7 +2446,7 @@ as elements are cloned.</p>
             &copy; Copyright 2019, PyMC developers.
         </p>
         <p>
-            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.2.0.<br />
+            Created using <a href="https://sphinx-doc.org/">Sphinx</a> 2.4.3.<br />
         </p>
     </div>
 </div>
