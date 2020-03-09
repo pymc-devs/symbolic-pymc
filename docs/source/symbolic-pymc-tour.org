@@ -746,7 +746,7 @@ the same power as logic programming: [[http://minikanren.org/][miniKanren]]!
 As mentioned at the end of the last section, Symbolic PyMC uses a Python
 implementation of the embedded domain-specific language miniKanren--provided by
 the src_python[:eval never]{kanren} package--to orchestrate more sophisticated uses of
-unification and reification.  For a quick intro, see [[https://github.com/logpy/logpy/blob/master/doc/basic.md][the basic introduction]]
+unification and reification.  For a quick intro, see [[https://github.com/pythological/kanren/blob/master/doc/basic.md][the basic introduction]]
 provided by the src_python[:eval never]{kanren} package.  We'll cover most of the same
 basic material here, but not all.
 
