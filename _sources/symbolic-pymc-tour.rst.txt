@@ -713,7 +713,7 @@ Relational Programming in miniKanren
 As mentioned at the end of the last section, Symbolic PyMC uses a Python
 implementation of the embedded domain-specific language miniKanren--provided by
 the \ ``kanren``\  package--to orchestrate more sophisticated uses of
-unification and reification.  For a quick intro, see `the basic introduction <https://github.com/logpy/logpy/blob/master/doc/basic.md>`_
+unification and reification.  For a quick intro, see `the basic introduction <https://github.com/pythological/kanren/blob/master/doc/basic.md>`_
 provided by the \ ``kanren``\  package.  We'll cover most of the same
 basic material here, but not all.
 

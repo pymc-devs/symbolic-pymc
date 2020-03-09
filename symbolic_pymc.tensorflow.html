@@ -529,9 +529,15 @@ object from a subclass.</p>
 </div>
 <div class="section" id="module-symbolic_pymc.tensorflow.printing">
 <span id="symbolic-pymc-tensorflow-printing-module"></span><h2>symbolic_pymc.tensorflow.printing module<a class="headerlink" href="#module-symbolic_pymc.tensorflow.printing" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="symbolic_pymc.tensorflow.printing.DepthExceededException">
+<em class="property">exception </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.printing.</code><code class="sig-name descname">DepthExceededException</code><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.DepthExceededException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
 <dl class="class">
 <dt id="symbolic_pymc.tensorflow.printing.TFlowPrinter">
-<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.printing.</code><code class="sig-name descname">TFlowPrinter</code><span class="sig-paren">(</span><em class="sig-param">formatter</em>, <em class="sig-param">buffer</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.TFlowPrinter" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.tensorflow.printing.</code><code class="sig-name descname">TFlowPrinter</code><span class="sig-paren">(</span><em class="sig-param">formatter</em>, <em class="sig-param">buffer</em>, <em class="sig-param">depth_lower_idx=0</em>, <em class="sig-param">depth_upper_idx=9223372036854775807</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.TFlowPrinter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A printer that indents and keeps track of already printed subgraphs.</p>
 <dl class="method">
@@ -546,7 +552,7 @@ object from a subclass.</p>
 
 <dl class="method">
 <dt id="symbolic_pymc.tensorflow.printing.TFlowPrinter.print">
-<code class="sig-name descname">print</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.TFlowPrinter.print" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">print</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">suffix=''</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.TFlowPrinter.print" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -554,13 +560,27 @@ object from a subclass.</p>
 <code class="sig-name descname">println</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.TFlowPrinter.println" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="method">
+<dt id="symbolic_pymc.tensorflow.printing.TFlowPrinter.subgraph_add">
+<code class="sig-name descname">subgraph_add</code><span class="sig-paren">(</span><em class="sig-param">obj</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.TFlowPrinter.subgraph_add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="function">
 <dt id="symbolic_pymc.tensorflow.printing.tf_dprint">
-<code class="sig-prename descclassname">symbolic_pymc.tensorflow.printing.</code><code class="sig-name descname">tf_dprint</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">printer=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.tf_dprint" title="Permalink to this definition">¶</a></dt>
-<dd><p>Print a textual representation of a TF graph.</p>
-<p>The output roughly follows the format of <cite>theano.printing.debugprint</cite>.</p>
+<code class="sig-prename descclassname">symbolic_pymc.tensorflow.printing.</code><code class="sig-name descname">tf_dprint</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">depth_lower=0</em>, <em class="sig-param">depth_upper=10</em>, <em class="sig-param">printer=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.tensorflow.printing.tf_dprint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print a textual representation of a TF graph. The output roughly follows the format of <cite>theano.printing.debugprint</cite>.</p>
+<dl class="simple">
+<dt>obj<span class="classifier">Tensorflow object</span></dt><dd><p>Tensorflow graph object to be represented.</p>
+</dd>
+<dt>depth_lower<span class="classifier">int</span></dt><dd><p>Used to index specific portions of the graph.</p>
+</dd>
+<dt>depth_upper<span class="classifier">int</span></dt><dd><p>Used to index specific portions of the graph.</p>
+</dd>
+<dt>printer<span class="classifier">optional</span></dt><dd><p>Backend used to display the output.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>

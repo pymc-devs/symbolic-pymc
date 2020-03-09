@@ -303,7 +303,7 @@ relational/logic programming paradigm that--in our case--is entirely written in
 Python.  This DSL provides primitive **goals** that can be composed and eventually
 evaluated by the \ ``run``\  function.  We refer the reader
 to any one of the many great introductions to miniKanren available at `http://minikanren.org <http://minikanren.org>`_,
-or, for the specific Python package used here: `this simple introduction <https://github.com/logpy/logpy/blob/master/doc/basic.md>`_.
+or, for the specific Python package used here: `this simple introduction <https://github.com/pythological/kanren/blob/master/doc/basic.md>`_.
 
 For the matter at hand, we need to create goals that implement the substitution
 described above.  The first step is to understand the exact TF graphs involved,
