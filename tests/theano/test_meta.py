@@ -50,7 +50,7 @@ def test_metatize():
     class TestClass(object):
         pass
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         metatize(TestClass())
 
     class TestOp(tt.gof.Op):

@@ -6,12 +6,11 @@ from unification import var
 
 from etuples import etuple
 
-from kanren import run, eq, variables
+from kanren import eq, run
 from kanren.graph import applyo
 from kanren.term import term, operator, arguments
 from kanren.assoccomm import eq_assoc, eq_comm
 
-from symbolic_pymc.theano.random_variables import MvNormalRV
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.utils import graph_equal
 
@@ -38,44 +37,10 @@ def test_terms():
 
 
 @pytest.mark.usefixtures("run_with_theano")
-def test_kanren():
-    # x, a, b = tt.dvectors('xab')
-    #
-    # with variables(x, a, b):
-    #     assert b == run(1, x, eq(a + b, a + x))[0]
-    #     assert b == run(1, x, eq(a * b, a * x))[0]
-
+def test_kanren_algebra():
     a, b = mt.dvectors("ab")
     assert b == run(1, var("x"), eq(mt.add(a, b), mt.add(a, var("x"))))[0]
     assert b == run(1, var("x"), eq(mt.mul(a, b), mt.mul(a, var("x"))))[0]
-
-    a_tt = tt.vector("a")
-    R_tt = tt.matrix("R")
-    F_t_tt = tt.matrix("F")
-    V_tt = tt.matrix("V")
-    beta_rv = MvNormalRV(a_tt, R_tt, name="\\beta")
-    E_y_rv = F_t_tt.dot(beta_rv)
-    Y_rv = MvNormalRV(E_y_rv, V_tt, name="y")
-
-    beta_name_lv = var("beta_name")
-    beta_size_lv = var("beta_size")
-    beta_rng_lv = var("beta_rng")
-    a_lv = var("a")
-    R_lv = var("R")
-    beta_prior_mt = mt.MvNormalRV(a_lv, R_lv, beta_size_lv, beta_rng_lv, name=beta_name_lv)
-
-    y_name_lv = var("y_name")
-    y_size_lv = var("y_size")
-    y_rng_lv = var("y_rng")
-    F_t_lv = var("f")
-    V_lv = var("V")
-    E_y_mt = mt.dot(F_t_lv, beta_prior_mt)
-
-    Y_mt = mt.MvNormalRV(E_y_mt, V_lv, y_size_lv, y_rng_lv, name=y_name_lv)
-
-    with variables(Y_mt):
-        (res,) = run(0, Y_mt, eq(Y_rv, Y_mt))
-    assert res.reify() == Y_rv
 
 
 @pytest.mark.usefixtures("run_with_theano")

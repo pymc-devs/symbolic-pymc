@@ -11,6 +11,7 @@ from etuples.core import ExpressionTuple
 
 from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.utils import graph_equal
+from symbolic_pymc.theano.random_variables import MvNormalRV
 
 
 @pytest.mark.usefixtures("run_with_theano")
@@ -126,3 +127,24 @@ def test_etuple_term():
 
     assert et_expr == exp_res
     assert exp_res.eval_obj == test_expr
+
+
+@pytest.mark.usefixtures("run_with_theano")
+def test_unify_rvs():
+
+    a_tt = tt.vector("a")
+    R_tt = tt.matrix("R")
+    F_t_tt = tt.matrix("F")
+    V_tt = tt.matrix("V")
+    beta_rv = MvNormalRV(a_tt, R_tt, name="\\beta")
+    E_y_rv = F_t_tt.dot(beta_rv)
+    Y_rv = MvNormalRV(E_y_rv, V_tt, name="y")
+
+    E_y_lv, V_lv, Y_name_lv = var(), var(), var()
+    Y_lv = mt.MvNormalRV(E_y_lv, V_lv, size=var(), rng=var(), name=Y_name_lv)
+
+    s = unify(Y_lv, Y_rv)
+
+    assert s[E_y_lv].reify() == E_y_rv
+    assert s[V_lv].reify() == V_tt
+    assert s[Y_name_lv] == "y"

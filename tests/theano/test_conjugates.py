@@ -1,8 +1,8 @@
 import pytest
 
-import theano.tensor as tt
-
 import numpy as np
+
+import theano.tensor as tt
 
 from unification import var
 
@@ -56,6 +56,8 @@ def test_mvnormal_mvnormal():
     postp_err = np.square(y_tt.data - F_val.dot(beta_post_mean_val)).sum()
 
     # First, make sure the prior and posterior means are simply not equal.
-    np.testing.assert_raises(AssertionError, np.testing.assert_array_equal, priorp_err, postp_err)
+    with pytest.raises(AssertionError):
+        np.testing.assert_array_equal(priorp_err, postp_err)
+
     # Now, make sure there's a decrease (relative to the observed point).
     np.testing.assert_array_less(postp_err, priorp_err)
