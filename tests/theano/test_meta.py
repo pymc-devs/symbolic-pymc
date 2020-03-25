@@ -193,3 +193,21 @@ def test_meta_helpers():
 
     diag_mt = mt.diag(mt(np.r_[1, 2, 3]))
     assert np.array_equal(diag_mt.reify().eval(), np.diag(np.r_[1, 2, 3]))
+
+
+@pytest.mark.usefixtures("run_with_theano")
+def test_scan_op():
+    def f_pow2(x_tm1):
+        return 2 * x_tm1
+
+    state = theano.tensor.scalar("state")
+    n_steps = theano.tensor.iscalar("nsteps")
+    output, updates = theano.scan(
+        f_pow2, [], state, [], n_steps=n_steps, truncate_gradient=-1, go_backwards=False
+    )
+
+    output_mt = mt(output)
+
+    assert isinstance(output_mt.owner.inputs[0].owner.op, mt.Scan)
+
+    assert output is output_mt.reify()

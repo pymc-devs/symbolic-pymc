@@ -9,6 +9,8 @@ from functools import partial, wraps
 
 from unification import var, isvar, Var
 
+from theano.scan_module.scan_op import Scan
+
 from ..meta import (
     MetaSymbol,
     MetaSymbolType,
@@ -314,6 +316,17 @@ class TheanoMetaDimShuffle(TheanoMetaOp):
         self.new_order = new_order
         self.inplace = inplace
         super().__init__(self.input_broadcastable, self.new_order, inplace=self.inplace, obj=obj)
+
+
+class TheanoMetaScan(TheanoMetaOp):
+    base = Scan
+    __slots__ = ("inputs", "outputs", "info")
+
+    def __init__(self, inputs, outputs, info, obj=None):
+        self.inputs = inputs
+        self.outputs = outputs
+        self.info = info
+        super().__init__(self.inputs, self.outputs, self.info, obj=obj)
 
 
 class TheanoMetaApply(TheanoMetaSymbol):
