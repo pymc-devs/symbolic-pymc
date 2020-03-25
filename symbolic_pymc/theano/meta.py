@@ -9,7 +9,6 @@ from functools import partial, wraps
 
 from unification import var, isvar, Var
 
-from .ops import RandomVariable
 from ..meta import (
     MetaSymbol,
     MetaSymbolType,
@@ -55,12 +54,12 @@ def load_dispatcher():
 
 
 class TheanoMetaSymbol(MetaSymbol):
-    __slots__ = []
+    __slots__ = ()
 
 
 class TheanoMetaType(TheanoMetaSymbol):
     base = theano.Type
-    __slots__ = []
+    __slots__ = ()
 
     def __call__(self, name=None):
         if self.obj:
@@ -70,7 +69,7 @@ class TheanoMetaType(TheanoMetaSymbol):
 
 class TheanoMetaRandomStateType(TheanoMetaType):
     base = tt.raw_random.RandomStateType
-    __slots__ = []
+    __slots__ = ()
 
     def __eq__(self, other):
         res = super().__eq__(other)
@@ -86,7 +85,7 @@ class TheanoMetaRandomStateType(TheanoMetaType):
 
 class TheanoMetaTensorType(TheanoMetaType):
     base = tt.TensorType
-    __slots__ = ["dtype", "broadcastable", "name"]
+    __slots__ = ("dtype", "broadcastable", "name")
 
     def __init__(self, dtype, broadcastable, name, obj=None):
         self.dtype = dtype
@@ -95,40 +94,82 @@ class TheanoMetaTensorType(TheanoMetaType):
         super().__init__(obj=obj)
 
 
-class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
+class TheanoMetaOpType(MetaSymbolType):
+    def __new__(cls, name, bases, clsdict):
+        new_cls = super().__new__(cls, name, bases, clsdict)
+
+        # Add the signature for `cls.base.make_node` to the class definition
+        if "_op_sig" not in clsdict:
+            new_cls._op_sig = inspect.signature(
+                # The partial is just a way to ignore the `self` parameter
+                partial(new_cls.base.make_node, None)
+            )
+
+        return new_cls
+
+
+class TheanoMetaOp(MetaOp, TheanoMetaSymbol, metaclass=TheanoMetaOpType):
     """A meta object that represents Theano `Op`s.
 
     NOTE: By default it will use `Op.make_node`'s signature to produce meta
-    `Apply` node inputs, so be sure to override that signature when
-    `Op.make_node`'s arguments aren't one-to-one with the expected `Apply` node
-    inputs.  See `MetaOp.__call__` for more details.
+    `Apply` node inputs, so be sure to override that signature (at the class
+    level) when `Op.make_node`'s arguments aren't one-to-one with the expected
+    `Apply` node inputs.  See `MetaOp.__call__` for more details.
 
     Also, make sure to override `Op.output_meta_types` and make it return the
     expected meta variable types, if it isn't the default: `TheanoMetaTensorVariable`.
     """
 
-    base = tt.Op
+    base = theano.gof.op.PureOp
     # TODO: Couldn't we just add an `Op`'s `__props__` to these `__slots__`?
-    __slots__ = ["_op_sig"]
+    __slots__ = ("_op_sig",)
+
+    def __new__(cls, *args, obj=None, **kwargs):
+
+        # Create a new class for any subclasses so that we can refine the call
+        # signature--without having to construct a signature for every instance.
+        # `metatize` should pick up the new class hereafter.
+
+        if obj is not None:
+            obj_type = type(obj)
+
+            if not issubclass(obj_type, cls.base):
+                raise TypeError(
+                    f"Type of {obj_type} is not a subclass of {cls.base}."
+                )  # pragma: no cover
+
+            if obj_type != cls.base:
+
+                new_type = type(
+                    obj_type.__name__,
+                    (cls,),
+                    {"base": obj_type, "_op_sig": inspect.signature(obj.make_node)},
+                )
+
+                res = super().__new__(new_type)
+
+                # Make sure that dispatch is aware of this new type
+                meta._metatize.add((obj_type,), res._metatize)
+
+                return res
+
+        res = super().__new__(cls)
+        return res
 
     def __init__(self, *args, obj=None, **kwargs):
         """Initialize a meta `Op`."""
 
-        if obj is None:
+        if obj is None and not getattr(self, "__all_props__", None):
             # This might be a dynamically generated `Op`, so let's try to
-            # create the underlying base `Op`, since `MetaOp`s should always
-            # have a base object.
+            # instantiate the underlying base `Op`.  Having the base `Op` will
+            # facilitate `reify` operations and help us determine otherwise
+            # unknown type information, etc.
             op_args, op_args_unreified = meta_reify_iter(args)
             op_kwargs, op_kwargs_unreified = meta_reify_iter(kwargs)
 
-            if op_args_unreified or op_kwargs_unreified:
-                raise NotImplementedError(
-                    f"Could not automatically construct base Op for {type(self)}"
-                )
-            else:
-                obj = self.base(*args, **kwargs)
+            if not (op_args_unreified or op_kwargs_unreified):
+                obj = self.base(*op_args, **op_kwargs)
 
-        self._op_sig = inspect.signature(obj.make_node)
         super().__init__(obj=obj)
 
     def output_meta_types(self, inputs=None):
@@ -167,9 +208,13 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
         op_arg_bind = self._op_sig.bind(*args, **kwargs)
         op_arg_bind.apply_defaults()
         op_args, op_args_unreified = meta_reify_iter(op_arg_bind.args)
+        op_kwargs, op_kwargs_unreified = meta_reify_iter(op_arg_bind.kwargs)
 
-        if not op_args_unreified:
-            tt_out = self.obj(*op_args)
+        if not self.obj:
+            obj = self.reify()
+
+        if self.obj and not (op_args_unreified or op_kwargs_unreified):
+            tt_out = self.obj(*op_args, **op_kwargs)
             res_var = metatize(tt_out)
 
             if not isinstance(tt_out, (list, tuple)):
@@ -202,8 +247,20 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
 
             # Also, `Apply` inputs can't be `None` (they could be
             # `tt.none_type_t()`, though).
+
+            all_args = op_arg_bind.args + tuple(op_arg_bind.kwargs.values())
+
             res_apply = TheanoMetaApply(
-                self, tuple(filter(lambda x: x is not None, op_arg_bind.args))
+                self,
+                tuple(
+                    filter(
+                        lambda x: x is not None,
+                        # XXX: Whether keyword arguments are keyword
+                        # only or not, we're going to make them
+                        # positional
+                        all_args,
+                    )
+                ),
             )
 
             # TODO: Elemwise has an `output_types` method that can be
@@ -238,7 +295,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol):
 
 class TheanoMetaElemwise(TheanoMetaOp):
     base = tt.Elemwise
-    __slots__ = []
+    __slots__ = ()
 
     def __call__(self, *args, ttype=None, index=None, **kwargs):
         obj_nout = getattr(self.obj, "nfunc_spec", None)
@@ -250,7 +307,7 @@ class TheanoMetaElemwise(TheanoMetaOp):
 
 class TheanoMetaDimShuffle(TheanoMetaOp):
     base = tt.DimShuffle
-    __slots__ = ["input_broadcastable", "new_order", "inplace"]
+    __slots__ = ("input_broadcastable", "new_order", "inplace")
 
     def __init__(self, input_broadcastable, new_order, inplace=True, obj=None):
         self.input_broadcastable = input_broadcastable
@@ -259,20 +316,9 @@ class TheanoMetaDimShuffle(TheanoMetaOp):
         super().__init__(self.input_broadcastable, self.new_order, inplace=self.inplace, obj=obj)
 
 
-class TheanoMetaRandomVariable(TheanoMetaOp):
-    base = RandomVariable
-    __slots__ = []
-
-    def __init__(self, obj=None):
-        super().__init__(obj=obj)
-        # The `name` keyword parameter isn't an `Apply` node input, so we need
-        # to remove it from the automatically generated signature.
-        self._op_sig = self._op_sig.replace(parameters=list(self._op_sig.parameters.values())[0:4])
-
-
 class TheanoMetaApply(TheanoMetaSymbol):
     base = tt.Apply
-    __slots__ = ["op", "inputs", "_outputs"]
+    __slots__ = ("op", "inputs", "_outputs")
 
     def __init__(self, op, inputs, outputs=None, obj=None):
         self.op = metatize(op)
@@ -331,7 +377,7 @@ class TheanoMetaApply(TheanoMetaSymbol):
 
 class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
     base = theano.Variable
-    __slots__ = ["type", "owner", "index", "name"]
+    __slots__ = ("type", "owner", "index", "name")
 
     def __init__(self, type, owner, index, name, obj=None):
         self.type = metatize(type)
@@ -444,7 +490,7 @@ class TheanoMetaVariable(MetaVariable, TheanoMetaSymbol):
 class TheanoMetaTensorVariable(TheanoMetaVariable):
     # TODO: Could extend `theano.tensor.var._tensor_py_operators`, too.
     base = tt.TensorVariable
-    __slots__ = ["_ndim"]
+    __slots__ = ("_ndim",)
 
     @property
     def ndim(self):
@@ -463,7 +509,7 @@ class TheanoMetaTensorVariable(TheanoMetaVariable):
 
 class TheanoMetaConstant(TheanoMetaVariable):
     base = theano.Constant
-    __slots__ = ["data"]
+    __slots__ = ("data",)
 
     @classmethod
     def _metatize(cls, obj):
@@ -479,7 +525,7 @@ class TheanoMetaTensorConstant(TheanoMetaConstant):
     # TODO: Could extend `theano.tensor.var._tensor_py_operators`, too.
     base = tt.TensorConstant
 
-    __slots__ = ["_ndim"]
+    __slots__ = ("_ndim",)
 
     @classmethod
     def _metatize(cls, obj):
@@ -505,7 +551,7 @@ class TheanoMetaTensorConstant(TheanoMetaConstant):
 
 class TheanoMetaSharedVariable(TheanoMetaVariable):
     base = tt.sharedvar.SharedVariable
-    __slots__ = ["data", "strict"]
+    __slots__ = ("data", "strict")
 
     @classmethod
     def _metatize(cls, obj):
@@ -521,12 +567,12 @@ class TheanoMetaSharedVariable(TheanoMetaVariable):
 class TheanoMetaTensorSharedVariable(TheanoMetaSharedVariable):
     # TODO: Could extend `theano.tensor.var._tensor_py_operators`, too.
     base = tt.sharedvar.TensorSharedVariable
-    __slots__ = []
+    __slots__ = ()
 
 
 class TheanoMetaScalarSharedVariable(TheanoMetaSharedVariable):
     base = tt.sharedvar.ScalarSharedVariable
-    __slots__ = []
+    __slots__ = ()
 
 
 class TheanoMetaAccessor(object):
