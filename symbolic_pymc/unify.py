@@ -1,4 +1,3 @@
-from functools import wraps
 from collections.abc import Mapping
 
 from cons.core import _car, _cdr, ConsError
@@ -11,36 +10,6 @@ from unification.core import _reify, _unify, reify, unify
 from etuples import etuple
 
 from .meta import MetaSymbol, MetaVariable
-
-
-class UnificationFailure(Exception):
-    pass
-
-
-def debug_unify(enable=True):  # pragma: no cover
-    """Wrap unify functions so that they raise a `UnificationFailure` exception when unification fails."""
-    if enable:
-
-        def set_debug(f):
-            @wraps(f)
-            def wrapper(*args, **kwargs):
-                s = f(*args, **kwargs)
-                if s is False:
-                    import pdb
-
-                    pdb.set_trace()
-                    raise UnificationFailure()
-                return s
-
-            return wrapper
-
-        _unify.funcs = {
-            sig: set_debug(getattr(f, "__wrapped__", f)) for sig, f in _unify.funcs.items()
-        }
-        _unify._cache.clear()
-    else:
-        _unify.funcs = {sig: getattr(f, "__wrapped__", f) for sig, f in _unify.funcs.items()}
-        _unify._cache.clear()
 
 
 def unify_MetaSymbol(u, v, s):
@@ -157,6 +126,3 @@ _cdr.add((MetaVariable,), cdr_MetaVariable)
 
 # arguments.add((MetaSymbol,), cdr_MetaSymbol)
 arguments.add((MetaVariable,), cdr_MetaVariable)
-
-
-__all__ = ["debug_unify"]
