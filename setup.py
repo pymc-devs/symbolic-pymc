@@ -32,6 +32,7 @@ setup(
     author_email=AUTHOR_EMAIL,
     url=URL,
     install_requires=[
+        "numpy>=1.18.1",
         "scipy>=1.4.0",
         "Theano>=1.0.4",
         "tf-estimator-nightly==2.1.0.dev2020012309",
