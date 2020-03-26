@@ -4,6 +4,14 @@ symbolic\_pymc.theano package
 Submodules
 ----------
 
+symbolic\_pymc.theano.dispatch module
+-------------------------------------
+
+.. automodule:: symbolic_pymc.theano.dispatch
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 symbolic\_pymc.theano.meta module
 ---------------------------------
 
@@ -48,14 +56,6 @@ symbolic\_pymc.theano.random\_variables module
 ----------------------------------------------
 
 .. automodule:: symbolic_pymc.theano.random_variables
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-symbolic\_pymc.theano.unify module
-----------------------------------
-
-.. automodule:: symbolic_pymc.theano.unify
    :members:
    :undoc-members:
    :show-inheritance:

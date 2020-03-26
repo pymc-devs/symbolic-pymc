@@ -17,7 +17,6 @@ from symbolic_pymc.theano.utils import graph_equal
 from symbolic_pymc.theano.random_variables import MvNormalRV
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_unification():
     x, y, a, b = tt.dvectors("xyab")
     x_s = tt.scalar("x_s")
@@ -56,7 +55,6 @@ def test_unification():
     assert graph_equal(tt_expr_add_3, reify(mt_expr_add, unify(mt_expr_add, tt_expr_add_3)).reify())
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_etuple_term():
     """Test `etuplize` and `etuple` interaction with `term`."""
     # Take apart an already constructed/evaluated meta
@@ -132,7 +130,6 @@ def test_etuple_term():
     assert exp_res.eval_obj == test_expr
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_unify_rvs():
 
     a_tt = tt.vector("a")
@@ -153,7 +150,6 @@ def test_unify_rvs():
     assert s[Y_name_lv] == "y"
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_unify_ops():
     def f_pow2(x_tm1):
         return 2 * x_tm1

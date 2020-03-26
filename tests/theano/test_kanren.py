@@ -1,5 +1,3 @@
-import pytest
-
 import theano.tensor as tt
 
 from unification import var
@@ -15,7 +13,6 @@ from symbolic_pymc.theano.meta import mt
 from symbolic_pymc.theano.utils import graph_equal
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_terms():
     x, a, b = tt.dvectors("xab")
     test_expr = x + a * b
@@ -36,14 +33,12 @@ def test_terms():
     assert test_expr == term(operator(test_expr), arguments(test_expr)).reify()
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_kanren_algebra():
     a, b = mt.dvectors("ab")
     assert b == run(1, var("x"), eq(mt.add(a, b), mt.add(a, var("x"))))[0]
     assert b == run(1, var("x"), eq(mt.mul(a, b), mt.mul(a, var("x"))))[0]
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_assoccomm():
     x, a, b, c = tt.dvectors("xabc")
     test_expr = x + 1

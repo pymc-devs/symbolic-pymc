@@ -42,14 +42,14 @@ def _metatize_theano_object(obj):
 
 
 def load_dispatcher():
-    """Set/override dispatcher to default to TF objects."""
+    """Set/override dispatcher to default to Theano objects."""
     meta._metatize.add((object,), _metatize_theano_object)
     meta._metatize.add((HashableNDArray,), _metatize_theano_object)
 
     for new_cls in TheanoMetaSymbol.base_subclasses():
         meta._metatize.add((new_cls.base,), new_cls._metatize)
 
-    # Apply TF-specific `kanren` settings
+    # Apply Theano-specific `kanren` settings
     from ..relations import theano
 
     return meta._metatize

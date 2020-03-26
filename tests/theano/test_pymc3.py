@@ -21,7 +21,6 @@ from symbolic_pymc.theano.utils import canonicalize
 from symbolic_pymc.theano.meta import mt
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_pymc3_convert_dists():
     """Just a basic check that all PyMC3 RVs will convert to and from Theano RVs."""
     tt.config.compute_test_value = "ignore"
@@ -61,7 +60,6 @@ def test_pymc3_convert_dists():
     pymc_rv_names == new_pymc_rv_names
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_pymc3_normal_model():
     """Conduct a more in-depth test of PyMC3/Theano conversions for a specific model."""
     tt.config.compute_test_value = "ignore"
@@ -141,7 +139,6 @@ def test_pymc3_normal_model():
     assert all(v == 1 for v in Z_vars_count.values())
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_normals_to_model():
     """Test conversion to a PyMC3 model."""
     tt.config.compute_test_value = "ignore"
@@ -207,7 +204,6 @@ def test_normals_to_model():
         model = graph_model(Y_obs)
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_pymc3_broadcastable():
     """Test PyMC3 to Theano conversion amid array broadcasting."""
     tt.config.compute_test_value = "ignore"

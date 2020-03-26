@@ -13,7 +13,7 @@ from etuples.core import ExpressionTuple
 
 from .meta import TheanoMetaSymbol
 from ..meta import metatize
-from ..unify import unify_MetaSymbol
+from ..dispatch import unify_MetaSymbol
 
 
 tt_class_abstractions = tuple(c.base for c in TheanoMetaSymbol.base_subclasses())

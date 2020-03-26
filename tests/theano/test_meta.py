@@ -1,11 +1,12 @@
-from collections.abc import Iterator
-
+import pytest
 import numpy as np
 import theano
 import theano.tensor as tt
-import pytest
+
+from collections.abc import Iterator
 
 from unification import var, isvar, variables
+
 from symbolic_pymc.meta import MetaSymbol, MetaOp
 from symbolic_pymc.theano.meta import (
     metatize,
@@ -20,7 +21,6 @@ from symbolic_pymc.theano.meta import (
 from symbolic_pymc.theano.utils import graph_equal
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_metatize():
     vec_tt = tt.vector("vec")
     vec_m = metatize(vec_tt)
@@ -66,7 +66,6 @@ def test_metatize():
     assert test_obj.base == TestOp
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_meta_classes():
     vec_tt = tt.vector("vec")
     vec_m = metatize(vec_tt)
@@ -168,18 +167,15 @@ def test_meta_classes():
     assert const_mt != mt(2)
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_meta_str():
     assert str(mt.add) == "TheanoMetaElemwise(Elemwise{add,no_inplace})"
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_meta_pretty():
     pretty_mod = pytest.importorskip("IPython.lib.pretty")
     assert pretty_mod.pretty(mt.add) == "TheanoMetaElemwise(Elemwise{add,no_inplace})"
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_meta_helpers():
     zeros_mt = mt.zeros(2)
     assert np.array_equal(zeros_mt.reify().eval(), np.r_[0.0, 0.0])
@@ -195,7 +191,6 @@ def test_meta_helpers():
     assert np.array_equal(diag_mt.reify().eval(), np.diag(np.r_[1, 2, 3]))
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_scan_op():
     def f_pow2(x_tm1):
         return 2 * x_tm1

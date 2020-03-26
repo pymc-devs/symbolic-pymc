@@ -12,7 +12,7 @@ from etuples import etuplize
 
 from .meta import TFlowMetaSymbol
 from ..meta import metatize
-from ..unify import unify_MetaSymbol
+from ..dispatch import unify_MetaSymbol
 
 tf_class_abstractions = tuple(c.base for c in TFlowMetaSymbol.base_subclasses())
 
