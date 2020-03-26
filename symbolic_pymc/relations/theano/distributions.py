@@ -1,19 +1,14 @@
 """Relations pertaining to probability distributions."""
-import numpy as np
-import theano.tensor as tt
-
 from unification import var
-from unification.utils import transitive_get as walk
 
 from etuples import etuple
 
 from kanren import conde, eq
 from kanren.facts import fact, Relation
-from kanren.constraints import neq
 
+from . import constant_neq
 from .. import concat
-from ...utils import HashableNDArray
-from ...theano.meta import TheanoMetaConstant, mt
+from ...theano.meta import mt
 
 
 derived_dist = Relation("derived_dist")
@@ -55,28 +50,6 @@ fact(
 # fact(generalized_gamma_dist,
 #      None,
 #      None)
-
-
-def constant_neq(lvar, val):
-    """Assert that a constant graph variable is not equal to a specific value.
-
-    Scalar values are broadcast across arrays.
-
-    XXX: This goal is non-relational
-    """
-
-    if isinstance(val, np.ndarray):
-        val = val.view(HashableNDArray)
-
-    def constant_neq_goal(S):
-        lvar_rf = walk(lvar, S)
-        if isinstance(lvar_rf, (tt.Constant, TheanoMetaConstant)):
-            # TODO: Can we get away with `neq(lvar_rf, val)` alone?
-            yield from neq(lvar_rf.data, val)(S)
-        else:
-            yield S
-
-    return constant_neq_goal
 
 
 def scale_loc_transform(in_expr, out_expr):

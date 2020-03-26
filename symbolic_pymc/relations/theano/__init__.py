@@ -1,20 +1,54 @@
+import numpy as np
+import theano.tensor as tt
+
 from unification import var
+from unification.utils import transitive_get as walk
 
 from kanren import eq
 from kanren.core import lall, Zzz
 from kanren.facts import fact
 from kanren.graph import applyo, walko
 from kanren.assoccomm import commutative, associative
+from kanren.constraints import neq
 
 from etuples import etuple
 
-from ...theano.meta import mt
+from ...utils import HashableNDArray
+from ...theano.meta import TheanoMetaConstant, mt
 
-
+# Establish some Theano `Op`s as commutative and/or associative
 fact(commutative, mt.add)
 fact(commutative, mt.mul)
 fact(associative, mt.add)
 fact(associative, mt.mul)
+
+
+def constant_neq(lvar, val):
+    """Assert that a constant graph variable is not equal to a specific value.
+
+    Scalar values are broadcast across arrays.
+
+    XXX: This goal is non-relational.
+    TODO: Rewrite this as an actual constraint.
+    """
+
+    if isinstance(val, np.ndarray):
+        val = val.view(HashableNDArray)
+
+    def constant_neq_goal(S):
+        lvar_rf = walk(lvar, S)
+        if isinstance(lvar_rf, (tt.Constant, TheanoMetaConstant)):
+            # Although `neq` is an actual constraint, the preceding type check
+            # and alternative success--when not a constant type--make the
+            # entire goal non-relational/not a true constraint, since the
+            # aforementioned check will only occur once per goal-stream/state
+            # and never again.
+            yield from neq(lvar_rf.data, val)(S)
+        else:
+            # When the value isn't a Theano constant, consider it satisfied
+            yield S
+
+    return constant_neq_goal
 
 
 def non_obs_walko(relation, a, b):
