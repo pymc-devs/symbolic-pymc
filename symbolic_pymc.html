@@ -89,7 +89,7 @@
 <li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.tensorflow.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.meta">symbolic_pymc.tensorflow.meta module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.printing">symbolic_pymc.tensorflow.printing module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.unify">symbolic_pymc.tensorflow.unify module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.tensorflow.html#symbolic-pymc-tensorflow-unify-module">symbolic_pymc.tensorflow.unify module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow">Module contents</a></li>
 </ul>
 </li>
@@ -101,7 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.printing">symbolic_pymc.theano.printing module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.pymc3">symbolic_pymc.theano.pymc3 module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.random_variables">symbolic_pymc.theano.random_variables module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.unify">symbolic_pymc.theano.unify module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#symbolic-pymc-theano-unify-module">symbolic_pymc.theano.unify module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.utils">symbolic_pymc.theano.utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="symbolic_pymc.theano.html#module-symbolic_pymc.theano">Module contents</a></li>
 </ul>
@@ -276,12 +276,20 @@ Currently allowed values are “names” and “node_attrs” (for TensorFlow).<
 </div>
 <div class="section" id="module-symbolic_pymc.unify">
 <span id="symbolic-pymc-unify-module"></span><h2>symbolic_pymc.unify module<a class="headerlink" href="#module-symbolic_pymc.unify" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="symbolic_pymc.unify.debug_unify">
-<code class="sig-prename descclassname">symbolic_pymc.unify.</code><code class="sig-name descname">debug_unify</code><span class="sig-paren">(</span><em class="sig-param">enable=True</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.unify.debug_unify" title="Permalink to this definition">¶</a></dt>
-<dd><p>Wrap unify functions so that they raise a <cite>UnificationFailure</cite> exception when unification fails.</p>
-</dd></dl>
-
+<p>Multiply dispatched method: unify</p>
+<div class="section" id="inputs-object-object-mapping">
+<h3>Inputs: &lt;object, object, Mapping&gt;<a class="headerlink" href="#inputs-object-object-mapping" title="Permalink to this headline">¶</a></h3>
+<p>Find substitution so that u == v while satisfying s.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">var</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">unify</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">{})</span>
+<span class="go">{~x: 2}</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>Other signatures:</dt><dd><p>object, object</p>
+</dd>
+</dl>
+</div>
 </div>
 <div class="section" id="module-symbolic_pymc.utils">
 <span id="symbolic-pymc-utils-module"></span><h2>symbolic_pymc.utils module<a class="headerlink" href="#module-symbolic_pymc.utils" title="Permalink to this headline">¶</a></h2>

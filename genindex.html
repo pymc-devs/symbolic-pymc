@@ -133,9 +133,9 @@
 </li>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaRandomStateType.base">(symbolic_pymc.theano.meta.TheanoMetaRandomStateType attribute)</a>
 </li>
-        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaRandomVariable.base">(symbolic_pymc.theano.meta.TheanoMetaRandomVariable attribute)</a>
-</li>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaScalarSharedVariable.base">(symbolic_pymc.theano.meta.TheanoMetaScalarSharedVariable attribute)</a>
+</li>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaScan.base">(symbolic_pymc.theano.meta.TheanoMetaScan attribute)</a>
 </li>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaSharedVariable.base">(symbolic_pymc.theano.meta.TheanoMetaSharedVariable attribute)</a>
 </li>
@@ -252,8 +252,6 @@
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaSharedVariable.data">(symbolic_pymc.theano.meta.TheanoMetaSharedVariable attribute)</a>
 </li>
       </ul></li>
-      <li><a href="symbolic_pymc.html#symbolic_pymc.unify.debug_unify">debug_unify() (in module symbolic_pymc.unify)</a>
-</li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.ops.RandomVariable.default_output">default_output (symbolic_pymc.theano.ops.RandomVariable attribute)</a>
 
       <ul>
@@ -262,10 +260,10 @@
       </ul></li>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.TFlowMetaOp.default_output">default_output() (symbolic_pymc.tensorflow.meta.TFlowMetaOp property)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.printing.VariableWithShapePrinter.default_printer">default_printer (symbolic_pymc.theano.printing.VariableWithShapePrinter attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.printing.DepthExceededException">DepthExceededException</a>
 </li>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape.dims">dims (symbolic_pymc.tensorflow.meta.TFlowMetaTensorShape attribute)</a>
@@ -364,6 +362,8 @@
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.ops.RandomVariable.infer_shape">infer_shape() (symbolic_pymc.theano.ops.RandomVariable method)</a>
 </li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaScan.info">info (symbolic_pymc.theano.meta.TheanoMetaScan attribute)</a>
+</li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaDimShuffle.inplace">inplace (symbolic_pymc.theano.meta.TheanoMetaDimShuffle attribute)</a>
 </li>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.TFlowMetaOperator.input_args">input_args() (symbolic_pymc.tensorflow.meta.TFlowMetaOperator method)</a>
@@ -376,6 +376,8 @@
 
       <ul>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaApply.inputs">(symbolic_pymc.theano.meta.TheanoMetaApply attribute)</a>
+</li>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaScan.inputs">(symbolic_pymc.theano.meta.TheanoMetaScan attribute)</a>
 </li>
       </ul></li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.random_variables.InvGammaRVType">InvGammaRVType (class in symbolic_pymc.theano.random_variables)</a>
@@ -604,6 +606,8 @@
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaOp.output_meta_types">(symbolic_pymc.theano.meta.TheanoMetaOp method)</a>
 </li>
       </ul></li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaScan.outputs">outputs (symbolic_pymc.theano.meta.TheanoMetaScan attribute)</a>
+</li>
       <li><a href="symbolic_pymc.tensorflow.html#symbolic_pymc.tensorflow.meta.TFlowMetaOp.outputs">outputs() (symbolic_pymc.tensorflow.meta.TFlowMetaOp property)</a>
 
       <ul>
@@ -777,9 +781,9 @@
 </li>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaRandomStateType.reset">(symbolic_pymc.theano.meta.TheanoMetaRandomStateType method)</a>
 </li>
-        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaRandomVariable.reset">(symbolic_pymc.theano.meta.TheanoMetaRandomVariable method)</a>
-</li>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaScalarSharedVariable.reset">(symbolic_pymc.theano.meta.TheanoMetaScalarSharedVariable method)</a>
+</li>
+        <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaScan.reset">(symbolic_pymc.theano.meta.TheanoMetaScan method)</a>
 </li>
         <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaSharedVariable.reset">(symbolic_pymc.theano.meta.TheanoMetaSharedVariable method)</a>
 </li>
@@ -828,15 +832,13 @@
 </li>
       <li><a href="symbolic_pymc.relations.theano.html#module-symbolic_pymc.relations.theano.linalg">symbolic_pymc.relations.theano.linalg (module)</a>
 </li>
-      <li><a href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow">symbolic_pymc.tensorflow (module)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow">symbolic_pymc.tensorflow (module)</a>
+</li>
       <li><a href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.meta">symbolic_pymc.tensorflow.meta (module)</a>
 </li>
       <li><a href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.printing">symbolic_pymc.tensorflow.printing (module)</a>
-</li>
-      <li><a href="symbolic_pymc.tensorflow.html#module-symbolic_pymc.tensorflow.unify">symbolic_pymc.tensorflow.unify (module)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#module-symbolic_pymc.theano">symbolic_pymc.theano (module)</a>
 </li>
@@ -851,8 +853,6 @@
       <li><a href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.pymc3">symbolic_pymc.theano.pymc3 (module)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.random_variables">symbolic_pymc.theano.random_variables (module)</a>
-</li>
-      <li><a href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.unify">symbolic_pymc.theano.unify (module)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#module-symbolic_pymc.theano.utils">symbolic_pymc.theano.utils (module)</a>
 </li>
@@ -900,11 +900,13 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaOpType">TheanoMetaOpType (class in symbolic_pymc.theano.meta)</a>
+</li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaRandomStateType">TheanoMetaRandomStateType (class in symbolic_pymc.theano.meta)</a>
 </li>
-      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaRandomVariable">TheanoMetaRandomVariable (class in symbolic_pymc.theano.meta)</a>
-</li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaScalarSharedVariable">TheanoMetaScalarSharedVariable (class in symbolic_pymc.theano.meta)</a>
+</li>
+      <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaScan">TheanoMetaScan (class in symbolic_pymc.theano.meta)</a>
 </li>
       <li><a href="symbolic_pymc.theano.html#symbolic_pymc.theano.meta.TheanoMetaSharedVariable">TheanoMetaSharedVariable (class in symbolic_pymc.theano.meta)</a>
 </li>

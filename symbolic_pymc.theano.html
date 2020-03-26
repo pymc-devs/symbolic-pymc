@@ -232,16 +232,16 @@ object from a subclass.</p>
 <dd><p>Bases: <a class="reference internal" href="symbolic_pymc.html#symbolic_pymc.meta.MetaOp" title="symbolic_pymc.meta.MetaOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.meta.MetaOp</span></code></a>, <a class="reference internal" href="#symbolic_pymc.theano.meta.TheanoMetaSymbol" title="symbolic_pymc.theano.meta.TheanoMetaSymbol"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.meta.TheanoMetaSymbol</span></code></a></p>
 <p>A meta object that represents Theano <a href="#id1"><span class="problematic" id="id2">`</span></a>Op`s.</p>
 <p>NOTE: By default it will use <cite>Op.make_node</cite>’s signature to produce meta
-<cite>Apply</cite> node inputs, so be sure to override that signature when
-<cite>Op.make_node</cite>’s arguments aren’t one-to-one with the expected <cite>Apply</cite> node
-inputs.  See <cite>MetaOp.__call__</cite> for more details.</p>
+<cite>Apply</cite> node inputs, so be sure to override that signature (at the class
+level) when <cite>Op.make_node</cite>’s arguments aren’t one-to-one with the expected
+<cite>Apply</cite> node inputs.  See <cite>MetaOp.__call__</cite> for more details.</p>
 <p>Also, make sure to override <cite>Op.output_meta_types</cite> and make it return the
 expected meta variable types, if it isn’t the default: <cite>TheanoMetaTensorVariable</cite>.</p>
 <p>Initialize a meta <cite>Op</cite>.</p>
 <dl class="attribute">
 <dt id="symbolic_pymc.theano.meta.TheanoMetaOp.base">
 <code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaOp.base" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">theano.gof.op.Op</span></code></p>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">theano.gof.op.PureOp</span></code></p>
 </dd></dl>
 
 <dl class="method">
@@ -257,6 +257,12 @@ expected meta variable types, if it isn’t the default: <cite>TheanoMetaTensorV
 <code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaOp.reset" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.theano.meta.TheanoMetaOpType">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.meta.</code><code class="sig-name descname">TheanoMetaOpType</code><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaOpType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="symbolic_pymc.html#symbolic_pymc.meta.MetaSymbolType" title="symbolic_pymc.meta.MetaSymbolType"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.meta.MetaSymbolType</span></code></a></p>
 </dd></dl>
 
 <dl class="class">
@@ -277,24 +283,6 @@ expected meta variable types, if it isn’t the default: <cite>TheanoMetaTensorV
 </dd></dl>
 
 <dl class="class">
-<dt id="symbolic_pymc.theano.meta.TheanoMetaRandomVariable">
-<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.meta.</code><code class="sig-name descname">TheanoMetaRandomVariable</code><span class="sig-paren">(</span><em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaRandomVariable" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.theano.meta.TheanoMetaOp" title="symbolic_pymc.theano.meta.TheanoMetaOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.meta.TheanoMetaOp</span></code></a></p>
-<p>Initialize a meta <cite>Op</cite>.</p>
-<dl class="attribute">
-<dt id="symbolic_pymc.theano.meta.TheanoMetaRandomVariable.base">
-<code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaRandomVariable.base" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <a class="reference internal" href="#symbolic_pymc.theano.ops.RandomVariable" title="symbolic_pymc.theano.ops.RandomVariable"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.ops.RandomVariable</span></code></a></p>
-</dd></dl>
-
-<dl class="method">
-<dt id="symbolic_pymc.theano.meta.TheanoMetaRandomVariable.reset">
-<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaRandomVariable.reset" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="symbolic_pymc.theano.meta.TheanoMetaScalarSharedVariable">
 <em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.meta.</code><code class="sig-name descname">TheanoMetaScalarSharedVariable</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">type</em>, <em class="sig-param">data</em>, <em class="sig-param">strict</em>, <em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaScalarSharedVariable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.theano.meta.TheanoMetaSharedVariable" title="symbolic_pymc.theano.meta.TheanoMetaSharedVariable"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.meta.TheanoMetaSharedVariable</span></code></a></p>
@@ -307,6 +295,39 @@ expected meta variable types, if it isn’t the default: <cite>TheanoMetaTensorV
 <dl class="method">
 <dt id="symbolic_pymc.theano.meta.TheanoMetaScalarSharedVariable.reset">
 <code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaScalarSharedVariable.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="symbolic_pymc.theano.meta.TheanoMetaScan">
+<em class="property">class </em><code class="sig-prename descclassname">symbolic_pymc.theano.meta.</code><code class="sig-name descname">TheanoMetaScan</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">outputs</em>, <em class="sig-param">info</em>, <em class="sig-param">obj=None</em><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaScan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#symbolic_pymc.theano.meta.TheanoMetaOp" title="symbolic_pymc.theano.meta.TheanoMetaOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">symbolic_pymc.theano.meta.TheanoMetaOp</span></code></a></p>
+<p>Initialize a meta <cite>Op</cite>.</p>
+<dl class="attribute">
+<dt id="symbolic_pymc.theano.meta.TheanoMetaScan.base">
+<code class="sig-name descname">base</code><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaScan.base" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">theano.scan_module.scan_op.Scan</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.theano.meta.TheanoMetaScan.info">
+<code class="sig-name descname">info</code><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaScan.info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.theano.meta.TheanoMetaScan.inputs">
+<code class="sig-name descname">inputs</code><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaScan.inputs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="symbolic_pymc.theano.meta.TheanoMetaScan.outputs">
+<code class="sig-name descname">outputs</code><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaScan.outputs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="symbolic_pymc.theano.meta.TheanoMetaScan.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#symbolic_pymc.theano.meta.TheanoMetaScan.reset" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -2359,8 +2380,8 @@ new one, if <cite>None</cite>.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-symbolic_pymc.theano.unify">
-<span id="symbolic-pymc-theano-unify-module"></span><h2>symbolic_pymc.theano.unify module<a class="headerlink" href="#module-symbolic_pymc.theano.unify" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="symbolic-pymc-theano-unify-module">
+<h2>symbolic_pymc.theano.unify module<a class="headerlink" href="#symbolic-pymc-theano-unify-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-symbolic_pymc.theano.utils">
 <span id="symbolic-pymc-theano-utils-module"></span><h2>symbolic_pymc.theano.utils module<a class="headerlink" href="#module-symbolic_pymc.theano.utils" title="Permalink to this headline">¶</a></h2>
