@@ -12,6 +12,7 @@ from unification import var
 from etuples import etuple, etuplize
 
 from kanren import run, eq
+from kanren.core import lall
 from kanren.graph import reduceo, walko, applyo
 
 from symbolic_pymc.theano.meta import mt
@@ -283,3 +284,37 @@ def test_normal_qr_transform():
     assert Y_new.owner.inputs[0].owner.inputs[1] == beta_tilde_node
 
     np.testing.assert_array_almost_equal(t_Q, Y_new.owner.inputs[0].owner.inputs[0].tag.test_value)
+
+
+def test_basic_scan_transform():
+    def f_pow2(x_tm1):
+        return 2 * x_tm1
+
+    state = theano.tensor.scalar("state")
+    n_steps = theano.tensor.iscalar("nsteps")
+    output, updates = theano.scan(
+        f_pow2, [], state, [], n_steps=n_steps, truncate_gradient=-1, go_backwards=False
+    )
+
+    assert np.array_equal(output.eval({state: 1.0, n_steps: 4}), np.r_[2.0, 4.0, 8.0, 16.0])
+
+    def mul_trans(in_expr, out_expr):
+        """Equate `2 * x` with `5 * x` in a Theano `scan`.
+
+        I.e. from left-to-right, replace `2 * x[t-1]` with `5 * x[t-1]`.
+        """
+        arg_lv = var()
+        inputs_lv, info_lv = var(), var()
+        in_scan_lv = mt.Scan(inputs_lv, [mt.mul(2, arg_lv)], info_lv)
+        out_scan_lv = mt.Scan(inputs_lv, [mt.mul(5, arg_lv)], info_lv)
+
+        return lall(eq(in_expr, in_scan_lv), eq(out_expr, out_scan_lv))
+
+    q_lv = var()
+    (output_mt,) = run(1, q_lv, walko(partial(reduceo, mul_trans), output, q_lv))
+
+    output_new = output_mt.eval_obj.reify()
+
+    assert output_new != output
+
+    assert np.array_equal(output_new.eval({state: 1.0, n_steps: 4}), np.r_[5.0, 25.0, 125.0, 625.0])
