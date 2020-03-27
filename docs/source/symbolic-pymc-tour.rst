@@ -1071,10 +1071,8 @@ like \ ``enable_lvar_defaults``\ , or by updates to the
 defaults of meta object creation.
 
 Likewise, there are tools available in Symbolic PyMC that make it easier to
-determine why to objects won't unify
-(i.e. \ ``symbolic_pymc.unify.debug_unify``\ ) and exactly
-which components are unequal between two meta objects
-(i.e. \ ``symbolic_pymc.utils.meta_parts_unequal``\ ).
+determine which components are unequal between two meta objects
+(e.g. \ ``symbolic_pymc.utils.meta_parts_unequal``\ ).
 
 Symbolic PyMC's library of relevant mathematical and statistical relations is
 intended to evolve over time.  These relations will reflect useful properties

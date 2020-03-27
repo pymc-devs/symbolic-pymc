@@ -335,7 +335,12 @@ class MetaSymbol(metaclass=MetaSymbolType):
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.base, self.rands))
+        try:
+            rands = self.rands
+        except NotImplementedError:  # pragma: no cover
+            return NotImplemented
+
+        return hash((self.base, rands))
 
     def __str__(self):
         return self.__repr__(show_obj=False, _repr=str)

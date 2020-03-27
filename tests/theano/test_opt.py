@@ -1,4 +1,3 @@
-import pytest
 import theano.tensor as tt
 
 from unification import var
@@ -16,7 +15,6 @@ from symbolic_pymc.theano.opt import KanrenRelationSub, FunctionGraph
 from symbolic_pymc.theano.utils import optimize_graph
 
 
-@pytest.mark.usefixtures("run_with_theano")
 def test_kanren_opt():
     """Make sure we can run miniKanren "optimizations" over a graph until a fixed-point/normal-form is reached.
     """

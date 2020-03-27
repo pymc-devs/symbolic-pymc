@@ -1,5 +1,5 @@
 # We need this so that `multipledispatch` initialization occurs
-from .unify import *
+from .dispatch import *
 
 from ._version import get_versions
 
