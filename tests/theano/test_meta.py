@@ -15,6 +15,7 @@ from symbolic_pymc.theano.meta import (
     TheanoMetaVariable,
     TheanoMetaTensorConstant,
     TheanoMetaTensorVariable,
+    TheanoMetaType,
     TheanoMetaTensorType,
     mt,
 )
@@ -83,6 +84,18 @@ def test_meta_classes():
     assert vec_type_m.dtype == vec_tt.dtype
     assert vec_type_m.broadcastable == vec_tt.type.broadcastable
     assert vec_type_m.name == vec_tt.type.name
+    assert vec_m.ndim == 1
+
+    var_type = TheanoMetaType(obj=tt.type.scal.Scalar(tt.config.floatX))
+    assert hash(var_type) == hash((var_type.base, var_type.obj))
+
+    var_type_2 = TheanoMetaType(obj=tt.type.scal.Scalar(tt.config.floatX))
+    assert var_type == var_type_2
+
+    var_mt = TheanoMetaTensorVariable(
+        TheanoMetaTensorType(tt.config.floatX, var(), var()), None, None, None
+    )
+    assert isvar(var_mt.ndim)
 
     assert graph_equal(tt.add(1, 2), mt.add(1, 2).reify())
 

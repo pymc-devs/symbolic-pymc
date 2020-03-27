@@ -68,6 +68,15 @@ class TheanoMetaType(TheanoMetaSymbol):
             return metatize(self.obj(name=name))
         return metatize(self.base.Variable)(self, name)
 
+    def __eq__(self, other):
+        if type(other) != type(self):
+            return NotImplemented
+
+        return self.base == other.base and self.obj == other.obj
+
+    def __hash__(self):
+        return hash((self.base, self.obj))
+
 
 class TheanoMetaRandomStateType(TheanoMetaType):
     base = tt.raw_random.RandomStateType
@@ -286,7 +295,7 @@ class TheanoMetaOp(MetaOp, TheanoMetaSymbol, metaclass=TheanoMetaOpType):
     def __str__(self):
         return f"{self.__class__.__name__}({self.obj})"
 
-    def _repr_pretty_(self, p, cycle):
+    def _repr_pretty_(self, p, cycle):  # pragma: no cover
         if cycle:
             p.text(f"{self.__class__.__name__}(...)")
         else:
