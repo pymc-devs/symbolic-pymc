@@ -149,7 +149,7 @@ def _convert_rv_to_dist_MvNormal(op, rv):
 @convert_dist_to_rv.register(pm.Gamma, object)
 def convert_dist_to_rv_Gamma(dist, rng):
     size = dist.shape.astype(int)[GammaRV.ndim_supp :]
-    res = GammaRV(dist.alpha, tt.inv(dist.beta), size=size, rng=rng)
+    res = GammaRV(dist.alpha, dist.beta, size=size, rng=rng)
     return res
 
 
@@ -162,14 +162,13 @@ def _convert_rv_to_dist_Gamma(op, rv):
 @convert_dist_to_rv.register(pm.InverseGamma, object)
 def convert_dist_to_rv_InverseGamma(dist, rng):
     size = dist.shape.astype(int)[InvGammaRV.ndim_supp :]
-    res = InvGammaRV(dist.alpha, scale=dist.beta, size=size, rng=rng)
+    res = InvGammaRV(dist.alpha, rate=dist.beta, size=size, rng=rng)
     return res
 
 
 @_convert_rv_to_dist.register(InvGammaRVType, Apply)
 def _convert_rv_to_dist_InvGamma(op, rv):
-    assert not np.any(tt_get_values(rv.inputs[1]))
-    params = {"alpha": rv.inputs[0], "beta": rv.inputs[2]}
+    params = {"alpha": rv.inputs[0], "beta": rv.inputs[1]}
     return pm.InverseGamma, params
 
 

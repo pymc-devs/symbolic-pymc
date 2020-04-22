@@ -306,8 +306,6 @@ class RandomVariable(tt.gof.Op):
         """Draw samples using Numpy/SciPy."""
         rng_out, smpl_out = outputs
 
-        # Draw from `rng` if `self.inplace` is `True`, and from a copy of `rng`
-        # otherwise.
         args = list(inputs)
         rng = args.pop()
         size = args.pop()
@@ -327,6 +325,8 @@ class RandomVariable(tt.gof.Op):
         else:
             size = tuple(size)
 
+        # Draw from `rng` if `self.inplace` is `True`, and from a copy of `rng`
+        # otherwise.
         if not self.inplace:
             rng = copy(rng)
 

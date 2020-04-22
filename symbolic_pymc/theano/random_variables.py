@@ -1,3 +1,4 @@
+import numpy as np
 import theano
 import scipy
 import theano.tensor as tt
@@ -7,7 +8,6 @@ from functools import partial
 from .ops import RandomVariable, param_supp_shape_fn
 
 
-# Continuous Numpy-generated variates
 class UniformRVType(RandomVariable):
     print_name = ("U", "\\operatorname{U}")
 
@@ -71,10 +71,19 @@ class GammaRVType(RandomVariable):
     print_name = ("Gamma", "\\operatorname{Gamma}")
 
     def __init__(self):
-        super().__init__("gamma", theano.config.floatX, 0, [0, 0], "gamma", inplace=True)
+        super().__init__(
+            "gamma",
+            theano.config.floatX,
+            0,
+            [0, 0],
+            lambda rng, shape, rate, size: scipy.stats.gamma.rvs(
+                shape, scale=1.0 / rate, size=size, random_state=rng
+            ),
+            inplace=True,
+        )
 
-    def make_node(self, shape, scale, size=None, rng=None, name=None):
-        return super().make_node(shape, scale, size=size, rng=rng, name=name)
+    def make_node(self, shape, rate, size=None, rng=None, name=None):
+        return super().make_node(shape, rate, size=size, rng=rng, name=name)
 
 
 GammaRV = GammaRVType()
@@ -93,19 +102,26 @@ class ExponentialRVType(RandomVariable):
 ExponentialRV = ExponentialRVType()
 
 
-# One with multivariate support
 class MvNormalRVType(RandomVariable):
     print_name = ("N", "\\operatorname{N}")
 
     def __init__(self):
         super().__init__(
-            "multivariate_normal",
-            theano.config.floatX,
-            1,
-            [1, 2],
-            "multivariate_normal",
-            inplace=True,
+            "multivariate_normal", theano.config.floatX, 1, [1, 2], self._smpl_fn, inplace=True,
         )
+
+    @classmethod
+    def _smpl_fn(cls, rng, mean, cov, size):
+        res = np.atleast_1d(
+            scipy.stats.multivariate_normal(mean=mean, cov=cov, allow_singular=True).rvs(
+                size=size, random_state=rng
+            )
+        )
+
+        if size is not None:
+            res = res.reshape(list(size) + [-1])
+
+        return res
 
     def make_node(self, mean, cov, size=None, rng=None, name=None):
         return super().make_node(mean, cov, size=size, rng=rng, name=name)
@@ -127,7 +143,6 @@ class DirichletRVType(RandomVariable):
 DirichletRV = DirichletRVType()
 
 
-# A discrete Numpy-generated variate
 class PoissonRVType(RandomVariable):
     print_name = ("Pois", "\\operatorname{Pois}")
 
@@ -141,7 +156,6 @@ class PoissonRVType(RandomVariable):
 PoissonRV = PoissonRVType()
 
 
-# A SciPy-generated variate
 class CauchyRVType(RandomVariable):
     print_name = ("C", "\\operatorname{C}")
 
@@ -191,12 +205,14 @@ class InvGammaRVType(RandomVariable):
             theano.config.floatX,
             0,
             [0, 0, 0],
-            lambda rng, *args: scipy.stats.invgamma.rvs(*args, random_state=rng),
+            lambda rng, shape, rate, size: scipy.stats.invgamma.rvs(
+                shape, scale=rate, size=size, random_state=rng
+            ),
             inplace=True,
         )
 
-    def make_node(self, a, loc=0.0, scale=1.0, size=None, rng=None, name=None):
-        return super().make_node(a, loc, scale, size=size, rng=rng, name=name)
+    def make_node(self, shape, rate=1.0, size=None, rng=None, name=None):
+        return super().make_node(shape, rate, size=size, rng=rng, name=name)
 
 
 InvGammaRV = InvGammaRVType()
@@ -277,9 +293,14 @@ class BetaBinomialRVType(RandomVariable):
 BetaBinomialRV = BetaBinomialRVType()
 
 
-# Support shape is determined by the first dimension in the *second* parameter
-# (i.e.  the probabilities vector)
 class MultinomialRVType(RandomVariable):
+    """A Multinomial random variable type.
+
+    FYI: Support shape is determined by the first dimension in the *second*
+    parameter (i.e.  the probabilities vector).
+
+    """
+
     print_name = ("MN", "\\operatorname{MN}")
 
     def __init__(self):
