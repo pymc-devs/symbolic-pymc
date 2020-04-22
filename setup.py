@@ -36,7 +36,7 @@ setup(
         "scipy>=1.4.0",
         "Theano>=1.0.4",
         "tf-estimator-nightly==2.1.0.dev2020012309",
-        "tf-nightly==2.2.0.dev20200201",
+        "tf-nightly==2.2.0.dev20200301",
         "tfp-nightly==0.10.0.dev20200201",
         "multipledispatch>=0.6.0",
         "logical-unification>=0.4.3",
