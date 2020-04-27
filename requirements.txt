@@ -2,6 +2,7 @@ setuptools>=45.2.0
 six>=1.14.0
 -e ./
 sympy>=1.3
+pypolyagamma @ git+https://github.com/slinderman/pypolyagamma.git@b5883e661123862ca07d29ab14369fae85bdbc27#egg=pypolyagamma-1.2.2
 coveralls
 pydocstyle>=3.0.0
 pytest>=5.0.0

@@ -2,7 +2,9 @@ import numpy as np
 
 import theano.tensor as tt
 
-from symbolic_pymc.theano.random_variables import NormalRV, MvNormalRV
+from pytest import importorskip
+
+from symbolic_pymc.theano.random_variables import NormalRV, MvNormalRV, PolyaGammaRV
 
 
 def rv_numpy_tester(rv, *params, size=None):
@@ -68,3 +70,31 @@ def test_mvnormalrv():
     # Looks like NumPy doesn't support that (and it's probably better off for
     # it).
     # rv_numpy_tester(MvNormalRV, [[0, 1, 2], [4, 5, 6]], np.diag([1, 1, 1]))
+
+
+def test_polyagammarv():
+
+    _ = importorskip("pypolyagamma")
+
+    # Sampled values should be scalars
+    pg_rv = PolyaGammaRV(1.1, -10.5)
+    assert pg_rv.eval().shape == ()
+
+    pg_rv = PolyaGammaRV(1.1, -10.5, size=[1])
+    assert pg_rv.eval().shape == (1,)
+
+    pg_rv = PolyaGammaRV(1.1, -10.5, size=[2, 3])
+    bcast_smpl = pg_rv.eval()
+    assert bcast_smpl.shape == (2, 3)
+    # Make sure they're not all equal
+    assert np.all(np.abs(np.diff(bcast_smpl.flat)) > 0.0)
+
+    pg_rv = PolyaGammaRV(np.r_[1.1, 3], -10.5)
+    bcast_smpl = pg_rv.eval()
+    assert bcast_smpl.shape == (2,)
+    assert np.all(np.abs(np.diff(bcast_smpl.flat)) > 0.0)
+
+    pg_rv = PolyaGammaRV(np.r_[1.1, 3], -10.5, size=(2, 3))
+    bcast_smpl = pg_rv.eval()
+    assert bcast_smpl.shape == (2, 2, 3)
+    assert np.all(np.abs(np.diff(bcast_smpl.flat)) > 0.0)
