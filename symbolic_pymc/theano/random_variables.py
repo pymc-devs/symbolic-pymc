@@ -5,6 +5,8 @@ import theano.tensor as tt
 
 from functools import partial
 
+from pypolyagamma import PyPolyaGamma
+
 from .ops import RandomVariable, param_supp_shape_fn
 
 
@@ -204,7 +206,7 @@ class InvGammaRVType(RandomVariable):
             "invgamma",
             theano.config.floatX,
             0,
-            [0, 0, 0],
+            [0, 0],
             lambda rng, shape, rate, size: scipy.stats.invgamma.rvs(
                 shape, scale=rate, size=size, random_state=rng
             ),
@@ -341,6 +343,46 @@ class CategoricalRVType(RandomVariable):
 
 
 CategoricalRV = CategoricalRVType()
+
+
+class PolyaGammaRVType(RandomVariable):
+    """Polya-Gamma random variable.
+
+    XXX: This doesn't really use the given RNG, due to the narrowness of the
+    sampler package's implementation.
+    """
+
+    print_name = ("PG", "\\operatorname{PG}")
+
+    def __init__(self):
+        super().__init__(
+            "polya-gamma", theano.config.floatX, 0, [0, 0], self._smpl_fn, inplace=True,
+        )
+
+    def make_node(self, b, c, size=None, rng=None, name=None):
+        return super().make_node(b, c, size=size, rng=rng, name=name)
+
+    @classmethod
+    def _smpl_fn(cls, rng, b, c, size):
+        pg = PyPolyaGamma(rng.randint(2 ** 16))
+
+        if not size and b.shape == c.shape == ():
+            return pg.pgdraw(b, c)
+        else:
+            b, c = np.broadcast_arrays(b, c)
+            out_shape = b.shape + tuple(size or ())
+            smpl_val = np.empty(out_shape, dtype="double")
+            b = np.tile(b, tuple(size or ()) + (1,))
+            c = np.tile(c, tuple(size or ()) + (1,))
+            pg.pgdrawv(
+                np.asarray(b.flat).astype("double", copy=True),
+                np.asarray(c.flat).astype("double", copy=True),
+                np.asarray(smpl_val.flat),
+            )
+            return smpl_val
+
+
+PolyaGammaRV = PolyaGammaRVType()
 
 
 class Observed(tt.Op):
