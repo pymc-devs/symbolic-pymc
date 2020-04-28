@@ -44,6 +44,7 @@ def test_pymc3_convert_dists():
         betabinomial_rv = pm.BetaBinomial("betabinomial_rv", 0.1, 0.1, 10, observed=5)
         categorical_rv = pm.Categorical("categorical_rv", np.r_[0.5, 0.5], observed=1)
         multinomial_rv = pm.Multinomial("multinomial_rv", 5, np.r_[0.5, 0.5], observed=np.r_[2])
+        negbinomial_rv = pm.NegativeBinomial("negbinomial_rv", 10.2, 0.5, observed=5)
 
     # Convert to a Theano `FunctionGraph`
     fgraph = model_graph(model)

@@ -53,6 +53,8 @@ from .random_variables import (
     CategoricalRVType,
     MultinomialRV,
     MultinomialRVType,
+    NegBinomialRV,
+    NegBinomialRVType,
 )
 from .opt import FunctionGraph
 from .ops import RandomVariable
@@ -236,6 +238,19 @@ def convert_dist_to_rv_Binomial(dist, rng):
 def _convert_rv_to_dist_Binomial(op, rv):
     params = {"n": rv.inputs[0], "p": rv.inputs[1]}
     return pm.Binomial, params
+
+
+@convert_dist_to_rv.register(pm.NegativeBinomial, object)
+def convert_dist_to_rv_NegBinomial(dist, rng):
+    size = dist.shape.astype(int)[BinomialRV.ndim_supp :]
+    res = NegBinomialRV(dist.alpha, dist.mu / (dist.mu + dist.alpha), size=size, rng=rng)
+    return res
+
+
+@_convert_rv_to_dist.register(NegBinomialRVType, Apply)
+def _convert_rv_to_dist_NegBinomial(op, rv):
+    params = {"alpha": rv.inputs[0], "mu": rv.inputs[1] * rv.inputs[0] / (1.0 - rv.inputs[1])}
+    return pm.NegativeBinomial, params
 
 
 @convert_dist_to_rv.register(pm.Poisson, object)

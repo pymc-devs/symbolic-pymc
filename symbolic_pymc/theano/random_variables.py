@@ -1,11 +1,17 @@
 import numpy as np
 import theano
-import scipy
+import scipy.stats as stats
 import theano.tensor as tt
 
 from functools import partial
 
-from pypolyagamma import PyPolyaGamma
+try:
+    from pypolyagamma import PyPolyaGamma
+except ImportError:  # pragma: no cover
+
+    def PyPolyaGamma(*args, **kwargs):
+        raise RuntimeError("pypolygamma not installed!")
+
 
 from .ops import RandomVariable, param_supp_shape_fn
 
@@ -58,7 +64,7 @@ class HalfNormalRVType(RandomVariable):
             theano.config.floatX,
             0,
             [0, 0],
-            lambda rng, *args: scipy.stats.halfnorm.rvs(*args, random_state=rng),
+            lambda rng, *args: stats.halfnorm.rvs(*args, random_state=rng),
             inplace=True,
         )
 
@@ -78,7 +84,7 @@ class GammaRVType(RandomVariable):
             theano.config.floatX,
             0,
             [0, 0],
-            lambda rng, shape, rate, size: scipy.stats.gamma.rvs(
+            lambda rng, shape, rate, size: stats.gamma.rvs(
                 shape, scale=1.0 / rate, size=size, random_state=rng
             ),
             inplace=True,
@@ -115,7 +121,7 @@ class MvNormalRVType(RandomVariable):
     @classmethod
     def _smpl_fn(cls, rng, mean, cov, size):
         res = np.atleast_1d(
-            scipy.stats.multivariate_normal(mean=mean, cov=cov, allow_singular=True).rvs(
+            stats.multivariate_normal(mean=mean, cov=cov, allow_singular=True).rvs(
                 size=size, random_state=rng
             )
         )
@@ -167,7 +173,7 @@ class CauchyRVType(RandomVariable):
             theano.config.floatX,
             0,
             [0, 0],
-            lambda rng, *args: scipy.stats.cauchy.rvs(*args, random_state=rng),
+            lambda rng, *args: stats.cauchy.rvs(*args, random_state=rng),
             inplace=True,
         )
 
@@ -187,7 +193,7 @@ class HalfCauchyRVType(RandomVariable):
             theano.config.floatX,
             0,
             [0, 0],
-            lambda rng, *args: scipy.stats.halfcauchy.rvs(*args, random_state=rng),
+            lambda rng, *args: stats.halfcauchy.rvs(*args, random_state=rng),
             inplace=True,
         )
 
@@ -207,7 +213,7 @@ class InvGammaRVType(RandomVariable):
             theano.config.floatX,
             0,
             [0, 0],
-            lambda rng, shape, rate, size: scipy.stats.invgamma.rvs(
+            lambda rng, shape, rate, size: stats.invgamma.rvs(
                 shape, scale=rate, size=size, random_state=rng
             ),
             inplace=True,
@@ -229,7 +235,7 @@ class TruncExponentialRVType(RandomVariable):
             theano.config.floatX,
             0,
             [0, 0, 0],
-            lambda rng, *args: scipy.stats.truncexpon.rvs(*args, random_state=rng),
+            lambda rng, *args: stats.truncexpon.rvs(*args, random_state=rng),
             inplace=True,
         )
 
@@ -249,7 +255,7 @@ class BernoulliRVType(RandomVariable):
             "int64",
             0,
             [0],
-            lambda rng, *args: scipy.stats.bernoulli.rvs(args[0], size=args[1], random_state=rng),
+            lambda rng, *args: stats.bernoulli.rvs(args[0], size=args[1], random_state=rng),
             inplace=True,
         )
 
@@ -273,6 +279,26 @@ class BinomialRVType(RandomVariable):
 BinomialRV = BinomialRVType()
 
 
+class NegBinomialRVType(RandomVariable):
+    print_name = ("NB", "\\operatorname{NB}")
+
+    def __init__(self):
+        super().__init__(
+            "neg-binomial",
+            "int64",
+            0,
+            [0, 0],
+            lambda rng, n, p, size: stats.nbinom.rvs(n, p, size=size, random_state=rng),
+            inplace=True,
+        )
+
+    def make_node(self, n, p, size=None, rng=None, name=None):
+        return super().make_node(n, p, size=size, rng=rng, name=name)
+
+
+NegBinomialRV = NegBinomialRVType()
+
+
 class BetaBinomialRVType(RandomVariable):
     print_name = ("BetaBinom", "\\operatorname{BetaBinom}")
 
@@ -282,9 +308,7 @@ class BetaBinomialRVType(RandomVariable):
             "int64",
             0,
             [0, 0, 0],
-            lambda rng, *args: scipy.stats.betabinom.rvs(
-                *args[:-1], size=args[-1], random_state=rng
-            ),
+            lambda rng, *args: stats.betabinom.rvs(*args[:-1], size=args[-1], random_state=rng),
             inplace=True,
         )
 
@@ -332,7 +356,7 @@ class CategoricalRVType(RandomVariable):
             "int64",
             0,
             [1],
-            lambda rng, *args: scipy.stats.rv_discrete(values=(range(len(args[0])), args[0])).rvs(
+            lambda rng, *args: stats.rv_discrete(values=(range(len(args[0])), args[0])).rvs(
                 size=args[1], random_state=rng
             ),
             inplace=True,
