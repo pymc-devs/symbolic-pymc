@@ -5,7 +5,13 @@ import theano.tensor as tt
 
 from functools import partial
 
-from pypolyagamma import PyPolyaGamma
+try:
+    from pypolyagamma import PyPolyaGamma
+except ImportError:  # pragma: no cover
+
+    def PyPolyaGamma(*args, **kwargs):
+        raise RuntimeError("pypolygamma not installed!")
+
 
 from .ops import RandomVariable, param_supp_shape_fn
 
