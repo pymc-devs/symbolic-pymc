@@ -36,8 +36,8 @@ def eval_and_reify_meta(x):
 class FunctionGraph(theano.gof.fg.FunctionGraph):
     """A version of `FunctionGraph` that knows not to merge non-deterministic `Op`s.
 
-    TODO: Add a check to `MergeFeature.process_node` and submit
-    a PR to Theano.
+    It also performs common operations for input cloning and keeps a map of
+    original/cloned nodes, making the graph much easier to use.
 
     """
 

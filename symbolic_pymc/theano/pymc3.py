@@ -15,6 +15,7 @@ from warnings import warn
 from multipledispatch import dispatch
 from unification.utils import transitive_get as walk
 
+from theano.gof.op import get_test_value
 from theano.gof.graph import Apply, inputs as tt_inputs
 
 from .random_variables import (
@@ -275,7 +276,11 @@ def convert_dist_to_rv_Dirichlet(dist, rng):
 
 @_convert_rv_to_dist.register(DirichletRVType, Apply)
 def _convert_rv_to_dist_Dirichlet(op, rv):
-    params = {"a": rv.inputs[0]}
+    a_tt = rv.inputs[0]
+    # TODO FIXME: This is a work-around; remove when/if
+    # https://github.com/pymc-devs/pymc3/pull/4000 is merged.
+    a_pm = get_test_value(a_tt)
+    params = {"a": a_pm}
     return pm.Dirichlet, params
 
 

@@ -157,31 +157,54 @@ class RandomVariable(tt.gof.Op):
 
         """
 
-        size_len = tt.get_vector_length(size)
+        param_shapes = param_shapes or [p.shape for p in dist_params]
 
-        dummy_params = tuple(
-            p if n == 0 else tt.ones(tuple(p.shape)[:-n])
-            for p, n in zip(dist_params, self.ndims_params)
+        def slice_ind_dims(p, ps, n):
+            shape = tuple(ps)
+
+            if n == 0:
+                return (p, shape, p.broadcastable)
+
+            ind_slice = (np.s_[:],) * (p.ndim - n) + (0,) * n
+            return (p[ind_slice], shape[:-n], p.broadcastable[:-n])
+
+        # These are versions of our actual parameters with the expected
+        # dimensions removed so that only the independent variate dimensions
+        # are left.
+        params_ind_slice = tuple(
+            slice_ind_dims(p, ps, n)
+            for p, ps, n in zip(dist_params, param_shapes, self.ndims_params)
         )
 
-        _, out_bcasts, bcastd_inputs = tt.add.get_output_info(tt.DimShuffle, *dummy_params)
+        if len(params_ind_slice) == 1:
+            ind_param, ind_shape, ind_bcast = params_ind_slice[0]
+            ndim_ind = len(ind_shape)
+            shape_ind = ind_shape
+        elif len(params_ind_slice) > 1:
+            # When there are multiple parameters with different dimensions
+            # *and* independent dimensions, the independent dimensions should
+            # broadcast together.  We simply add those independent dimension
+            # slices and let `tt.add` work out the broadcasting logic.
+            p_slices, p_shapes, p_bcasts = zip(*params_ind_slice)
+            (shape_ind,) = tt.add.infer_shape(tt.add(*p_slices).owner, p_shapes)
+            ndim_ind = len(shape_ind)
 
-        # _, out_bcasts, bcastd_inputs = tt.add.get_output_info(tt.DimShuffle, *dist_params)
-
-        (bcast_ind,) = out_bcasts
-        ndim_ind = len(bcast_ind)
-        shape_ind = bcastd_inputs[0].shape
+        size_len = tt.get_vector_length(size)
 
         if self.ndim_supp == 0:
             shape_supp = tuple()
 
             # In the scalar case, `size` corresponds to the entire result's
             # shape. This implies the following:
-            #     shape_ind[-ndim_ind] == size[:ndim_ind]
-            # TODO: How do we add this constraint/check symbolically?
+            #     shape_ind == size[:ndim_ind]
+            # TODO: Do we wan to constraint/check symbolically?
 
-            ndim_reps = max(size_len - ndim_ind, 0)
-            shape_reps = tuple(size)[ndim_ind:]
+            shape_reps = tuple(size)
+
+            if ndim_ind > 0:
+                shape_reps = shape_reps[:-ndim_ind]
+
+            ndim_reps = len(shape_reps)
         else:
             shape_supp = self.supp_shape_fn(
                 self.ndim_supp, self.ndims_params, dist_params, param_shapes=param_shapes
@@ -219,11 +242,16 @@ class RandomVariable(tt.gof.Op):
         # dimension sizes are symbolic.
         bcast = []
         for s in shape:
+            s_owner = getattr(s, "owner", None)
             try:
-                if isinstance(s.owner.op, tt.Subtensor) and s.owner.inputs[0].owner is not None:
+                if (
+                    s_owner
+                    and isinstance(s_owner.op, tt.Subtensor)
+                    and s_owner.inputs[0].owner is not None
+                ):
                     # Handle a special case in which
                     # `tensor.get_scalar_constant_value` doesn't really work.
-                    s_x, s_idx = s.owner.inputs
+                    s_x, s_idx = s_owner.inputs
                     s_idx = tt.get_scalar_constant_value(s_idx)
                     if isinstance(s_x.owner.op, tt.Shape):
                         (x_obj,) = s_x.owner.inputs
