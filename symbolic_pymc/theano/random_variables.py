@@ -138,11 +138,26 @@ class MvNormalRVType(RandomVariable):
 MvNormalRV = MvNormalRVType()
 
 
+def sample_dirichlet(rng, alphas, size):
+    if alphas.ndim > 1:
+        # XXX: This only handles a matrix of `alpha`s
+        if size is not None:
+            res = np.stack(
+                [np.random.RandomState.dirichlet(rng, a, size=size) for a in alphas], axis=len(size)
+            )
+        else:
+            res = np.stack([np.random.RandomState.dirichlet(rng, a, size=size) for a in alphas])
+
+        return res
+    else:
+        return np.random.RandomState.dirichlet(rng, alphas, size=size)
+
+
 class DirichletRVType(RandomVariable):
     print_name = ("Dir", "\\operatorname{Dir}")
 
     def __init__(self):
-        super().__init__("dirichlet", theano.config.floatX, 1, [1], "dirichlet", inplace=True)
+        super().__init__("dirichlet", theano.config.floatX, 1, [1], sample_dirichlet, inplace=True)
 
     def make_node(self, alpha, size=None, rng=None, name=None):
         return super().make_node(alpha, size=size, rng=rng, name=name)
