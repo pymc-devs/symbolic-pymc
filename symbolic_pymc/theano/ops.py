@@ -242,11 +242,16 @@ class RandomVariable(tt.gof.Op):
         # dimension sizes are symbolic.
         bcast = []
         for s in shape:
+            s_owner = getattr(s, "owner", None)
             try:
-                if isinstance(s.owner.op, tt.Subtensor) and s.owner.inputs[0].owner is not None:
+                if (
+                    s_owner
+                    and isinstance(s_owner.op, tt.Subtensor)
+                    and s_owner.inputs[0].owner is not None
+                ):
                     # Handle a special case in which
                     # `tensor.get_scalar_constant_value` doesn't really work.
-                    s_x, s_idx = s.owner.inputs
+                    s_x, s_idx = s_owner.inputs
                     s_idx = tt.get_scalar_constant_value(s_idx)
                     if isinstance(s_x.owner.op, tt.Shape):
                         (x_obj,) = s_x.owner.inputs
