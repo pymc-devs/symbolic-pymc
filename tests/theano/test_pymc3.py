@@ -13,10 +13,10 @@ from unification.utils import transitive_get as walk
 # from theano.configparser import change_flags
 from theano.gof.graph import inputs as tt_inputs
 
-from symbolic_pymc.theano.random_variables import MvNormalRV, Observed, observed
+from symbolic_pymc.theano.random_variables import NormalRV, MvNormalRV, Observed, observed
 from symbolic_pymc.theano.ops import RandomVariable
 from symbolic_pymc.theano.opt import FunctionGraph
-from symbolic_pymc.theano.pymc3 import model_graph, graph_model
+from symbolic_pymc.theano.pymc3 import model_graph, graph_model, logp
 from symbolic_pymc.theano.utils import canonicalize
 from symbolic_pymc.theano.meta import mt
 
@@ -59,6 +59,12 @@ def test_pymc3_convert_dists():
 
     new_pymc_rv_names = {n.name for n in pymc_model.observed_RVs}
     pymc_rv_names == new_pymc_rv_names
+
+    with pytest.raises(TypeError):
+        graph_model(NormalRV(0, 1), generate_names=False)
+
+    res = graph_model(NormalRV(0, 1), generate_names=True)
+    assert res.vars[0].name == "normal_0"
 
 
 def test_pymc3_normal_model():
@@ -246,3 +252,50 @@ def test_pymc3_broadcastable():
     Z_rv_meta = canonicalize(Z_rv_obs_.reify(), return_graph=False)
 
     assert mt(Z_rv_tt) == mt(Z_rv_meta)
+
+
+def test_logp():
+    test_rv = NormalRV(0, tt.arange(1, 3))
+    test_logp = logp(test_rv, 0)
+
+    assert np.all(test_logp.eval() == pm.Normal.dist(0, np.arange(1, 3)).logp(0).eval())
+
+    fgraph = FunctionGraph(tt_inputs([test_rv]), [test_rv], features=[tt.opt.ShapeFeature()])
+    test_rv.owner.fgraph = fgraph
+    test_logp = logp(test_rv, 0)
+
+    assert np.all(test_logp.eval() == pm.Normal.dist(0, np.arange(1, 3)).logp(0).eval())
+
+    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+    rng_tt = theano.shared(rng_state, name="rng", borrow=True)
+    rng_tt.tag.is_rng = True
+    rng_tt.default_update = rng_tt
+
+    # TODO: Scan of univariate normals.
+    N_tt = tt.iscalar("N")
+    N_tt.tag.test_value = 10
+
+    mus_tt = tt.arange(N_tt)
+    mus_tt.tag.test_value
+
+    sigmas_tt = tt.ones((N_tt,))
+    sigmas_tt.tag.test_value
+
+    def scan_fn(mu_t, sigma_t, rng):
+        # mix = np.stack([NormalRV(mu_t, sigma_t, rng=rng), GammaRV(mu_t**2 / sigma_t**2, mu_t / sigma_t)])
+        return NormalRV(mu_t, sigma_t, rng=rng)
+
+    scan_rv, _ = theano.scan(
+        fn=scan_fn,
+        sequences=[mus_tt, sigmas_tt],
+        non_sequences=[rng_tt],
+        outputs_info=[{},],
+        strict=True,
+        name="scan_rv",
+    )
+
+    scan_logp = logp(scan_rv, tt.zeros((N_tt,)))
+    res = scan_logp.eval({N_tt: 10})
+    exp_res = pm.Normal.dist(np.arange(10), np.ones(10)).logp(np.zeros(10)).eval()
+
+    assert np.array_equal(res, exp_res)

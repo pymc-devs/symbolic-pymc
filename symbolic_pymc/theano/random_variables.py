@@ -447,11 +447,8 @@ class Observed(tt.Op):
             The distribution from which `val` is assumed to be a sample value.
         """
         val = tt.as_tensor_variable(val)
-        if rv:
-            if rv.owner and not isinstance(rv.owner.op, RandomVariable):
-                raise ValueError(f"`rv` must be a RandomVariable type: {rv}")
-
-            if rv.type.convert_variable(val) is None:
+        if rv is not None:
+            if not hasattr(rv, "type") or rv.type.convert_variable(val) is None:
                 raise ValueError(
                     ("`rv` and `val` do not have compatible types:" f" rv={rv}, val={val}")
                 )
