@@ -5,7 +5,9 @@ import theano.tensor as tt
 
 from functools import wraps
 
-from theano.gof.opt import LocalOptimizer
+from theano.gof.opt import LocalOptimizer, local_optimizer
+from theano.scan_module.scan_op import Scan
+from theano.scan_module.scan_utils import scan_args as ScanArgs
 
 from unification import var, variables
 
@@ -14,6 +16,7 @@ from kanren import run
 from etuples.core import ExpressionTuple
 
 from .meta import MetaSymbol
+from .ops import RandomVariable
 
 
 def eval_and_reify_meta(x):
@@ -219,3 +222,50 @@ class KanrenRelationSub(LocalOptimizer):
             return new_node
         else:
             return False
+
+
+@local_optimizer([Scan])
+def push_out_rvs_from_scan(node):
+    """Push `RandomVariable`s out of `Scan` nodes.
+
+    When `RandomVariable`s are created within the inner-graph of a `Scan` and
+    are not output to the outer-graph, we "push" them out of the inner-graph.
+    This helps us produce an outer-graph in which all the relevant `RandomVariable`s
+    are accessible (e.g. for constructing a log-likelihood graph).
+    """
+    scan_args = ScanArgs(node.inputs, node.outputs, node.op.inputs, node.op.outputs, node.op.info)
+
+    # Find the un-output `RandomVariable`s created in the inner-graph
+    clients = {}
+    local_fgraph_topo = theano.gof.graph.io_toposort(
+        scan_args.inner_inputs, scan_args.inner_outputs, clients=clients
+    )
+    unpushed_inner_rvs = []
+    for n in local_fgraph_topo:
+        if isinstance(n.op, RandomVariable):
+            unpushed_inner_rvs.extend([c for c in clients[n] if c not in scan_args.inner_outputs])
+
+    if len(unpushed_inner_rvs) == 0:
+        return False
+
+    # Add the new outputs to the inner and outer graphs
+    scan_args.inner_out_nit_sot.extend(unpushed_inner_rvs)
+
+    assert len(scan_args.outer_in_nit_sot) > 0, "No outer-graph inputs are nit-sots!"
+
+    # Just like `theano.scan`, we simply copy/repeat the existing nit-sot
+    # outer-graph input value, which represents the actual size of the output
+    # tensors.  Apparently, the value needs to be duplicated for all nit-sots.
+    # FYI: This is what increments the nit-sot values in `scan_args.info`, as
+    # well.
+    # TODO: Can we just use `scan_args.n_steps`?
+    scan_args.outer_in_nit_sot.extend(scan_args.outer_in_nit_sot[0:1] * len(unpushed_inner_rvs))
+
+    op = Scan(scan_args.inner_inputs, scan_args.inner_outputs, scan_args.info)
+    outputs = list(op(*scan_args.outer_inputs))
+
+    # Return only the replacements for the original `node.outputs`
+    new_inner_out_idx = [scan_args.inner_outputs.index(i) for i in unpushed_inner_rvs]
+    _ = [outputs.pop(op.var_mappings["outer_out_from_inner_out"][i]) for i in new_inner_out_idx]
+
+    return dict(zip(node.outputs, outputs))
