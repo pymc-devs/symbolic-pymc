@@ -230,27 +230,27 @@ def _convert_rv_to_dist(op, rv):
 @convert_dist_to_rv.register(pm.Normal, object)
 def convert_dist_to_rv_Normal(dist, rng):
     size = dist.shape.astype(int)[NormalRV.ndim_supp :]
-    res = NormalRV(dist.mu, dist.sd, size=size, rng=rng)
+    res = NormalRV(dist.mu, dist.sigma, size=size, rng=rng)
     return res
 
 
 @_convert_rv_to_dist.register(NormalRVType, Apply)
 def _convert_rv_to_dist_Normal(op, rv):
-    params = {"mu": rv.inputs[0], "sd": rv.inputs[1]}
+    params = {"mu": rv.inputs[0], "sigma": rv.inputs[1]}
     return pm.Normal, params
 
 
 @convert_dist_to_rv.register(pm.HalfNormal, object)
 def convert_dist_to_rv_HalfNormal(dist, rng):
     size = dist.shape.astype(int)[HalfNormalRV.ndim_supp :]
-    res = HalfNormalRV(np.array(0.0, dtype=dist.dtype), dist.sd, size=size, rng=rng)
+    res = HalfNormalRV(np.array(0.0, dtype=dist.dtype), dist.sigma, size=size, rng=rng)
     return res
 
 
 @_convert_rv_to_dist.register(HalfNormalRVType, Apply)
 def _convert_rv_to_dist_HalfNormal(op, rv):
     assert not np.any(tt_get_values(rv.inputs[0]))
-    params = {"sd": rv.inputs[1]}
+    params = {"sigma": rv.inputs[1]}
     return pm.HalfNormal, params
 
 

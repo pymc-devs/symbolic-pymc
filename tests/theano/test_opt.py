@@ -21,17 +21,17 @@ from symbolic_pymc.theano.opt import (
     FunctionGraph,
     push_out_rvs_from_scan,
     ScanArgs,
+    convert_outer_out_to_in,
 )
+from symbolic_pymc.theano.ops import RandomVariable
 from symbolic_pymc.theano.utils import optimize_graph
 from symbolic_pymc.theano.random_variables import CategoricalRV, DirichletRV, NormalRV
 
 
+@theano.change_flags(compute_test_value="ignore", cxx="", mode="FAST_COMPILE")
 def test_kanren_opt():
     """Make sure we can run miniKanren "optimizations" over a graph until a fixed-point/normal-form is reached.
     """
-    tt.config.cxx = ""
-    tt.config.compute_test_value = "ignore"
-
     x_tt = tt.vector("x")
     c_tt = tt.vector("c")
     d_tt = tt.vector("c")
@@ -71,10 +71,8 @@ def test_kanren_opt():
     assert isinstance(fgraph_opt.owner.inputs[1].owner.inputs[1].owner.op, tt.Dot)
 
 
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
 def test_push_out_rvs():
-    theano.config.cxx = ""
-    theano.config.mode = "FAST_COMPILE"
-    tt.config.compute_test_value = "warn"
 
     rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
     rng_tt = theano.shared(rng_state, name="rng", borrow=True)
@@ -144,6 +142,7 @@ def test_push_out_rvs():
 
 def create_test_hmm():
     rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+    rng_init_state = rng_state.get_state()
     rng_tt = theano.shared(rng_state, name="rng", borrow=True)
     rng_tt.tag.is_rng = True
     rng_tt.default_update = rng_tt
@@ -179,17 +178,7 @@ def create_test_hmm():
         strict=True,
         name="scan_rv",
     )
-    # Adding names should make output easier to read
     Y_rv.name = "Y_rv"
-    # This `S_rv` outer-output is actually a `Subtensor` of the "real" output
-    S_rv = S_rv.owner.inputs[0]
-    S_rv.name = "S_rv"
-    rng_updates = scan_updates[rng_tt]
-    rng_updates.name = "rng_updates"
-    mus_in = Y_rv.owner.inputs[1]
-    mus_in.name = "mus_in"
-    sigmas_in = Y_rv.owner.inputs[2]
-    sigmas_in.name = "sigmas_in"
 
     scan_op = Y_rv.owner.op
     scan_args = ScanArgs.from_node(Y_rv.owner)
@@ -201,13 +190,23 @@ def create_test_hmm():
     S_t = scan_args.inner_out_sit_sot[0]
     rng_in = scan_args.inner_out_shared[0]
 
+    rng_updates = scan_updates[rng_tt]
+    rng_updates.name = "rng_updates"
+    mus_in = Y_rv.owner.inputs[1]
+    mus_in.name = "mus_in"
+    sigmas_in = Y_rv.owner.inputs[2]
+    sigmas_in.name = "sigmas_in"
+
+    # The output `S_rv` is really `S_rv[1:]`, so we have to extract the actual
+    # `Scan` output: `S_rv`.
+    S_rv = S_rv.owner.inputs[0]
+    S_rv.name = "S_in"
+
     return locals()
 
 
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
 def test_ScanArgs_basics():
-    theano.config.cxx = ""
-    theano.config.mode = "FAST_COMPILE"
-    tt.config.compute_test_value = "warn"
 
     # Make sure we can create an empty `ScanArgs`
     scan_args = ScanArgs.create_empty()
@@ -277,10 +276,8 @@ def test_ScanArgs_basics():
     assert scan_args_copy != scan_args
 
 
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
 def test_ScanArgs_basics_mit_sot():
-    theano.config.cxx = ""
-    theano.config.mode = "FAST_COMPILE"
-    tt.config.compute_test_value = "warn"
 
     rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
     rng_tt = theano.shared(rng_state, name="rng", borrow=True)
@@ -351,10 +348,8 @@ def test_ScanArgs_basics_mit_sot():
     assert rm_info.agg_index == 3
 
 
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
 def test_ScanArgs_remove_inner_input():
-    theano.config.cxx = ""
-    theano.config.mode = "FAST_COMPILE"
-    tt.config.compute_test_value = "warn"
 
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
@@ -426,10 +421,8 @@ def test_ScanArgs_remove_inner_input():
         rm_info = scan_args_copy.remove_from_fields(test_v, rm_dependents=True)
 
 
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
 def test_ScanArgs_remove_outer_input():
-    theano.config.cxx = ""
-    theano.config.mode = "FAST_COMPILE"
-    tt.config.compute_test_value = "warn"
 
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
@@ -477,10 +470,8 @@ def test_ScanArgs_remove_outer_input():
     assert rng_updates in scan_args.outer_out_shared
 
 
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
 def test_ScanArgs_remove_inner_output():
-    theano.config.cxx = ""
-    theano.config.mode = "FAST_COMPILE"
-    tt.config.compute_test_value = "warn"
 
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
@@ -520,10 +511,8 @@ def test_ScanArgs_remove_inner_output():
     assert rng_updates in scan_args.outer_out_shared
 
 
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
 def test_ScanArgs_remove_outer_output():
-    theano.config.cxx = ""
-    theano.config.mode = "FAST_COMPILE"
-    tt.config.compute_test_value = "warn"
 
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
@@ -563,10 +552,8 @@ def test_ScanArgs_remove_outer_output():
     assert rng_updates in scan_args.outer_out_shared
 
 
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
 def test_ScanArgs_remove_nonseq_outer_input():
-    theano.config.cxx = ""
-    theano.config.mode = "FAST_COMPILE"
-    tt.config.compute_test_value = "warn"
 
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
@@ -607,10 +594,8 @@ def test_ScanArgs_remove_nonseq_outer_input():
     assert rng_updates in scan_args.outer_out_shared
 
 
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
 def test_ScanArgs_remove_nonseq_inner_input():
-    theano.config.cxx = ""
-    theano.config.mode = "FAST_COMPILE"
-    tt.config.compute_test_value = "warn"
 
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
@@ -651,10 +636,8 @@ def test_ScanArgs_remove_nonseq_inner_input():
     assert rng_updates in scan_args.outer_out_shared
 
 
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
 def test_ScanArgs_remove_shared_inner_output():
-    theano.config.cxx = ""
-    theano.config.mode = "FAST_COMPILE"
-    tt.config.compute_test_value = "warn"
 
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
@@ -689,3 +672,307 @@ def test_ScanArgs_remove_shared_inner_output():
     assert sigmas_t in scan_args_copy.inner_in_seqs
     assert mus_in in scan_args_copy.outer_in_seqs
     assert mus_t in scan_args_copy.inner_in_seqs
+
+
+def get_random_outer_outputs(scan_args):
+    """Get the `RandomVariable` outputs of a `Scan` (well, it's `ScanArgs`)."""
+    rv_vars = []
+    for n, oo in enumerate(scan_args.outer_outputs):
+        oo_info = scan_args.find_among_fields(oo)
+        io_type = oo_info.name[(oo_info.name.index("_", 6) + 1) :]
+        inner_out_type = "inner_out_{}".format(io_type)
+        io_var = getattr(scan_args, inner_out_type)[oo_info.index]
+        if io_var.owner and isinstance(io_var.owner.op, RandomVariable):
+            rv_vars.append((n, oo))
+    return rv_vars
+
+
+def create_inner_out_logp(input_scan_args, old_inner_out_var, new_inner_in_var, output_scan_args):
+    """Create a log-likelihood inner-output.
+
+    This is intended to be use with `get_random_outer_outputs`.
+
+    """
+    from symbolic_pymc.theano.pymc3 import _logp_fn
+
+    logp_fn = _logp_fn(old_inner_out_var.owner.op, old_inner_out_var.owner, None)
+    logp = logp_fn(new_inner_in_var)
+    if new_inner_in_var.name:
+        logp.name = "logp({})".format(new_inner_in_var.name)
+    return logp
+
+
+def construct_scan(scan_args):
+    scan_op = Scan(scan_args.inner_inputs, scan_args.inner_outputs, scan_args.info)
+    scan_out = scan_op(*scan_args.outer_inputs)
+
+    if not isinstance(scan_out, list):
+        scan_out = [scan_out]
+
+    return scan_out
+
+
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
+def test_convert_outer_out_to_in():
+
+    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+    rng_tt = theano.shared(rng_state, name="rng", borrow=True)
+    rng_tt.tag.is_rng = True
+    rng_tt.default_update = rng_tt
+
+    #
+    # We create a `Scan` representing a time-series model with normally
+    # distributed responses that are dependent on lagged values of both the
+    # response `RandomVariable` and a lagged "deterministic" that also depends
+    # on the lagged response values.
+    #
+    def input_step_fn(mu_tm1, y_tm1, rng):
+        mu_tm1.name = "mu_tm1"
+        y_tm1.name = "y_tm1"
+        mu = mu_tm1 + y_tm1 + 1
+        mu.name = "mu_t"
+        return mu, NormalRV(mu, 1.0, rng=rng, name="Y_t")
+
+    (mu_tt, Y_rv), _ = theano.scan(
+        fn=input_step_fn,
+        outputs_info=[
+            {"initial": tt.as_tensor_variable(np.r_[0.0]), "taps": [-1]},
+            {"initial": tt.as_tensor_variable(np.r_[0.0]), "taps": [-1]},
+        ],
+        non_sequences=[rng_tt],
+        n_steps=10,
+    )
+
+    mu_tt.name = "mu_tt"
+    mu_tt.owner.inputs[0].name = "mu_all"
+    Y_rv.name = "Y_rv"
+    Y_rv.owner.inputs[0].name = "Y_all"
+
+    input_scan_args = ScanArgs.from_node(Y_rv.owner.inputs[0].owner)
+
+    #
+    # Sample from the model and create another `Scan` that computes the
+    # log-likelihood of the model at the sampled point.
+    #
+    Y_obs = tt.as_tensor_variable(Y_rv.eval())
+    Y_obs.name = "Y_obs"
+
+    def output_step_fn(y_t, y_tm1, mu_tm1):
+        import pymc3 as pm
+
+        mu_tm1.name = "mu_tm1"
+        y_tm1.name = "y_tm1"
+        mu = mu_tm1 + y_tm1 + 1
+        mu.name = "mu_t"
+        logp = pm.Normal.dist(mu, 1.0).logp(y_t)
+        logp.name = "logp"
+        return mu, logp
+
+    (mu_tt, Y_logp), _ = theano.scan(
+        fn=output_step_fn,
+        sequences=[{"input": Y_obs, "taps": [0, -1]}],
+        outputs_info=[{"initial": tt.as_tensor_variable(np.r_[0.0]), "taps": [-1]}, {}],
+    )
+
+    Y_logp.name = "Y_logp"
+    mu_tt.name = "mu_tt"
+
+    # output_scan_args = ScanArgs.from_node(Y_logp.owner)
+
+    #
+    # Get the model output variable that corresponds to the response
+    # `RandomVariable`
+    #
+    var_idx, var = get_random_outer_outputs(input_scan_args)[0]
+
+    #
+    # Convert the original model `Scan` into another `Scan` that's equivalent
+    # to the log-likelihood `Scan` given above.
+    # In other words, automatically construct the log-likelihood `Scan` based
+    # on the model `Scan`.
+    #
+    test_scan_args = convert_outer_out_to_in(
+        input_scan_args, var, inner_out_fn=create_inner_out_logp, output_scan_args=input_scan_args
+    )
+
+    scan_out = construct_scan(test_scan_args)
+
+    #
+    # Evaluate the manually and automatically constructed log-likelihoods and
+    # compare.
+    #
+    res = scan_out[var_idx].eval({var: Y_obs.value})
+    exp_res = Y_logp.eval()
+
+    assert np.array_equal(res, exp_res)
+
+
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
+def test_convert_outer_out_to_in_mit_sot():
+
+    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+    rng_tt = theano.shared(rng_state, name="rng", borrow=True)
+    rng_tt.tag.is_rng = True
+    rng_tt.default_update = rng_tt
+
+    #
+    # This is a very simple model with only one output, but multiple
+    # taps/lags.
+    #
+    def input_step_fn(y_tm1, y_tm2, rng):
+        y_tm1.name = "y_tm1"
+        y_tm2.name = "y_tm2"
+        return NormalRV(y_tm1 + y_tm2, 1.0, rng=rng, name="Y_t")
+
+    Y_rv, _ = theano.scan(
+        fn=input_step_fn,
+        outputs_info=[{"initial": tt.as_tensor_variable(np.r_[-1.0, 0.0]), "taps": [-1, -2]},],
+        non_sequences=[rng_tt],
+        n_steps=10,
+    )
+
+    Y_rv.name = "Y_rv"
+    Y_rv.owner.inputs[0].name = "Y_all"
+
+    Y_obs = tt.as_tensor_variable(Y_rv.eval())
+    Y_obs.name = "Y_obs"
+
+    input_scan_args = ScanArgs.from_node(Y_rv.owner.inputs[0].owner)
+
+    #
+    # The corresponding log-likelihood
+    #
+    def output_step_fn(y_t, y_tm1, y_tm2):
+        import pymc3 as pm
+
+        y_t.name = "y_t"
+        y_tm1.name = "y_tm1"
+        y_tm2.name = "y_tm2"
+        logp = pm.Normal.dist(y_tm1 + y_tm2, 1.0).logp(y_t)
+        logp.name = "logp(y_t)"
+        return logp
+
+    Y_logp, _ = theano.scan(
+        fn=output_step_fn, sequences=[{"input": Y_obs, "taps": [0, -1, -2]}], outputs_info=[{}]
+    )
+
+    # output_scan_args = ScanArgs.from_node(Y_logp.owner)
+
+    #
+    # Get the model output variable that corresponds to the response
+    # `RandomVariable`
+    #
+    var_idx, var = get_random_outer_outputs(input_scan_args)[0]
+
+    #
+    # Convert the original model `Scan` into another `Scan` that's equivalent
+    # to the log-likelihood `Scan` given above.
+    # In other words, automatically construct the log-likelihood `Scan` based
+    # on the model `Scan`.
+    #
+    # In this case, we perform the conversion on a "blank" `ScanArgs`.
+    #
+    test_scan_args = convert_outer_out_to_in(
+        input_scan_args, var, inner_out_fn=create_inner_out_logp, output_scan_args=None
+    )
+
+    scan_out = construct_scan(test_scan_args)
+
+    #
+    # Evaluate the manually and automatically constructed log-likelihoods and
+    # compare.
+    #
+    res = scan_out[var_idx].eval({var: Y_obs.value})
+    exp_res = Y_logp.eval()
+
+    assert np.array_equal(res, exp_res)
+
+    #
+    # Now, we rerun the test, but use the "replace" features of
+    # `convert_outer_out_to_in`
+    #
+    test_scan_args = convert_outer_out_to_in(
+        input_scan_args, var, inner_out_fn=create_inner_out_logp, output_scan_args=input_scan_args
+    )
+
+    scan_out = construct_scan(test_scan_args)
+
+    #
+    # Evaluate the manually and automatically constructed log-likelihoods and
+    # compare.
+    #
+    res = scan_out[var_idx].eval({var: Y_obs.value})
+    exp_res = Y_logp.eval()
+
+    assert np.array_equal(res, exp_res)
+
+
+@theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
+def test_convert_outer_out_to_in_hmm():
+    hmm_model_env = create_test_hmm()
+    input_scan_args = hmm_model_env["scan_args"]
+    M_tt = hmm_model_env["M_tt"]
+    N_tt = hmm_model_env["N_tt"]
+    mus_tt = hmm_model_env["mus_tt"]
+    sigmas_tt = hmm_model_env["sigmas_tt"]
+    Y_rv = hmm_model_env["Y_rv"]
+    S_0_rv = hmm_model_env["S_0_rv"]
+    Gamma_rv = hmm_model_env["Gamma_rv"]
+    rng_tt = hmm_model_env["rng_tt"]
+    rng_init_state = hmm_model_env["rng_init_state"]
+
+    test_point = {
+        M_tt: 2,
+        N_tt: 10,
+        mus_tt: mus_tt.tag.test_value,
+    }
+    Y_obs = tt.as_tensor_variable(Y_rv.eval(test_point))
+    Y_obs.name = "Y_obs"
+
+    def logp_scan_fn(y_t, mus_t, sigma_t, S_tm1, Gamma_t, rng):
+        import pymc3 as pm
+
+        gamma_t = Gamma_t[S_tm1]
+        gamma_t.name = "gamma_t"
+        S_t = CategoricalRV(gamma_t, rng=rng, name="S_t")
+        mu_t = mus_t[S_t]
+        mu_t.name = "mu[S_t]"
+        Y_logp_t = pm.Normal.dist(mu_t, sigma_t).logp(y_t)
+        Y_logp_t.name = "logp(y_t)"
+        return S_t, Y_logp_t
+
+    (S_rv, Y_logp), scan_updates = theano.scan(
+        fn=logp_scan_fn,
+        sequences=[Y_obs, mus_tt, sigmas_tt],
+        non_sequences=[Gamma_rv, rng_tt],
+        outputs_info=[{"initial": S_0_rv, "taps": [-1]}, {}],
+        strict=True,
+        name="scan_rv",
+    )
+    Y_logp.name = "Y_logp"
+
+    var_idx, var = get_random_outer_outputs(input_scan_args)[1]
+
+    test_scan_args = convert_outer_out_to_in(
+        input_scan_args, var, inner_out_fn=create_inner_out_logp, output_scan_args=input_scan_args
+    )
+
+    scan_out = construct_scan(test_scan_args)
+    test_Y_logp = scan_out[var_idx]
+
+    #
+    # Evaluate the manually and automatically constructed log-likelihoods and
+    # compare.
+    #
+    new_test_point = dict(test_point)
+    new_test_point[var] = Y_obs.value
+
+    # We need to reset the RNG each time, because `S_t` is still a
+    # `RandomVariable`
+    rng_tt.get_value(borrow=True).set_state(rng_init_state)
+    res = test_Y_logp.eval(new_test_point)
+
+    rng_tt.get_value(borrow=True).set_state(rng_init_state)
+    exp_res = Y_logp.eval(test_point)
+
+    assert np.array_equal(res, exp_res)

@@ -1,8 +1,11 @@
 import types
 
+import numpy as np
+
 import theano
 import theano.tensor as tt
 
+from copy import copy
 from functools import wraps
 from unittest.mock import patch
 from collections import namedtuple, OrderedDict
@@ -10,7 +13,7 @@ from collections import namedtuple, OrderedDict
 from theano.gof.opt import LocalOptimizer, local_optimizer
 from theano.gof.graph import inputs as tt_inputs
 from theano.scan_module.scan_op import Scan
-from theano.scan_module.scan_utils import scan_args
+from theano.scan_module.scan_utils import scan_args, clone as tt_clone
 
 from unification import var, variables
 
@@ -590,3 +593,136 @@ def push_out_rvs_from_scan(node):
     _ = [outputs.pop(op.var_mappings["outer_out_from_inner_out"][i]) for i in new_inner_out_idx]
 
     return dict(zip(node.outputs, outputs))
+
+
+def convert_outer_out_to_in(input_scan_args, var, inner_out_fn=None, output_scan_args=None):
+    """Convert outer-graph outputs into outer-graph inputs.
+
+    Parameters
+    ----------
+    input_scan_args: ScanArgs
+        The source scan arguments.
+    var: TensorVariable
+        The outer-graph output variable that is to be converted into an
+        outer-graph input.
+    inner_out_fn: function (Optional)
+        A function with the signature `(input_scan_args, old_inner_out_var,
+        new_inner_in_var output_scan_args)` that produces a new inner-graph
+        output.  This can be used to transform the `var`'s
+        corresponding inner-graph output, for example.
+    input_scan_args: ScanArgs (Optional)
+        If this argument is non-`None`, the conversion is applied to the given
+        `ScanArgs` and the old `var` output is removed.
+
+    Outputs
+    -------
+    ScanArgs
+    A `ScanArgs` object for a `Scan` in which `var` has been converted to an
+    outer-graph input.
+
+    """
+    replacing = False
+    if output_scan_args is None:
+        output_scan_args = ScanArgs.create_empty()
+    elif output_scan_args == input_scan_args:
+        replacing = True
+        # We will not change the input `ScanArgs` in-place
+        if output_scan_args is input_scan_args:
+            output_scan_args = copy(input_scan_args)
+
+    var_info = input_scan_args.find_among_fields(
+        var, field_filter=lambda x: x.startswith("outer_out")
+    )
+
+    old_inner_out_var = input_scan_args.get_alt_field(var_info, "inner_out")
+
+    if replacing:
+        output_scan_args.remove_from_fields(old_inner_out_var, rm_dependents=False)
+        # Remove the old outer-output variable.
+        # Not sure if this really matters, since we don't use the outer-outputs
+        # when building a new `Scan`, but doing it keeps the `ScanArgs` object
+        # consistent.
+        output_scan_args.remove_from_fields(var, rm_dependents=False)
+
+    # Couldn't one do the same with `var_info`?
+    inner_out_info = input_scan_args.find_among_fields(
+        old_inner_out_var, field_filter=lambda x: x.startswith("inner_out")
+    )
+
+    # Use the index for the specific inner-graph sub-collection to which this
+    # variable belongs (e.g. index `1` among the inner-graph sit-sot terms)
+    var_idx = inner_out_info.index
+
+    # The old inner-output variable becomes the a new inner-input
+    inner_in_var = old_inner_out_var.clone()
+
+    # We need to clone any existing inner-output variables in the `ScanArgs`
+    # object that we're mutating and replace references to `old_inner_out_var`
+    # with `inner_in_var`.  If we don't, then any other inner-outputs that
+    # reference the inner-output that we're replacing will be inconsistent.
+    # Instead, we want those other inner-outputs to reference the new
+    # inner-input replacement variable.
+    for io_var in list(output_scan_args.inner_outputs):
+        io_var_info = output_scan_args.find_among_fields(
+            io_var, field_filter=lambda x: x.startswith("inner_out")
+        )
+        io_sub_list = getattr(output_scan_args, io_var_info.name)
+
+        (new_io_var,) = tt_clone([io_var], replace={old_inner_out_var: inner_in_var})
+
+        io_sub_list[io_var_info.index] = new_io_var
+
+    # If we're replacing a [m|s]it-sot, then we need to add a new nit-sot
+    add_nit_sot = False
+    inner_in_seqs = [inner_in_var]
+    if inner_out_info.name.endswith("mit_sot"):
+        inner_in_seqs = input_scan_args.inner_in_mit_sot[var_idx] + inner_in_seqs
+        if replacing:
+            output_scan_args.inner_in_mit_sot.pop(var_idx)
+            output_scan_args.outer_in_mit_sot.pop(var_idx)
+        add_nit_sot = True
+    elif inner_out_info.name.endswith("sit_sot"):
+        inner_in_seqs = [input_scan_args.inner_in_sit_sot[var_idx]] + inner_in_seqs
+        if replacing:
+            output_scan_args.inner_in_sit_sot.pop(var_idx)
+            output_scan_args.outer_in_sit_sot.pop(var_idx)
+        add_nit_sot = True
+
+    taps = [0]
+    if inner_out_info.name.endswith("mit_sot"):
+        taps = input_scan_args.mit_sot_in_slices[var_idx] + taps
+        if replacing:
+            output_scan_args.mit_sot_in_slices.pop(var_idx)
+    elif inner_out_info.name.endswith("sit_sot"):
+        taps = [-1] + taps
+
+    taps, inner_in_seqs = zip(*sorted(zip(taps, inner_in_seqs), key=lambda x: x[0]))
+
+    inner_in_seqs = list(reversed(inner_in_seqs))
+    output_scan_args.inner_in_seqs += inner_in_seqs
+
+    taps = np.asarray(taps)
+    slice_seqs = zip(-taps, [n if n < 0 else None for n in reversed(taps)])
+
+    # We could clone `var`, but reusing it will make things easier down the
+    # line (e.g. avoid the need to remap cloned variables)
+    # new_input_var = var.clone()
+    new_input_var = var
+
+    var_slices = [new_input_var[b:e] for b, e in slice_seqs]
+    n_steps = tt.min([tt.shape(n)[0] for n in var_slices])
+
+    if output_scan_args.n_steps is None or replacing:
+        output_scan_args.n_steps = n_steps
+
+    output_scan_args.outer_in_seqs += [v[:n_steps] for v in var_slices]
+
+    if not replacing or add_nit_sot:
+        output_scan_args.outer_in_nit_sot += [n_steps]
+
+    if inner_out_fn:
+        output_scan_args.inner_out_nit_sot += [
+            inner_out_fn(input_scan_args, old_inner_out_var, inner_in_var, output_scan_args)
+        ]
+
+    return output_scan_args

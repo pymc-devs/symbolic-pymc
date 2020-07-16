@@ -21,10 +21,9 @@ from symbolic_pymc.theano.utils import canonicalize
 from symbolic_pymc.theano.meta import mt
 
 
+@theano.change_flags(compute_test_value="ignore", cxx="")
 def test_pymc3_convert_dists():
     """Just a basic check that all PyMC3 RVs will convert to and from Theano RVs."""
-    tt.config.compute_test_value = "ignore"
-    theano.config.cxx = ""
 
     with pm.Model() as model:
         norm_rv = pm.Normal("norm_rv", 0.0, 1.0, observed=1.0)
@@ -67,9 +66,9 @@ def test_pymc3_convert_dists():
     assert res.vars[0].name == "normal_0"
 
 
+@theano.change_flags(compute_test_value="ignore")
 def test_pymc3_normal_model():
     """Conduct a more in-depth test of PyMC3/Theano conversions for a specific model."""
-    tt.config.compute_test_value = "ignore"
 
     mu_X = tt.dscalar("mu_X")
     sd_X = tt.dscalar("sd_X")
@@ -80,10 +79,10 @@ def test_pymc3_normal_model():
 
     # We need something that uses transforms...
     with pm.Model() as model:
-        X_rv = pm.Normal("X_rv", mu_X, sd=sd_X)
+        X_rv = pm.Normal("X_rv", mu_X, sigma=sd_X)
         S_rv = pm.HalfCauchy("S_rv", beta=np.array(0.5, dtype=tt.config.floatX))
-        Y_rv = pm.Normal("Y_rv", X_rv * S_rv, sd=S_rv)
-        Z_rv = pm.Normal("Z_rv", X_rv + Y_rv, sd=sd_X, observed=10.0)
+        Y_rv = pm.Normal("Y_rv", X_rv * S_rv, sigma=S_rv)
+        Z_rv = pm.Normal("Z_rv", X_rv + Y_rv, sigma=sd_X, observed=10.0)
 
     fgraph = model_graph(model, output_vars=[Z_rv])
 
@@ -146,9 +145,9 @@ def test_pymc3_normal_model():
     assert all(v == 1 for v in Z_vars_count.values())
 
 
+@theano.change_flags(compute_test_value="ignore")
 def test_normals_to_model():
     """Test conversion to a PyMC3 model."""
-    tt.config.compute_test_value = "ignore"
 
     a_tt = tt.vector("a")
     R_tt = tt.matrix("R")
@@ -211,9 +210,9 @@ def test_normals_to_model():
         model = graph_model(Y_obs)
 
 
+@theano.change_flags(compute_test_value="ignore")
 def test_pymc3_broadcastable():
     """Test PyMC3 to Theano conversion amid array broadcasting."""
-    tt.config.compute_test_value = "ignore"
 
     mu_X = tt.vector("mu_X")
     sd_X = tt.vector("sd_X")
@@ -225,9 +224,9 @@ def test_pymc3_broadcastable():
     sd_Y.tag.test_value = np.array([0.5], dtype=tt.config.floatX)
 
     with pm.Model() as model:
-        X_rv = pm.Normal("X_rv", mu_X, sd=sd_X, shape=(1,))
-        Y_rv = pm.Normal("Y_rv", mu_Y, sd=sd_Y, shape=(1,))
-        Z_rv = pm.Normal("Z_rv", X_rv + Y_rv, sd=sd_X + sd_Y, shape=(1,), observed=[10.0])
+        X_rv = pm.Normal("X_rv", mu_X, sigma=sd_X, shape=(1,))
+        Y_rv = pm.Normal("Y_rv", mu_Y, sigma=sd_Y, shape=(1,))
+        Z_rv = pm.Normal("Z_rv", X_rv + Y_rv, sigma=sd_X + sd_Y, shape=(1,), observed=[10.0])
 
     with pytest.warns(UserWarning):
         fgraph = model_graph(model)
