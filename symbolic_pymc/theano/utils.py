@@ -122,6 +122,7 @@ def optimize_graph(x, optimization, return_graph=None, in_place=False):
         res = x_graph_opt
     else:
         res = x_graph_opt.outputs
+        x_graph_opt.disown()
         if len(res) == 1:
             (res,) = res
     return res
