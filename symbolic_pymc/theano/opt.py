@@ -79,6 +79,17 @@ class FunctionGraph(theano.gof.fg.FunctionGraph):
 
             inputs = [self.memo[i] for i in inputs]
             outputs = [self.memo[o] for o in outputs]
+        else:
+            # We make it possible to use a non-cloned set of inputs and outputs
+            # by cloning only the cached constants and replacing them in the
+            # inputs and output graphs.
+            cached_constants = [x for x in inputs if getattr(x, "cached", False)]
+            copied_constants = tt_clone(cached_constants, share_inputs=False)
+            replacements = list(zip(cached_constants, copied_constants))
+            inputs = list(set(inputs) - set(cached_constants)) + list(copied_constants)
+            outputs = tt_clone(outputs, share_inputs=True, replace=replacements)
+
+        assert not any(getattr(v, "cached", False) for v in inputs + outputs)
 
         super().__init__(inputs, outputs, features=features, clone=False, update_mapping=None)
 
