@@ -1,8 +1,9 @@
 import theano.tensor as tt
 
 from theano.gof import FunctionGraph as tt_FunctionGraph, Query
-from theano.gof.graph import inputs as tt_inputs, clone_get_equiv, io_toposort
+from theano.gof.graph import inputs as tt_inputs, clone_get_equiv, io_toposort, ancestors
 from theano.compile import optdb
+from theano.scan_module.scan_op import Scan
 
 from .meta import mt
 from .opt import FunctionGraph
@@ -145,3 +146,71 @@ def get_rv_observation(node):
             if isinstance(o.op, Observed):
                 return o
     return None
+
+
+def is_random_variable(var):
+    """Check if a Theano `Apply` node is a random variable.
+
+    Output
+    ------
+    Tuple[TensorVariable, TensorVariable]
+    Returns a tuple with the `RandomVariable` or `Scan` `Op` containing a
+    `RandomVariable` variable--along with the corresponding output variable
+    that is a client of said `Op`; otherwise, `None`.
+
+    """
+    node = var.owner
+
+    if not var.owner:
+        return None
+
+    # Consider `Subtensor` `Op`s that slice a `Scan`.  This is the type of
+    # output sometimes returned by `theano.scan` when taps/lags are used.
+    if isinstance(node.op, tt.Subtensor) and node.inputs[0].owner:
+        var = node.inputs[0]
+        node = var.owner
+
+    if isinstance(node.op, RandomVariable):
+        return (var, var)
+
+    if isinstance(node.op, Scan):
+        op = node.op
+        inner_out_var_idx = op.var_mappings["outer_out_from_inner_out"][node.outputs.index(var)]
+        inner_out_var = op.outputs[inner_out_var_idx]
+
+        if isinstance(inner_out_var.owner.op, RandomVariable):
+            return (var, inner_out_var)
+
+    return None
+
+
+def vars_to_rvs(var):
+    """Compute paths from `TensorVariable`s to their underlying `RandomVariable` outputs."""
+    return {
+        a: v if v[0] is not a else (v[1])
+        for a, v in [(a, is_random_variable(a)) for a in ancestors([var])]
+        if v is not None
+    }
+
+
+def get_random_outer_outputs(scan_args):
+    """Get the `RandomVariable` outputs of a `Scan` (well, it's `ScanArgs`)."""
+    rv_vars = []
+    for n, oo in enumerate(scan_args.outer_outputs):
+        oo_info = scan_args.find_among_fields(oo)
+        io_type = oo_info.name[(oo_info.name.index("_", 6) + 1) :]
+        inner_out_type = "inner_out_{}".format(io_type)
+        io_var = getattr(scan_args, inner_out_type)[oo_info.index]
+        if io_var.owner and isinstance(io_var.owner.op, RandomVariable):
+            rv_vars.append((n, oo, io_var))
+    return rv_vars
+
+
+def construct_scan(scan_args):
+    scan_op = Scan(scan_args.inner_inputs, scan_args.inner_outputs, scan_args.info)
+    scan_out = scan_op(*scan_args.outer_inputs)
+
+    if not isinstance(scan_out, list):
+        scan_out = [scan_out]
+
+    return scan_out

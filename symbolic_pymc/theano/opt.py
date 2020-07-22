@@ -616,9 +616,10 @@ def convert_outer_out_to_in(input_scan_args, var, inner_out_fn=None, output_scan
 
     Outputs
     -------
-    ScanArgs
-    A `ScanArgs` object for a `Scan` in which `var` has been converted to an
-    outer-graph input.
+    (ScanArgs, TensorVariable)
+    A tuple containing a `ScanArgs` object for a `Scan` in which `var` has been
+    converted to an outer-graph input, and a variable that is a clone of `var`
+    and serves as the new outer-graph input term.
 
     """
     replacing = False
@@ -707,9 +708,11 @@ def convert_outer_out_to_in(input_scan_args, var, inner_out_fn=None, output_scan
     # We could clone `var`, but reusing it will make things easier down the
     # line (e.g. avoid the need to remap cloned variables)
     # new_input_var = var.clone()
-    new_input_var = var
+    new_outer_input_var = var.clone()
+    if new_outer_input_var.name:
+        new_outer_input_var.name = new_outer_input_var.name.lower()
 
-    var_slices = [new_input_var[b:e] for b, e in slice_seqs]
+    var_slices = [new_outer_input_var[b:e] for b, e in slice_seqs]
     n_steps = tt.min([tt.shape(n)[0] for n in var_slices])
 
     if output_scan_args.n_steps is None or replacing:
@@ -725,4 +728,4 @@ def convert_outer_out_to_in(input_scan_args, var, inner_out_fn=None, output_scan
             inner_out_fn(input_scan_args, old_inner_out_var, inner_in_var, output_scan_args)
         ]
 
-    return output_scan_args
+    return output_scan_args, new_outer_input_var

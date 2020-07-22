@@ -23,9 +23,10 @@ from symbolic_pymc.theano.opt import (
     ScanArgs,
     convert_outer_out_to_in,
 )
-from symbolic_pymc.theano.ops import RandomVariable
-from symbolic_pymc.theano.utils import optimize_graph
+from symbolic_pymc.theano.utils import optimize_graph, get_random_outer_outputs, construct_scan
 from symbolic_pymc.theano.random_variables import CategoricalRV, DirichletRV, NormalRV
+
+from tests.theano.utils import create_test_hmm
 
 
 @theano.change_flags(compute_test_value="ignore", cxx="", mode="FAST_COMPILE")
@@ -138,71 +139,6 @@ def test_push_out_rvs():
     assert new_scan.op.outputs[0].owner.op == NormalRV
     assert new_scan.op.outputs[1].owner.op == CategoricalRV
     assert isinstance(new_scan.op.outputs[2].type, tt.raw_random.RandomStateType)
-
-
-def create_test_hmm():
-    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
-    rng_init_state = rng_state.get_state()
-    rng_tt = theano.shared(rng_state, name="rng", borrow=True)
-    rng_tt.tag.is_rng = True
-    rng_tt.default_update = rng_tt
-
-    N_tt = tt.iscalar("N")
-    N_tt.tag.test_value = 10
-    M_tt = tt.iscalar("M")
-    M_tt.tag.test_value = 2
-
-    mus_tt = tt.matrix("mus")
-    mus_tt.tag.test_value = np.stack([np.arange(0.0, 10), np.arange(0.0, -10, -1)], axis=-1).astype(
-        theano.config.floatX
-    )
-
-    sigmas_tt = tt.ones((N_tt,))
-    sigmas_tt.name = "sigmas"
-
-    pi_0_rv = DirichletRV(tt.ones((M_tt,)), rng=rng_tt, name="pi_0")
-    Gamma_rv = DirichletRV(tt.ones((M_tt, M_tt)), rng=rng_tt, name="Gamma")
-
-    S_0_rv = CategoricalRV(pi_0_rv, rng=rng_tt, name="S_0")
-
-    def scan_fn(mus_t, sigma_t, S_tm1, Gamma_t, rng):
-        S_t = CategoricalRV(Gamma_t[S_tm1], rng=rng, name="S_t")
-        Y_t = NormalRV(mus_t[S_t], sigma_t, rng=rng, name="Y_t")
-        return S_t, Y_t
-
-    (S_rv, Y_rv), scan_updates = theano.scan(
-        fn=scan_fn,
-        sequences=[mus_tt, sigmas_tt],
-        non_sequences=[Gamma_rv, rng_tt],
-        outputs_info=[{"initial": S_0_rv, "taps": [-1]}, {}],
-        strict=True,
-        name="scan_rv",
-    )
-    Y_rv.name = "Y_rv"
-
-    scan_op = Y_rv.owner.op
-    scan_args = ScanArgs.from_node(Y_rv.owner)
-
-    Gamma_in = scan_args.inner_in_non_seqs[0]
-    Y_t = scan_args.inner_out_nit_sot[0]
-    mus_t = scan_args.inner_in_seqs[0]
-    sigmas_t = scan_args.inner_in_seqs[1]
-    S_t = scan_args.inner_out_sit_sot[0]
-    rng_in = scan_args.inner_out_shared[0]
-
-    rng_updates = scan_updates[rng_tt]
-    rng_updates.name = "rng_updates"
-    mus_in = Y_rv.owner.inputs[1]
-    mus_in.name = "mus_in"
-    sigmas_in = Y_rv.owner.inputs[2]
-    sigmas_in.name = "sigmas_in"
-
-    # The output `S_rv` is really `S_rv[1:]`, so we have to extract the actual
-    # `Scan` output: `S_rv`.
-    S_rv = S_rv.owner.inputs[0]
-    S_rv.name = "S_in"
-
-    return locals()
 
 
 @theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
@@ -361,6 +297,7 @@ def test_ScanArgs_remove_inner_input():
     Gamma_rv = hmm_model_env["Gamma_rv"]
     Gamma_in = hmm_model_env["Gamma_in"]
     S_rv = hmm_model_env["S_rv"]
+    S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
     rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
@@ -402,7 +339,7 @@ def test_ScanArgs_remove_inner_input():
 
     # These shouldn't have been removed
     assert S_t in scan_args_copy.inner_out_sit_sot
-    assert S_rv in scan_args_copy.outer_out_sit_sot
+    assert S_in in scan_args_copy.outer_out_sit_sot
     assert Gamma_in in scan_args_copy.inner_in_non_seqs
     assert Gamma_rv in scan_args_copy.outer_in_non_seqs
     assert rng_tt in scan_args_copy.outer_in_shared
@@ -434,6 +371,7 @@ def test_ScanArgs_remove_outer_input():
     Gamma_rv = hmm_model_env["Gamma_rv"]
     Gamma_in = hmm_model_env["Gamma_in"]
     S_rv = hmm_model_env["S_rv"]
+    S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
     rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
@@ -462,7 +400,7 @@ def test_ScanArgs_remove_outer_input():
     assert len(scan_args_copy.outer_out_nit_sot) == 0
 
     assert S_t in scan_args_copy.inner_out_sit_sot
-    assert S_rv in scan_args_copy.outer_out_sit_sot
+    assert S_in in scan_args_copy.outer_out_sit_sot
     assert Gamma_in in scan_args_copy.inner_in_non_seqs
     assert Gamma_rv in scan_args_copy.outer_in_non_seqs
     assert rng_tt in scan_args_copy.outer_in_shared
@@ -483,6 +421,7 @@ def test_ScanArgs_remove_inner_output():
     Gamma_rv = hmm_model_env["Gamma_rv"]
     Gamma_in = hmm_model_env["Gamma_in"]
     S_rv = hmm_model_env["S_rv"]
+    S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
     rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
@@ -503,7 +442,7 @@ def test_ScanArgs_remove_inner_output():
     assert len(scan_args_copy.outer_out_nit_sot) == 0
 
     assert S_t in scan_args_copy.inner_out_sit_sot
-    assert S_rv in scan_args_copy.outer_out_sit_sot
+    assert S_in in scan_args_copy.outer_out_sit_sot
     assert Gamma_in in scan_args_copy.inner_in_non_seqs
     assert Gamma_rv in scan_args_copy.outer_in_non_seqs
     assert rng_tt in scan_args_copy.outer_in_shared
@@ -523,7 +462,7 @@ def test_ScanArgs_remove_outer_output():
     sigmas_t = hmm_model_env["sigmas_t"]
     Gamma_rv = hmm_model_env["Gamma_rv"]
     Gamma_in = hmm_model_env["Gamma_in"]
-    S_rv = hmm_model_env["S_rv"]
+    S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
     rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
@@ -544,7 +483,7 @@ def test_ScanArgs_remove_outer_output():
     assert len(scan_args_copy.outer_out_nit_sot) == 0
 
     assert S_t in scan_args_copy.inner_out_sit_sot
-    assert S_rv in scan_args_copy.outer_out_sit_sot
+    assert S_in in scan_args_copy.outer_out_sit_sot
     assert Gamma_in in scan_args_copy.inner_in_non_seqs
     assert Gamma_rv in scan_args_copy.outer_in_non_seqs
     assert rng_tt in scan_args_copy.outer_in_shared
@@ -566,7 +505,7 @@ def test_ScanArgs_remove_nonseq_outer_input():
     sigmas_t = hmm_model_env["sigmas_t"]
     Gamma_rv = hmm_model_env["Gamma_rv"]
     Gamma_in = hmm_model_env["Gamma_in"]
-    S_rv = hmm_model_env["S_rv"]
+    S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
     rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
@@ -580,7 +519,7 @@ def test_ScanArgs_remove_nonseq_outer_input():
 
     assert Gamma_rv in removed_nodes
     assert Gamma_in in removed_nodes
-    assert S_rv in removed_nodes
+    assert S_in in removed_nodes
     assert S_t in removed_nodes
     assert Y_t in removed_nodes
     assert Y_rv in removed_nodes
@@ -608,7 +547,7 @@ def test_ScanArgs_remove_nonseq_inner_input():
     sigmas_t = hmm_model_env["sigmas_t"]
     Gamma_rv = hmm_model_env["Gamma_rv"]
     Gamma_in = hmm_model_env["Gamma_in"]
-    S_rv = hmm_model_env["S_rv"]
+    S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
     rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
@@ -622,10 +561,8 @@ def test_ScanArgs_remove_nonseq_inner_input():
 
     assert Gamma_in in removed_nodes
     assert Gamma_rv in removed_nodes
-    assert S_rv in removed_nodes
+    assert S_in in removed_nodes
     assert S_t in removed_nodes
-
-    # import pdb; pdb.set_trace()
 
     assert mus_in in scan_args_copy.outer_in_seqs
     assert sigmas_in in scan_args_copy.outer_in_seqs
@@ -650,7 +587,7 @@ def test_ScanArgs_remove_shared_inner_output():
     sigmas_t = hmm_model_env["sigmas_t"]
     Gamma_rv = hmm_model_env["Gamma_rv"]
     Gamma_in = hmm_model_env["Gamma_in"]
-    S_rv = hmm_model_env["S_rv"]
+    S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
     rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
@@ -666,25 +603,12 @@ def test_ScanArgs_remove_shared_inner_output():
     assert rng_in in removed_nodes
     assert rng_updates in removed_nodes
     assert Y_rv in removed_nodes
-    assert S_rv in removed_nodes
+    assert S_in in removed_nodes
 
     assert sigmas_in in scan_args_copy.outer_in_seqs
     assert sigmas_t in scan_args_copy.inner_in_seqs
     assert mus_in in scan_args_copy.outer_in_seqs
     assert mus_t in scan_args_copy.inner_in_seqs
-
-
-def get_random_outer_outputs(scan_args):
-    """Get the `RandomVariable` outputs of a `Scan` (well, it's `ScanArgs`)."""
-    rv_vars = []
-    for n, oo in enumerate(scan_args.outer_outputs):
-        oo_info = scan_args.find_among_fields(oo)
-        io_type = oo_info.name[(oo_info.name.index("_", 6) + 1) :]
-        inner_out_type = "inner_out_{}".format(io_type)
-        io_var = getattr(scan_args, inner_out_type)[oo_info.index]
-        if io_var.owner and isinstance(io_var.owner.op, RandomVariable):
-            rv_vars.append((n, oo))
-    return rv_vars
 
 
 def create_inner_out_logp(input_scan_args, old_inner_out_var, new_inner_in_var, output_scan_args):
@@ -700,16 +624,6 @@ def create_inner_out_logp(input_scan_args, old_inner_out_var, new_inner_in_var, 
     if new_inner_in_var.name:
         logp.name = "logp({})".format(new_inner_in_var.name)
     return logp
-
-
-def construct_scan(scan_args):
-    scan_op = Scan(scan_args.inner_inputs, scan_args.inner_outputs, scan_args.info)
-    scan_out = scan_op(*scan_args.outer_inputs)
-
-    if not isinstance(scan_out, list):
-        scan_out = [scan_out]
-
-    return scan_out
 
 
 @theano.change_flags(compute_test_value="warn", cxx="", mode="FAST_COMPILE")
@@ -783,7 +697,7 @@ def test_convert_outer_out_to_in():
     # Get the model output variable that corresponds to the response
     # `RandomVariable`
     #
-    var_idx, var = get_random_outer_outputs(input_scan_args)[0]
+    var_idx, var, io_var = get_random_outer_outputs(input_scan_args)[0]
 
     #
     # Convert the original model `Scan` into another `Scan` that's equivalent
@@ -791,7 +705,7 @@ def test_convert_outer_out_to_in():
     # In other words, automatically construct the log-likelihood `Scan` based
     # on the model `Scan`.
     #
-    test_scan_args = convert_outer_out_to_in(
+    test_scan_args, new_oi_var = convert_outer_out_to_in(
         input_scan_args, var, inner_out_fn=create_inner_out_logp, output_scan_args=input_scan_args
     )
 
@@ -801,7 +715,7 @@ def test_convert_outer_out_to_in():
     # Evaluate the manually and automatically constructed log-likelihoods and
     # compare.
     #
-    res = scan_out[var_idx].eval({var: Y_obs.value})
+    res = scan_out[var_idx].eval({new_oi_var: Y_obs.value})
     exp_res = Y_logp.eval()
 
     assert np.array_equal(res, exp_res)
@@ -862,7 +776,7 @@ def test_convert_outer_out_to_in_mit_sot():
     # Get the model output variable that corresponds to the response
     # `RandomVariable`
     #
-    var_idx, var = get_random_outer_outputs(input_scan_args)[0]
+    var_idx, var, io_var = get_random_outer_outputs(input_scan_args)[0]
 
     #
     # Convert the original model `Scan` into another `Scan` that's equivalent
@@ -872,7 +786,7 @@ def test_convert_outer_out_to_in_mit_sot():
     #
     # In this case, we perform the conversion on a "blank" `ScanArgs`.
     #
-    test_scan_args = convert_outer_out_to_in(
+    test_scan_args, new_oi_var = convert_outer_out_to_in(
         input_scan_args, var, inner_out_fn=create_inner_out_logp, output_scan_args=None
     )
 
@@ -882,7 +796,7 @@ def test_convert_outer_out_to_in_mit_sot():
     # Evaluate the manually and automatically constructed log-likelihoods and
     # compare.
     #
-    res = scan_out[var_idx].eval({var: Y_obs.value})
+    res = scan_out[var_idx].eval({new_oi_var: Y_obs.value})
     exp_res = Y_logp.eval()
 
     assert np.array_equal(res, exp_res)
@@ -891,7 +805,7 @@ def test_convert_outer_out_to_in_mit_sot():
     # Now, we rerun the test, but use the "replace" features of
     # `convert_outer_out_to_in`
     #
-    test_scan_args = convert_outer_out_to_in(
+    test_scan_args, new_oi_var = convert_outer_out_to_in(
         input_scan_args, var, inner_out_fn=create_inner_out_logp, output_scan_args=input_scan_args
     )
 
@@ -901,7 +815,7 @@ def test_convert_outer_out_to_in_mit_sot():
     # Evaluate the manually and automatically constructed log-likelihoods and
     # compare.
     #
-    res = scan_out[var_idx].eval({var: Y_obs.value})
+    res = scan_out[var_idx].eval({new_oi_var: Y_obs.value})
     exp_res = Y_logp.eval()
 
     assert np.array_equal(res, exp_res)
@@ -951,9 +865,9 @@ def test_convert_outer_out_to_in_hmm():
     )
     Y_logp.name = "Y_logp"
 
-    var_idx, var = get_random_outer_outputs(input_scan_args)[1]
+    var_idx, var, io_var = get_random_outer_outputs(input_scan_args)[1]
 
-    test_scan_args = convert_outer_out_to_in(
+    test_scan_args, new_oi_var = convert_outer_out_to_in(
         input_scan_args, var, inner_out_fn=create_inner_out_logp, output_scan_args=input_scan_args
     )
 
@@ -965,12 +879,13 @@ def test_convert_outer_out_to_in_hmm():
     # compare.
     #
     new_test_point = dict(test_point)
-    new_test_point[var] = Y_obs.value
+    new_test_point[new_oi_var] = Y_obs.value
 
     # We need to reset the RNG each time, because `S_t` is still a
     # `RandomVariable`
     rng_tt.get_value(borrow=True).set_state(rng_init_state)
-    res = test_Y_logp.eval(new_test_point)
+    with theano.change_flags(on_unused_input="warn"):
+        res = test_Y_logp.eval(new_test_point)
 
     rng_tt.get_value(borrow=True).set_state(rng_init_state)
     exp_res = Y_logp.eval(test_point)

@@ -16,9 +16,11 @@ from theano.gof.graph import inputs as tt_inputs
 from symbolic_pymc.theano.random_variables import NormalRV, MvNormalRV, Observed, observed
 from symbolic_pymc.theano.ops import RandomVariable
 from symbolic_pymc.theano.opt import FunctionGraph
-from symbolic_pymc.theano.pymc3 import model_graph, graph_model, logp
-from symbolic_pymc.theano.utils import canonicalize
+from symbolic_pymc.theano.pymc3 import model_graph, graph_model, logp, convert_rv_to_dist
+from symbolic_pymc.theano.utils import canonicalize, vars_to_rvs
 from symbolic_pymc.theano.meta import mt
+
+from tests.theano.utils import create_test_hmm
 
 
 @theano.change_flags(compute_test_value="ignore", cxx="")
@@ -146,6 +148,20 @@ def test_pymc3_normal_model():
 
 
 @theano.change_flags(compute_test_value="ignore")
+def test_convert_rv_to_dist_shape():
+
+    # Make sure we use the `ShapeFeature` to get the shape info
+    X_rv = NormalRV(np.r_[1, 2], 2.0, name="X_rv")
+    fgraph = FunctionGraph(tt_inputs([X_rv]), [X_rv], features=[tt.opt.ShapeFeature()])
+
+    with pm.Model():
+        res = convert_rv_to_dist(fgraph.outputs[0].owner, None)
+
+    assert isinstance(res.distribution, pm.Normal)
+    assert np.array_equal(res.distribution.shape, np.r_[2])
+
+
+@theano.change_flags(compute_test_value="ignore")
 def test_normals_to_model():
     """Test conversion to a PyMC3 model."""
 
@@ -253,48 +269,95 @@ def test_pymc3_broadcastable():
     assert mt(Z_rv_tt) == mt(Z_rv_meta)
 
 
+@theano.change_flags(compute_test_value="warn", cxx="")
 def test_logp():
-    test_rv = NormalRV(0, tt.arange(1, 3))
-    test_logp = logp(test_rv, 0)
 
-    assert np.all(test_logp.eval() == pm.Normal.dist(0, np.arange(1, 3)).logp(0).eval())
+    hmm_model_env = create_test_hmm()
+    M_tt = hmm_model_env["M_tt"]
+    N_tt = hmm_model_env["N_tt"]
+    mus_tt = hmm_model_env["mus_tt"]
+    sigmas_tt = hmm_model_env["sigmas_tt"]
+    Y_rv = hmm_model_env["Y_rv"]
+    S_rv = hmm_model_env["S_rv"]
+    S_in = hmm_model_env["S_in"]
+    Gamma_rv = hmm_model_env["Gamma_rv"]
+    rng_tt = hmm_model_env["rng_tt"]
 
-    fgraph = FunctionGraph(tt_inputs([test_rv]), [test_rv], features=[tt.opt.ShapeFeature()])
-    test_rv.owner.fgraph = fgraph
-    test_logp = logp(test_rv, 0)
+    Y_obs = Y_rv.clone()
+    Y_obs.name = "Y_obs"
+    # `S_in` includes `S_0_rv` (and `pi_0_rv`), unlike `S_rv`
+    S_obs = S_in.clone()
+    S_obs.name = "S_obs"
+    Gamma_obs = Gamma_rv.clone()
+    Gamma_obs.name = "Gamma_obs"
 
-    assert np.all(test_logp.eval() == pm.Normal.dist(0, np.arange(1, 3)).logp(0).eval())
+    test_point = {
+        mus_tt: mus_tt.tag.test_value,
+        N_tt: N_tt.tag.test_value,
+        Gamma_obs: Gamma_rv.tag.test_value,
+        Y_obs: Y_rv.tag.test_value,
+        S_obs: S_in.tag.test_value,
+    }
 
-    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
-    rng_tt = theano.shared(rng_state, name="rng", borrow=True)
-    rng_tt.tag.is_rng = True
-    rng_tt.default_update = rng_tt
+    def logp_scan_fn(s_t, s_tm1, y_t, mus_t, sigma_t, Gamma_t):
+        gamma_t = Gamma_t[s_tm1]
+        log_s_t = pm.Categorical.dist(gamma_t).logp(s_t)
+        mu_t = mus_t[s_t]
+        log_y_t = pm.Normal.dist(mu_t, sigma_t).logp(y_t)
+        gamma_t.name = "gamma_t"
+        log_y_t.name = "logp(y_t)"
+        log_s_t.name = "logp(s_t)"
+        mu_t.name = "mu[S_t]"
+        return log_s_t, log_y_t
 
-    # TODO: Scan of univariate normals.
-    N_tt = tt.iscalar("N")
-    N_tt.tag.test_value = 10
-
-    mus_tt = tt.arange(N_tt)
-    mus_tt.tag.test_value
-
-    sigmas_tt = tt.ones((N_tt,))
-    sigmas_tt.tag.test_value
-
-    def scan_fn(mu_t, sigma_t, rng):
-        # mix = np.stack([NormalRV(mu_t, sigma_t, rng=rng), GammaRV(mu_t**2 / sigma_t**2, mu_t / sigma_t)])
-        return NormalRV(mu_t, sigma_t, rng=rng)
-
-    scan_rv, _ = theano.scan(
-        fn=scan_fn,
-        sequences=[mus_tt, sigmas_tt],
-        non_sequences=[rng_tt],
-        outputs_info=[{},],
+    (true_S_logp, true_Y_logp), scan_updates = theano.scan(
+        fn=logp_scan_fn,
+        sequences=[{"input": S_obs, "taps": [0, -1]}, Y_obs, mus_tt, sigmas_tt],
+        non_sequences=[Gamma_obs],
+        outputs_info=[{}, {}],
         strict=True,
         name="scan_rv",
     )
 
-    scan_logp = logp(scan_rv, tt.zeros((N_tt,)))
-    res = scan_logp.eval({N_tt: 10})
-    exp_res = pm.Normal.dist(np.arange(10), np.ones(10)).logp(np.zeros(10)).eval()
+    # Make sure there are no `RandomVariable` nodes among our
+    # expected/true log-likelihood graph.
+    assert not vars_to_rvs(true_S_logp)
+    assert not vars_to_rvs(true_Y_logp)
 
-    assert np.array_equal(res, exp_res)
+    true_S_logp_val = true_S_logp.eval(test_point)
+    true_Y_logp_val = true_Y_logp.eval(test_point)
+
+    #
+    # Now, compute the log-likelihoods
+    #
+    logps = logp(Y_rv)
+
+    S_logp = logps[S_in][1]
+    Y_logp = logps[Y_rv][1]
+
+    # from theano.printing import debugprint as tt_dprint
+
+    # There shouldn't be any `RandomVariable`s here either
+    assert not vars_to_rvs(S_logp[1])
+    assert not vars_to_rvs(Y_logp[1])
+
+    assert N_tt in tt_inputs([S_logp])
+    assert mus_tt in tt_inputs([S_logp])
+    assert logps[S_in][0] in tt_inputs([S_logp])
+    assert logps[Y_rv][0] in tt_inputs([S_logp])
+    assert logps[Gamma_rv][0] in tt_inputs([S_logp])
+
+    new_test_point = {
+        mus_tt: mus_tt.tag.test_value,
+        N_tt: N_tt.tag.test_value,
+        logps[Gamma_rv][0]: Gamma_rv.tag.test_value,
+        logps[Y_rv][0]: Y_rv.tag.test_value,
+        logps[S_in][0]: S_in.tag.test_value,
+    }
+
+    with theano.change_flags(on_unused_input="warn"):
+        S_logp_val = S_logp.eval(new_test_point)
+        Y_logp_val = Y_logp.eval(new_test_point)
+
+    assert np.array_equal(true_S_logp_val, S_logp_val)
+    assert np.array_equal(Y_logp_val, true_Y_logp_val)
