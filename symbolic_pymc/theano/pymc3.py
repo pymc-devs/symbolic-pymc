@@ -15,10 +15,13 @@ from warnings import warn
 from multipledispatch import dispatch
 from unification.utils import transitive_get as walk
 
+from theano.gof import Query
+from theano.compile import optdb
 from theano.gof.op import get_test_value
+from theano.gof.opt import SeqOptimizer, EquilibriumOptimizer
 from theano.gof.graph import Apply, inputs as tt_inputs
 from theano.scan_module.scan_op import Scan
-from theano.scan_module.scan_utils import clone
+from theano.scan_module.scan_utils import clone as tt_clone
 
 from .random_variables import (
     observed,
@@ -59,9 +62,15 @@ from .random_variables import (
     NegBinomialRV,
     NegBinomialRVType,
 )
-from .opt import FunctionGraph
 from .ops import RandomVariable
-from .utils import replace_input_nodes, get_rv_observation
+from .utils import (
+    replace_input_nodes,
+    get_rv_observation,
+    optimize_graph,
+    get_random_outer_outputs,
+    construct_scan,
+)
+from .opt import FunctionGraph, push_out_rvs_from_scan, convert_outer_out_to_in, ScanArgs
 
 logger = logging.getLogger("symbolic_pymc")
 
@@ -76,49 +85,6 @@ def tt_get_values(obj):
         raise TypeError(f"Unhandled observation type: {type(obj)}")
 
 
-@dispatch(Apply, object)
-def convert_rv_to_dist(node, obs):
-    if not isinstance(node.op, RandomVariable):
-        raise TypeError(f"{node} is not of type `RandomVariable`")
-
-    rv = node.default_output()
-
-    if hasattr(node, "fgraph") and hasattr(node.fgraph, "shape_feature"):
-        shape = list(node.fgraph.shape_feature.shape_tuple(rv))
-    else:
-        shape = list(rv.shape)
-
-    for i, s in enumerate(shape):
-        try:
-            shape[i] = tt.get_scalar_constant_value(s)
-        except tt.NotScalarConstantError:
-            shape[i] = s.tag.test_value
-
-    dist_type, dist_params = _convert_rv_to_dist(node.op, node)
-    return dist_type(rv.name, shape=shape, observed=obs, **dist_params)
-
-
-@dispatch(tt.TensorVariable, object)
-def logp(var, obs):
-
-    node = var.owner
-
-    if hasattr(node, "fgraph") and hasattr(node.fgraph, "shape_feature"):
-        shape = list(node.fgraph.shape_feature.shape_tuple(var))
-    else:
-        shape = list(var.shape)
-
-    for i, s in enumerate(shape):
-        try:
-            shape[i] = tt.get_scalar_constant_value(s)
-        except tt.NotScalarConstantError:
-            shape[i] = s.tag.test_value
-
-    logp_fn = _logp_fn(node.op, node, shape)
-    return logp_fn(obs)
-
-
-@dispatch(RandomVariable, Apply, object)
 def _logp_fn(op, node, shape=None):
     dist_type, dist_params = _convert_rv_to_dist(op, node)
     if shape is not None:
@@ -133,85 +99,129 @@ def _logp_fn(op, node, shape=None):
     return res.logp
 
 
-@_logp_fn.register(Scan, Apply, object)
-def _logp_fn_Scan(op, scan_node, shape=None):
+def create_inner_out_logp(input_scan_args, old_inner_out_var, new_inner_in_var, output_scan_args):
+    """Create a log-likelihood inner-output for a `Scan`."""
 
-    scan_inner_inputs = scan_node.op.inputs
-    scan_inner_outputs = scan_node.op.outputs
+    # shape = list(old_inner_out_var.owner.fgraph.shape_feature.shape_tuple(old_inner_out_var))
+    shape = None
+    logp_fn = _logp_fn(old_inner_out_var.owner.op, old_inner_out_var.owner, shape)
+    logp = logp_fn(new_inner_in_var)
+    if new_inner_in_var.name:
+        logp.name = "logp({})".format(new_inner_in_var.name)
+    return logp
 
-    def create_obs_var(i, x):
-        obs = x.type()
-        obs.name = f"{x.name or x.owner.op.name}_obs_{i}"
-        if hasattr(x.tag, "test_value"):
-            obs.tag.test_value = x.tag.test_value
-        return obs
 
-    rv_outs = [
-        (i, x, create_obs_var(i, x))
-        for i, x in enumerate(scan_inner_outputs)
-        if x.owner and isinstance(x.owner.op, RandomVariable)
-    ]
-    rv_inner_out_idx, rv_out_vars, rv_out_obs = zip(*rv_outs)
-    # rv_outer_out_idx = [scan_node.op.get_oinp_iinp_iout_oout_mappings()['outer_out_from_inner_out'][i] for i in rv_inner_out_idx]
-    # rv_outer_outputs = [scan_node.outputs[i] for i in rv_outer_out_idx]
+def logp(*output_vars):
+    """Compute the log-likelihood for a graph.
 
-    logp_inner_outputs = [clone(logp(rv, obs)) for i, rv, obs in rv_outs]
-    assert all(o in tt.gof.graph.inputs(logp_inner_outputs) for o in rv_out_obs)
+    Parameters
+    ----------
+    *output_vars: Tuple[TensorVariable]
+        The output of a graph containing `RandomVariable`s.
 
-    logp_inner_outputs_inputs = tt.gof.graph.inputs(logp_inner_outputs)
-    rv_relevant_inner_input_idx, rv_relevant_inner_inputs = zip(
-        *[(n, i) for n, i in enumerate(scan_inner_inputs) if i in logp_inner_outputs_inputs]
+    Results
+    -------
+    Dict[TensorVariable, TensorVariable]
+        A map from `RandomVariable`s to their log-likelihood graphs.
+
+    """
+    # model_inputs = [i for i in tt_inputs(output_vars) if not isinstance(i, tt.Constant)]
+    model_inputs = tt_inputs(output_vars)
+    model_fgraph = FunctionGraph(
+        model_inputs,
+        output_vars,
+        clone=True,
+        # XXX: `ShapeFeature` introduces cached constants
+        # features=[tt.opt.ShapeFeature()]
     )
-    logp_inner_inputs = list(rv_out_obs) + list(rv_relevant_inner_inputs)
 
-    # We need to create outer-inputs that represent arrays of observations
-    # for each random variable.
-    # To do that, we're going to use each random variable's outer-output term,
-    # since they necessarily have the same shape and type as the observations
-    # arrays.
+    canonicalize_opt = optdb.query(Query(include=["canonicalize"]))
+    push_out_opt = EquilibriumOptimizer([push_out_rvs_from_scan], max_use_ratio=10)
+    optimizations = SeqOptimizer(canonicalize_opt.copy())
+    optimizations.append(push_out_opt)
+    opt_fgraph = optimize_graph(model_fgraph, optimizations, in_place=True)
 
-    # Just like we did for the inner-inputs, we need to get only the outer-inputs
-    # that are relevant to the new logp graphs.
-    # We can do that by removing the irrelevant outer-inputs using the known relevant inner-inputs
-    removed_inner_inputs = set(range(len(scan_inner_inputs))) - set(rv_relevant_inner_input_idx)
-    old_in_out_mappings = scan_node.op.get_oinp_iinp_iout_oout_mappings()
-    rv_removed_outer_input_idx = [
-        old_in_out_mappings["outer_inp_from_inner_inp"][i] for i in removed_inner_inputs
-    ]
-    rv_removed_outer_inputs = [scan_node.inputs[i] for i in rv_removed_outer_input_idx]
+    replacements = {}
+    rv_to_logp_io = {}
+    for node in opt_fgraph.toposort():
+        # TODO: This `RandomVariable` "parsing" should be generalized and used
+        # in more places (e.g. what if the outer-outputs are `Subtensor`s)
+        if isinstance(node.op, RandomVariable):
+            var = node.default_output()
+            # shape = list(node.fgraph.shape_feature.shape_tuple(new_var))
+            shape = None
+            new_input_var = var.clone()
+            if new_input_var.name:
+                new_input_var.name = new_input_var.name.lower()
+            replacements[var] = new_input_var
+            rv_to_logp_io[var] = (new_input_var, _logp_fn(node.op, var.owner, shape)(new_input_var))
 
-    rv_relevant_outer_inputs = [r for r in scan_node.inputs if r not in rv_removed_outer_inputs]
+        if isinstance(node.op, tt.Subtensor) and node.inputs[0].owner:
+            # The output of `theano.scan` is sometimes a sliced tensor (in
+            # order to get rid of initial values introduced by in the `Scan`)
+            node = node.inputs[0].owner
 
-    # Now, we can create a new op with our new inner-graph inputs and outputs.
-    # Also, since our inner graph has new placeholder terms representing
-    # an observed value for each random variable, we need to update the
-    # "info" `dict`.
-    logp_info = scan_node.op.info.copy()
-    logp_info["tap_array"] = []
-    logp_info["n_seqs"] += len(rv_out_obs)
-    logp_info["n_mit_mot"] = 0
-    logp_info["n_mit_mot_outs"] = 0
-    logp_info["mit_mot_out_slices"] = []
-    logp_info["n_mit_sot"] = 0
-    logp_info["n_sit_sot"] = 0
-    logp_info["n_shared_outs"] = 0
-    logp_info["n_nit_sot"] += len(rv_out_obs) - 1
-    logp_info["name"] = None
-    logp_info["strict"] = True
+        if isinstance(node.op, Scan):
+            scan_args = ScanArgs.from_node(node)
+            rv_outer_outs = get_random_outer_outputs(scan_args)
 
-    # These are the tensor variables corresponding to each random variable's
-    # array of observations.
-    def logp_fn(*obs):
-        logp_obs_outer_inputs = list(obs)  # [r.clone() for r in rv_outer_outputs]
-        logp_outer_inputs = (
-            [rv_relevant_outer_inputs[0]] + logp_obs_outer_inputs + rv_relevant_outer_inputs[1:]
-        )
-        logp_op = Scan(logp_inner_inputs, logp_inner_outputs, logp_info)
-        scan_logp = logp_op(*logp_outer_inputs)
-        return scan_logp
+            for var_idx, var, io_var in rv_outer_outs:
+                scan_args, new_oi_var = convert_outer_out_to_in(
+                    scan_args, var, inner_out_fn=create_inner_out_logp, output_scan_args=scan_args
+                )
+                replacements[var] = new_oi_var
 
-    # logp_fn = OpFromGraph(logp_obs_outer_inputs, [scan_logp])
-    return logp_fn
+            logp_scan_out = construct_scan(scan_args)
+
+            for var_idx, var, io_var in rv_outer_outs:
+                rv_to_logp_io[var] = (replacements[var], logp_scan_out[var_idx])
+
+    # We need to use the new log-likelihood input variables that were generated
+    # for each `RandomVariable` node.  They need to replace the corresponding
+    # original variables within each log-likelihood graph.
+    rv_vars, inputs_logp_outputs = zip(*rv_to_logp_io.items())
+    new_inputs, logp_outputs = zip(*inputs_logp_outputs)
+
+    rev_memo = {v: k for k, v in model_fgraph.memo.items()}
+
+    # Replace the new cloned variables with the original ones, but only if
+    # they're not any of `RandomVariable` terms we've converted to
+    # log-likelihoods.
+    replacements.update(
+        {
+            k: v
+            for k, v in rev_memo.items()
+            if isinstance(k, tt.Variable) and v not in new_inputs and k not in replacements
+        }
+    )
+
+    new_logp_outputs = tt_clone(logp_outputs, replace=replacements)
+
+    rv_to_logp_io = {rev_memo[k]: v for k, v in zip(rv_vars, zip(new_inputs, new_logp_outputs))}
+
+    return rv_to_logp_io
+
+
+@dispatch(Apply, object)
+def convert_rv_to_dist(node, obs):
+    if not isinstance(node.op, RandomVariable):
+        raise TypeError(f"{node} is not of type `RandomVariable`")  # pragma: no cover
+
+    rv = node.default_output()
+
+    if hasattr(node, "fgraph") and hasattr(node.fgraph, "shape_feature"):
+        shape = list(node.fgraph.shape_feature.shape_tuple(rv))
+    else:
+        shape = list(rv.shape)
+
+    for i, s in enumerate(shape):
+        try:
+            shape[i] = tt.get_scalar_constant_value(s)
+        except tt.NotScalarConstantError:
+            shape[i] = get_test_value(s)
+
+    dist_type, dist_params = _convert_rv_to_dist(node.op, node)
+    return dist_type(rv.name, shape=shape, observed=obs, **dist_params)
 
 
 @dispatch(pm.Uniform, object)
@@ -230,27 +240,27 @@ def _convert_rv_to_dist(op, rv):
 @convert_dist_to_rv.register(pm.Normal, object)
 def convert_dist_to_rv_Normal(dist, rng):
     size = dist.shape.astype(int)[NormalRV.ndim_supp :]
-    res = NormalRV(dist.mu, dist.sd, size=size, rng=rng)
+    res = NormalRV(dist.mu, dist.sigma, size=size, rng=rng)
     return res
 
 
 @_convert_rv_to_dist.register(NormalRVType, Apply)
 def _convert_rv_to_dist_Normal(op, rv):
-    params = {"mu": rv.inputs[0], "sd": rv.inputs[1]}
+    params = {"mu": rv.inputs[0], "sigma": rv.inputs[1]}
     return pm.Normal, params
 
 
 @convert_dist_to_rv.register(pm.HalfNormal, object)
 def convert_dist_to_rv_HalfNormal(dist, rng):
     size = dist.shape.astype(int)[HalfNormalRV.ndim_supp :]
-    res = HalfNormalRV(np.array(0.0, dtype=dist.dtype), dist.sd, size=size, rng=rng)
+    res = HalfNormalRV(np.array(0.0, dtype=dist.dtype), dist.sigma, size=size, rng=rng)
     return res
 
 
 @_convert_rv_to_dist.register(HalfNormalRVType, Apply)
 def _convert_rv_to_dist_HalfNormal(op, rv):
     assert not np.any(tt_get_values(rv.inputs[0]))
-    params = {"sd": rv.inputs[1]}
+    params = {"sigma": rv.inputs[1]}
     return pm.HalfNormal, params
 
 

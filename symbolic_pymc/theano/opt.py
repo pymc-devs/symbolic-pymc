@@ -1,11 +1,19 @@
 import types
 
+import numpy as np
+
 import theano
 import theano.tensor as tt
 
+from copy import copy
 from functools import wraps
+from unittest.mock import patch
+from collections import namedtuple, OrderedDict
 
-from theano.gof.opt import LocalOptimizer
+from theano.gof.opt import LocalOptimizer, local_optimizer
+from theano.gof.graph import inputs as tt_inputs
+from theano.scan_module.scan_op import Scan
+from theano.scan_module.scan_utils import scan_args, clone as tt_clone
 
 from unification import var, variables
 
@@ -14,6 +22,7 @@ from kanren import run
 from etuples.core import ExpressionTuple
 
 from .meta import MetaSymbol
+from .ops import RandomVariable
 
 
 def eval_and_reify_meta(x):
@@ -31,6 +40,13 @@ def eval_and_reify_meta(x):
         raise ValueError("Kanren results not fully reifiable: {}".format(res))
 
     return res
+
+
+def safe_index(lst, x):
+    try:
+        return lst.index(x)
+    except ValueError:
+        return None
 
 
 class FunctionGraph(theano.gof.fg.FunctionGraph):
@@ -63,6 +79,17 @@ class FunctionGraph(theano.gof.fg.FunctionGraph):
 
             inputs = [self.memo[i] for i in inputs]
             outputs = [self.memo[o] for o in outputs]
+        else:
+            # We make it possible to use a non-cloned set of inputs and outputs
+            # by cloning only the cached constants and replacing them in the
+            # inputs and output graphs.
+            cached_constants = [x for x in inputs if getattr(x, "cached", False)]
+            copied_constants = tt_clone(cached_constants, share_inputs=False)
+            replacements = list(zip(cached_constants, copied_constants))
+            inputs = list(set(inputs) - set(cached_constants)) + list(copied_constants)
+            outputs = tt_clone(outputs, share_inputs=True, replace=replacements)
+
+        assert not any(getattr(v, "cached", False) for v in inputs + outputs)
 
         super().__init__(inputs, outputs, features=features, clone=False, update_mapping=None)
 
@@ -214,8 +241,502 @@ class KanrenRelationSub(LocalOptimizer):
             else:
                 raise ValueError(
                     "Unsupported FunctionGraph replacement variable type: {chosen_res}"
-                )
+                )  # pragma: no cover
 
             return new_node
         else:
             return False
+
+
+FieldInfo = namedtuple("FieldInfo", ("name", "agg_name", "index", "inner_index", "agg_index"))
+
+
+class ScanArgs(scan_args):
+    """An improved version of `theano.scan_module.scan_utils`."""
+
+    default_filter = lambda x: x.startswith("inner_") or x.startswith("outer_")
+    nested_list_fields = ("inner_in_mit_mot", "inner_in_mit_sot", "inner_out_mit_mot")
+
+    def __init__(self, *args, **kwargs):
+        # Prevent unnecessary and counter-productive cloning.
+        # If you want to clone the inner graph, do it before you call this!
+        with patch(
+            "theano.scan_module.scan_utils.reconstruct_graph",
+            side_effect=lambda x, y, z=None: [x, y],
+        ):
+            super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def from_node(node):
+        if not isinstance(node.op, Scan):
+            raise TypeError("{} is not a Scan node".format(node))
+        return ScanArgs(node.inputs, node.outputs, node.op.inputs, node.op.outputs, node.op.info)
+
+    @classmethod
+    def create_empty(cls):
+        info = OrderedDict(
+            [
+                ("n_seqs", 0),
+                ("n_mit_mot", 0),
+                ("n_mit_sot", 0),
+                ("tap_array", []),
+                ("n_sit_sot", 0),
+                ("n_nit_sot", 0),
+                ("n_shared_outs", 0),
+                ("n_mit_mot_outs", 0),
+                ("mit_mot_out_slices", []),
+                ("truncate_gradient", -1),
+                ("name", None),
+                ("mode", None),
+                ("destroy_map", OrderedDict()),
+                ("gpua", False),
+                ("as_while", False),
+                ("profile", False),
+                ("allow_gc", False),
+            ]
+        )
+        res = cls([1], [], [], [], info)
+        res.n_steps = None
+        return res
+
+    @property
+    def n_nit_sot(self):
+        # This is just a hack that allows us to use `Scan.get_oinp_iinp_iout_oout_mappings`
+        return self.info["n_nit_sot"]
+
+    @property
+    def inputs(self):
+        # This is just a hack that allows us to use `Scan.get_oinp_iinp_iout_oout_mappings`
+        return self.inner_inputs
+
+    @property
+    def n_mit_mot(self):
+        # This is just a hack that allows us to use `Scan.get_oinp_iinp_iout_oout_mappings`
+        return self.info["n_mit_mot"]
+
+    @property
+    def var_mappings(self):
+        return Scan.get_oinp_iinp_iout_oout_mappings(self)
+
+    @property
+    def field_names(self):
+        res = ["mit_mot_out_slices", "mit_mot_in_slices", "mit_sot_in_slices"]
+        res.extend(
+            [
+                attr
+                for attr in self.__dict__
+                if attr.startswith("inner_in")
+                or attr.startswith("inner_out")
+                or attr.startswith("outer_in")
+                or attr.startswith("outer_out")
+                or attr == "n_steps"
+            ]
+        )
+        return res
+
+    def get_alt_field(self, var_info, alt_prefix):
+        """Get the alternate input/output field for a given element of `ScanArgs`.
+
+        For example, if `var_info` is in `ScanArgs.outer_out_sit_sot`, then
+        `get_alt_field(var_info, "inner_out")` returns the element corresponding
+        `var_info` in `ScanArgs.inner_out_sit_sot`.
+
+        Parameters
+        ----------
+        var_info: TensorVariable or FieldInfo
+            The element for which we want the alternate
+        alt_prefix: str
+            The string prefix for the alternate field type.  It can be one of
+            the following: "inner_out", "inner_in", "outer_in", and "outer_out".
+
+        Outputs
+        -------
+        TensorVariable
+        Returns the alternate variable.
+
+        """
+        if not isinstance(var_info, FieldInfo):
+            var_info = self.find_among_fields(var_info)
+
+        alt_type = var_info.name[(var_info.name.index("_", 6) + 1) :]
+        alt_var = getattr(self, "inner_out_{}".format(alt_type))[var_info.index]
+        return alt_var
+
+    def find_among_fields(self, i, field_filter=default_filter):
+        """Find the type and indices of the field containing a given element.
+
+        NOTE: This only returns the *first* field containing the given element.
+
+        Parameters
+        ----------
+        i: theano.gof.graph.Variable
+            The element to find among this object's fields.
+        field_filter: function
+            A function passed to `filter` that determines which fields to
+            consider.  It must take a string field name and return a truthy
+            value.
+
+        Returns
+        -------
+        A tuple of length 4 containing the field name string, the first index,
+        the second index (for nested lists), and the "major" index (i.e. the
+        index within the aggregate lists like `self.inner_inputs`,
+        `self.outer_outputs`, etc.), or a triple of `None` when no match is
+        found.
+
+        """
+
+        field_names = filter(field_filter, self.field_names)
+
+        for field_name in field_names:
+            lst = getattr(self, field_name)
+
+            field_prefix = field_name[:8]
+            if field_prefix.endswith("in"):
+                agg_field_name = "{}puts".format(field_prefix)
+            else:
+                agg_field_name = "{}tputs".format(field_prefix)
+
+            agg_list = getattr(self, agg_field_name)
+
+            if field_name in self.nested_list_fields:
+                for n, sub_lst in enumerate(lst):
+                    idx = safe_index(sub_lst, i)
+                    if idx is not None:
+                        agg_idx = safe_index(agg_list, i)
+                        return FieldInfo(field_name, agg_field_name, n, idx, agg_idx)
+            else:
+                idx = safe_index(lst, i)
+                if idx is not None:
+                    agg_idx = safe_index(agg_list, i)
+                    return FieldInfo(field_name, agg_field_name, idx, None, agg_idx)
+
+        return None
+
+    def _remove_from_fields(self, i, field_filter=default_filter):
+
+        field_info = self.find_among_fields(i, field_filter=field_filter)
+
+        if field_info is None:
+            return None
+
+        if field_info.inner_index is not None:
+            getattr(self, field_info.name)[field_info.index].remove(i)
+        else:
+            getattr(self, field_info.name).remove(i)
+
+        return field_info
+
+    def get_dependent_nodes(self, i, seen=None):
+
+        if seen is None:
+            seen = {i}
+        else:
+            seen.add(i)
+
+        var_mappings = self.var_mappings
+
+        field_info = self.find_among_fields(i)
+
+        if field_info is None:
+            raise ValueError("{} not found among fields.".format(i))
+
+        # Find the `var_mappings` key suffix that matches the field/set of
+        # arguments containing our source node
+        if field_info.name[:8].endswith("_in"):
+            map_key_suffix = "{}p".format(field_info.name[:8])
+        else:
+            map_key_suffix = field_info.name[:9]
+
+        dependent_nodes = set()
+        for k, v in var_mappings.items():
+
+            if not k.endswith(map_key_suffix):
+                continue
+
+            dependent_idx = v[field_info.agg_index]
+            dependent_idx = dependent_idx if isinstance(dependent_idx, list) else [dependent_idx]
+
+            # Get the `ScanArgs` field name for the aggregate list property
+            # corresponding to these dependent argument types (i.e. either
+            # "outer_inputs", "inner_inputs", "inner_outputs", or
+            # "outer_outputs").
+            # To do this, we need to parse the "shared" prefix of the
+            # current `var_mappings` key and append the missing parts so that
+            # it either forms `"*_inputs"` or `"*_outputs"`.
+            to_agg_field_prefix = k[:9]
+            if to_agg_field_prefix.endswith("p"):
+                to_agg_field_name = "{}uts".format(to_agg_field_prefix)
+            else:
+                to_agg_field_name = "{}puts".format(to_agg_field_prefix)
+
+            to_agg_field = getattr(self, to_agg_field_name)
+
+            for d_id in dependent_idx:
+                if d_id < 0:
+                    continue
+
+                dependent_var = to_agg_field[d_id]
+
+                if dependent_var not in seen:
+                    dependent_nodes.add(dependent_var)
+
+        if field_info.name.startswith("inner_in"):
+            # If starting from an inner-input, then we need to find any
+            # inner-outputs that depend on it.
+            for out_n in self.inner_outputs:
+                if i in tt_inputs([out_n]):
+                    if out_n not in seen:
+                        dependent_nodes.add(out_n)
+
+        for n in tuple(dependent_nodes):
+            if n in seen:
+                continue
+            sub_dependent_nodes = self.get_dependent_nodes(n, seen=seen)
+            dependent_nodes |= sub_dependent_nodes
+            seen |= sub_dependent_nodes
+
+        return dependent_nodes
+
+    def remove_from_fields(self, i, rm_dependents=True):
+
+        if rm_dependents:
+            vars_to_remove = self.get_dependent_nodes(i) | {i}
+        else:
+            vars_to_remove = {i}
+
+        rm_info = []
+        for v in vars_to_remove:
+            dependent_rm_info = self._remove_from_fields(v)
+            rm_info.append((v, dependent_rm_info))
+
+        return rm_info
+
+    def __str__(self):
+        inner_arg_strs = [
+            "\t{}={}".format(p, getattr(self, p))
+            for p in self.field_names
+            if p.startswith("outer_in") or p == "n_steps"
+        ]
+        inner_arg_strs += [
+            "\t{}={}".format(p, getattr(self, p))
+            for p in self.field_names
+            if p.startswith("inner_in")
+        ]
+        inner_arg_strs += [
+            "\tmit_mot_in_slices={}".format(self.mit_mot_in_slices),
+            "\tmit_sot_in_slices={}".format(self.mit_sot_in_slices),
+        ]
+        inner_arg_strs += [
+            "\t{}={}".format(p, getattr(self, p))
+            for p in self.field_names
+            if p.startswith("inner_out")
+        ]
+        inner_arg_strs += [
+            "\tmit_mot_out_slices={}".format(self.mit_mot_out_slices),
+        ]
+        inner_arg_strs += [
+            "\t{}={}".format(p, getattr(self, p))
+            for p in self.field_names
+            if p.startswith("outer_out")
+        ]
+        res = "ScanArgs(\n{})".format(",\n".join(inner_arg_strs))
+        return res
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+
+        for field_name in self.field_names:
+            if not hasattr(other, field_name) or getattr(self, field_name) != getattr(
+                other, field_name
+            ):
+                return False
+
+        return True
+
+
+@local_optimizer([Scan])
+def push_out_rvs_from_scan(node):
+    """Push `RandomVariable`s out of `Scan` nodes.
+
+    When `RandomVariable`s are created within the inner-graph of a `Scan` and
+    are not output to the outer-graph, we "push" them out of the inner-graph.
+    This helps us produce an outer-graph in which all the relevant `RandomVariable`s
+    are accessible (e.g. for constructing a log-likelihood graph).
+    """
+    scan_args = ScanArgs(node.inputs, node.outputs, node.op.inputs, node.op.outputs, node.op.info)
+
+    # Find the un-output `RandomVariable`s created in the inner-graph
+    clients = {}
+    local_fgraph_topo = theano.gof.graph.io_toposort(
+        scan_args.inner_inputs, scan_args.inner_outputs, clients=clients
+    )
+    unpushed_inner_rvs = []
+    for n in local_fgraph_topo:
+        if isinstance(n.op, RandomVariable):
+            unpushed_inner_rvs.extend([c for c in clients[n] if c not in scan_args.inner_outputs])
+
+    if len(unpushed_inner_rvs) == 0:
+        return False
+
+    # Add the new outputs to the inner and outer graphs
+    scan_args.inner_out_nit_sot.extend(unpushed_inner_rvs)
+
+    assert len(scan_args.outer_in_nit_sot) > 0, "No outer-graph inputs are nit-sots!"
+
+    # Just like `theano.scan`, we simply copy/repeat the existing nit-sot
+    # outer-graph input value, which represents the actual size of the output
+    # tensors.  Apparently, the value needs to be duplicated for all nit-sots.
+    # FYI: This is what increments the nit-sot values in `scan_args.info`, as
+    # well.
+    # TODO: Can we just use `scan_args.n_steps`?
+    scan_args.outer_in_nit_sot.extend(scan_args.outer_in_nit_sot[0:1] * len(unpushed_inner_rvs))
+
+    op = Scan(scan_args.inner_inputs, scan_args.inner_outputs, scan_args.info)
+    outputs = list(op(*scan_args.outer_inputs))
+
+    # Return only the replacements for the original `node.outputs`
+    new_inner_out_idx = [scan_args.inner_outputs.index(i) for i in unpushed_inner_rvs]
+    _ = [outputs.pop(op.var_mappings["outer_out_from_inner_out"][i]) for i in new_inner_out_idx]
+
+    return dict(zip(node.outputs, outputs))
+
+
+def convert_outer_out_to_in(input_scan_args, var, inner_out_fn=None, output_scan_args=None):
+    """Convert outer-graph outputs into outer-graph inputs.
+
+    Parameters
+    ----------
+    input_scan_args: ScanArgs
+        The source scan arguments.
+    var: TensorVariable
+        The outer-graph output variable that is to be converted into an
+        outer-graph input.
+    inner_out_fn: function (Optional)
+        A function with the signature `(input_scan_args, old_inner_out_var,
+        new_inner_in_var output_scan_args)` that produces a new inner-graph
+        output.  This can be used to transform the `var`'s
+        corresponding inner-graph output, for example.
+    input_scan_args: ScanArgs (Optional)
+        If this argument is non-`None`, the conversion is applied to the given
+        `ScanArgs` and the old `var` output is removed.
+
+    Outputs
+    -------
+    (ScanArgs, TensorVariable)
+    A tuple containing a `ScanArgs` object for a `Scan` in which `var` has been
+    converted to an outer-graph input, and a variable that is a clone of `var`
+    and serves as the new outer-graph input term.
+
+    """
+    replacing = False
+    if output_scan_args is None:
+        output_scan_args = ScanArgs.create_empty()
+    elif output_scan_args == input_scan_args:
+        replacing = True
+        # We will not change the input `ScanArgs` in-place
+        if output_scan_args is input_scan_args:
+            output_scan_args = copy(input_scan_args)
+
+    var_info = input_scan_args.find_among_fields(
+        var, field_filter=lambda x: x.startswith("outer_out")
+    )
+
+    old_inner_out_var = input_scan_args.get_alt_field(var_info, "inner_out")
+
+    if replacing:
+        output_scan_args.remove_from_fields(old_inner_out_var, rm_dependents=False)
+        # Remove the old outer-output variable.
+        # Not sure if this really matters, since we don't use the outer-outputs
+        # when building a new `Scan`, but doing it keeps the `ScanArgs` object
+        # consistent.
+        output_scan_args.remove_from_fields(var, rm_dependents=False)
+
+    # Couldn't one do the same with `var_info`?
+    inner_out_info = input_scan_args.find_among_fields(
+        old_inner_out_var, field_filter=lambda x: x.startswith("inner_out")
+    )
+
+    # Use the index for the specific inner-graph sub-collection to which this
+    # variable belongs (e.g. index `1` among the inner-graph sit-sot terms)
+    var_idx = inner_out_info.index
+
+    # The old inner-output variable becomes the a new inner-input
+    inner_in_var = old_inner_out_var.clone()
+
+    # We need to clone any existing inner-output variables in the `ScanArgs`
+    # object that we're mutating and replace references to `old_inner_out_var`
+    # with `inner_in_var`.  If we don't, then any other inner-outputs that
+    # reference the inner-output that we're replacing will be inconsistent.
+    # Instead, we want those other inner-outputs to reference the new
+    # inner-input replacement variable.
+    for io_var in list(output_scan_args.inner_outputs):
+        io_var_info = output_scan_args.find_among_fields(
+            io_var, field_filter=lambda x: x.startswith("inner_out")
+        )
+        io_sub_list = getattr(output_scan_args, io_var_info.name)
+
+        (new_io_var,) = tt_clone([io_var], replace={old_inner_out_var: inner_in_var})
+
+        io_sub_list[io_var_info.index] = new_io_var
+
+    # If we're replacing a [m|s]it-sot, then we need to add a new nit-sot
+    add_nit_sot = False
+    inner_in_seqs = [inner_in_var]
+    if inner_out_info.name.endswith("mit_sot"):
+        inner_in_seqs = input_scan_args.inner_in_mit_sot[var_idx] + inner_in_seqs
+        if replacing:
+            output_scan_args.inner_in_mit_sot.pop(var_idx)
+            output_scan_args.outer_in_mit_sot.pop(var_idx)
+        add_nit_sot = True
+    elif inner_out_info.name.endswith("sit_sot"):
+        inner_in_seqs = [input_scan_args.inner_in_sit_sot[var_idx]] + inner_in_seqs
+        if replacing:
+            output_scan_args.inner_in_sit_sot.pop(var_idx)
+            output_scan_args.outer_in_sit_sot.pop(var_idx)
+        add_nit_sot = True
+
+    taps = [0]
+    if inner_out_info.name.endswith("mit_sot"):
+        taps = input_scan_args.mit_sot_in_slices[var_idx] + taps
+        if replacing:
+            output_scan_args.mit_sot_in_slices.pop(var_idx)
+    elif inner_out_info.name.endswith("sit_sot"):
+        taps = [-1] + taps
+
+    taps, inner_in_seqs = zip(*sorted(zip(taps, inner_in_seqs), key=lambda x: x[0]))
+
+    inner_in_seqs = list(reversed(inner_in_seqs))
+    output_scan_args.inner_in_seqs += inner_in_seqs
+
+    taps = np.asarray(taps)
+    slice_seqs = zip(-taps, [n if n < 0 else None for n in reversed(taps)])
+
+    # We could clone `var`, but reusing it will make things easier down the
+    # line (e.g. avoid the need to remap cloned variables)
+    # new_input_var = var.clone()
+    new_outer_input_var = var.clone()
+    if new_outer_input_var.name:
+        new_outer_input_var.name = new_outer_input_var.name.lower()
+
+    var_slices = [new_outer_input_var[b:e] for b, e in slice_seqs]
+    n_steps = tt.min([tt.shape(n)[0] for n in var_slices])
+
+    if output_scan_args.n_steps is None or replacing:
+        output_scan_args.n_steps = n_steps
+
+    output_scan_args.outer_in_seqs += [v[:n_steps] for v in var_slices]
+
+    if not replacing or add_nit_sot:
+        output_scan_args.outer_in_nit_sot += [n_steps]
+
+    if inner_out_fn:
+        output_scan_args.inner_out_nit_sot += [
+            inner_out_fn(input_scan_args, old_inner_out_var, inner_in_var, output_scan_args)
+        ]
+
+    return output_scan_args, new_outer_input_var
