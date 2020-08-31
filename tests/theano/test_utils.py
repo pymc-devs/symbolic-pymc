@@ -15,7 +15,11 @@ def test_is_random_variable():
         Y_t = NormalRV(0, 1, name="Y_t")
         return Y_t
 
-    Y_rv, scan_updates = theano.scan(fn=scan_fn, outputs_info=[{}], n_steps=10,)
+    Y_rv, scan_updates = theano.scan(
+        fn=scan_fn,
+        outputs_info=[{}],
+        n_steps=10,
+    )
 
     res = is_random_variable(Y_rv)
     assert res == (Y_rv, Y_rv.owner.op.outputs[0])

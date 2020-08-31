@@ -115,7 +115,12 @@ class MvNormalRVType(RandomVariable):
 
     def __init__(self):
         super().__init__(
-            "multivariate_normal", theano.config.floatX, 1, [1, 2], self._smpl_fn, inplace=True,
+            "multivariate_normal",
+            theano.config.floatX,
+            1,
+            [1, 2],
+            self._smpl_fn,
+            inplace=True,
         )
 
     @classmethod
@@ -376,7 +381,12 @@ class CategoricalRVType(RandomVariable):
 
     def __init__(self):
         super().__init__(
-            "categorical", "int64", 0, [1], sample_categorical, inplace=True,
+            "categorical",
+            "int64",
+            0,
+            [1],
+            sample_categorical,
+            inplace=True,
         )
 
     def make_node(self, pvals, size=None, rng=None, name=None):
@@ -397,7 +407,12 @@ class PolyaGammaRVType(RandomVariable):
 
     def __init__(self):
         super().__init__(
-            "polya-gamma", theano.config.floatX, 0, [0, 0], self._smpl_fn, inplace=True,
+            "polya-gamma",
+            theano.config.floatX,
+            0,
+            [0, 0],
+            self._smpl_fn,
+            inplace=True,
         )
 
     def make_node(self, b, c, size=None, rng=None, name=None):
