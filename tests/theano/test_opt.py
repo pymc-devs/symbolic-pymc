@@ -31,8 +31,7 @@ from tests.theano.utils import create_test_hmm
 
 @theano.change_flags(compute_test_value="ignore", cxx="", mode="FAST_COMPILE")
 def test_kanren_opt():
-    """Make sure we can run miniKanren "optimizations" over a graph until a fixed-point/normal-form is reached.
-    """
+    """Make sure we can run miniKanren "optimizations" over a graph until a fixed-point/normal-form is reached."""
     x_tt = tt.vector("x")
     c_tt = tt.vector("c")
     d_tt = tt.vector("c")
@@ -740,7 +739,9 @@ def test_convert_outer_out_to_in_mit_sot():
 
     Y_rv, _ = theano.scan(
         fn=input_step_fn,
-        outputs_info=[{"initial": tt.as_tensor_variable(np.r_[-1.0, 0.0]), "taps": [-1, -2]},],
+        outputs_info=[
+            {"initial": tt.as_tensor_variable(np.r_[-1.0, 0.0]), "taps": [-1, -2]},
+        ],
         non_sequences=[rng_tt],
         n_steps=10,
     )

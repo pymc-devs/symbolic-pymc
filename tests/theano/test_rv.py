@@ -8,7 +8,15 @@ from theano.gof.graph import inputs as tt_inputs
 from pytest import importorskip
 
 from symbolic_pymc.theano.opt import FunctionGraph
-from symbolic_pymc.theano.random_variables import NormalRV, MvNormalRV, PolyaGammaRV, DirichletRV
+from symbolic_pymc.theano.random_variables import (
+    NormalRV,
+    MvNormalRV,
+    PolyaGammaRV,
+    DirichletRV,
+    sample_dirichlet,
+    CategoricalRV,
+    sample_categorical,
+)
 
 from tests.theano import requires_test_values
 
@@ -196,6 +204,14 @@ def test_dirichletrv_samples():
         assert res.shape == (2, 3)
         assert all(np.all(r[i] > np.delete(r, [i])) for r in res)
 
+    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+
+    alphas = np.array([[1000, 1, 1], [1, 1000, 1], [1, 1, 1000]])
+
+    assert sample_dirichlet(rng_state, alphas).shape == alphas.shape
+    assert sample_dirichlet(rng_state, alphas, size=10).shape == (10,) + alphas.shape
+    assert sample_dirichlet(rng_state, alphas, size=(10, 2)).shape == (10, 2) + alphas.shape
+
 
 @requires_test_values
 def test_dirichlet_infer_shape():
@@ -236,3 +252,30 @@ def test_dirichlet_ShapeFeature():
 
     assert fg.memo[M_tt] in tt_inputs([s1])
     assert fg.memo[N_tt] in tt_inputs([s2])
+
+
+def test_categoricalrv_samples():
+    import theano
+
+    theano.config.cxx = ""
+    theano.config.mode = "FAST_COMPILE"
+
+    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+
+    p = np.array([[100000, 1, 1], [1, 100000, 1], [1, 1, 100000]])
+    p = p / p.sum(axis=-1)
+
+    assert sample_categorical(rng_state, p).shape == p.shape[:-1]
+    assert sample_categorical(rng_state, p, size=10).shape == (10,) + p.shape[:-1]
+    assert sample_categorical(rng_state, p, size=(10, 2)).shape == (10, 2) + p.shape[:-1]
+
+    res = CategoricalRV(p)
+    assert np.array_equal(res.eval(), np.arange(3))
+
+    res = CategoricalRV(p, size=10)
+    exp_res = np.tile(np.arange(3), (10, 1))
+    assert np.array_equal(res.eval(), exp_res)
+
+    res = CategoricalRV(p, size=(10, 2))
+    exp_res = np.tile(np.arange(3), (10, 2, 1))
+    assert np.array_equal(res.eval(), exp_res)

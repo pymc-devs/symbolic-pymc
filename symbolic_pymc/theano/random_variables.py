@@ -115,7 +115,12 @@ class MvNormalRVType(RandomVariable):
 
     def __init__(self):
         super().__init__(
-            "multivariate_normal", theano.config.floatX, 1, [1, 2], self._smpl_fn, inplace=True,
+            "multivariate_normal",
+            theano.config.floatX,
+            1,
+            [1, 2],
+            self._smpl_fn,
+            inplace=True,
         )
 
     @classmethod
@@ -138,19 +143,17 @@ class MvNormalRVType(RandomVariable):
 MvNormalRV = MvNormalRVType()
 
 
-def sample_dirichlet(rng, alphas, size):
-    if alphas.ndim > 1:
-        # XXX: This only handles a matrix of `alpha`s
-        if size is not None:
-            res = np.stack(
-                [np.random.RandomState.dirichlet(rng, a, size=size) for a in alphas], axis=len(size)
-            )
-        else:
-            res = np.stack([np.random.RandomState.dirichlet(rng, a, size=size) for a in alphas])
+def sample_dirichlet(rng, alphas, size=None):
+    if size is None:
+        size = ()
+    samples_shape = tuple(np.atleast_1d(size)) + alphas.shape
+    samples = np.empty(samples_shape)
+    alphas_bcast = np.broadcast_to(alphas, samples_shape)
 
-        return res
-    else:
-        return np.random.RandomState.dirichlet(rng, alphas, size=size)
+    for index in np.ndindex(*samples_shape[:-1]):
+        samples[index] = rng.dirichlet(alphas_bcast[index])
+
+    return samples
 
 
 class DirichletRVType(RandomVariable):
@@ -361,6 +364,17 @@ class MultinomialRVType(RandomVariable):
 
 MultinomialRV = MultinomialRVType()
 
+vsearchsorted = np.vectorize(np.searchsorted, otypes=[np.int], signature="(n),()->()")
+
+
+def sample_categorical(rng, p, size=None):
+    if size is None:
+        size = ()
+    samples_shape = tuple(np.atleast_1d(size)) + p.shape[:-1]
+    unif_samples = rng.uniform(size=samples_shape)
+    samples = vsearchsorted(p.cumsum(axis=-1), unif_samples)
+    return samples
+
 
 class CategoricalRVType(RandomVariable):
     print_name = ("Cat", "\\operatorname{Cat}")
@@ -371,9 +385,7 @@ class CategoricalRVType(RandomVariable):
             "int64",
             0,
             [1],
-            lambda rng, *args: stats.rv_discrete(values=(range(len(args[0])), args[0])).rvs(
-                size=args[1], random_state=rng
-            ),
+            sample_categorical,
             inplace=True,
         )
 
@@ -395,7 +407,12 @@ class PolyaGammaRVType(RandomVariable):
 
     def __init__(self):
         super().__init__(
-            "polya-gamma", theano.config.floatX, 0, [0, 0], self._smpl_fn, inplace=True,
+            "polya-gamma",
+            theano.config.floatX,
+            0,
+            [0, 0],
+            self._smpl_fn,
+            inplace=True,
         )
 
     def make_node(self, b, c, size=None, rng=None, name=None):
